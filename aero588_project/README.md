@@ -4,6 +4,7 @@ Starting geometry: NACA 0012. Scope: two-dimensional airfoil only; no finite-spa
 Framework: MACH-Aero, with ADflow for CFD and adjoint derivatives, pyGeo for geometry parameterization, IDWarp for mesh deformation, and pyOptSparse for optimization.
 
 ## Project status
+- **Solver, mesh and derivative studies** of the design case (0.70 m, 0.20 m, 100 km/h, α = 0 and −3°) with the repo's BCs: ANK on/off test, a three-level mesh study (77k–307k cells) and an adjoint vs finite-difference check of the optimization variables. See [study/README.md](study/README.md). The shape parameterization and optimization plan are in [docs/shape_control_and_optimization.md](docs/shape_control_and_optimization.md), with an interactive [FFD explorer](docs/ffd_explorer.html). The MACH-Aero container for this folder is `env/fwo.sh`.
 - An additional CFD case has converged at 0.50 m chord, 0.05 m minimum clearance, 200 km/h, and −3° nose-down incidence with horizontal freestream. See [case report and plots](cases/naca0012_c050_h005_u200_am3/README.md). It uses the same SA RANS/slip-ground model, with a new 88,548-cell mesh; mesh independence is not established.
 - Project folder is accessible; it was empty at initial inspection.
 - Ubuntu 24.04 starts successfully after the earlier transient WSL service crash. Docker and mdolab/public:u24-gcc-ompi-stable are installed. Package imports, SLSQP initialization, and two-rank MPI checks passed; see reports/environment_check.json. Container image digest: sha256:f29af49b0877de4ca040c84cc9b838cfca3690a9b4bcdf21d61bef118a9535af.

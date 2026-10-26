@@ -1,0 +1,855 @@
+<title>Front-Wing FFD Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+/* Layout: drawing-board canvas on the left (section view + basis strip), instrument panel on the right; stacks below 900px. */
+:root {
+  --bg: #edf0ee; --panel: #f7f8f6; --ink: #15202a; --muted: #5b6870; --line: #c8d0cc;
+  --accent: #0a6c8f; --hot: #c2410c; --shape: #1e3442; --ghost: #8a979c;
+  --ok: #2f7d4f; --bad: #b42318; --ground: #6b7570; --box: #5b4bb0;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1418; --panel: #151d22; --ink: #dde6e9; --muted: #93a3aa; --line: #2b3840;
+  --accent: #46b4db; --hot: #ff8b4d; --shape: #c9dce4; --ghost: #5e6f76;
+  --ok: #5cc08a; --bad: #ff7a6b; --ground: #8d9a9f; --box: #a99cff; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e1418; --panel: #151d22; --ink: #dde6e9; --muted: #93a3aa; --line: #2b3840;
+  --accent: #46b4db; --hot: #ff8b4d; --shape: #c9dce4; --ghost: #5e6f76;
+  --ok: #5cc08a; --bad: #ff7a6b; --ground: #8d9a9f; --box: #a99cff; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 14px; }
+h1 { font: 600 1.55rem/1.15 var(--f-display); letter-spacing: 0.01em; margin: 0; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 70ch; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.chip { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; background: var(--panel); min-width: 0; }
+.chip .k { font: 500 0.7rem/1.2 var(--f-display); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.chip .v { font: 500 1.02rem/1.3 var(--f-mono); font-variant-numeric: tabular-nums; }
+.chip .s { font-size: 0.75rem; color: var(--muted); }
+.chip.bad { border-color: var(--bad); }
+.chip.bad .v { color: var(--bad); }
+
+.board { border: 1px solid var(--line); border-radius: 6px; background: var(--panel); overflow: hidden; }
+svg { display: block; width: 100%; height: auto; touch-action: none; user-select: none; }
+#main { cursor: default; }
+.strip-head { display: flex; justify-content: space-between; gap: 12px; padding: 6px 12px 0; font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
+.strip-head b { font-family: var(--f-display); font-weight: 600; color: var(--ink); letter-spacing: 0.02em; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 8px 12px; border-top: 1px solid var(--line); font-size: 0.78rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 0; border-top: 2px solid; display: inline-block; }
+
+aside { display: flex; flex-direction: column; gap: 12px; }
+.panel { border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.panel h2 { font: 600 0.78rem/1.2 var(--f-display); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
+label.row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: baseline; font-size: 0.85rem; }
+label.row output { font: 500 0.85rem var(--f-mono); font-variant-numeric: tabular-nums; }
+label.row input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+label.row small { grid-column: 1 / -1; color: var(--muted); font-size: 0.75rem; margin-top: -2px; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+.seg button { font: 500 0.78rem var(--f-body); background: transparent; color: var(--ink); border: 0; padding: 6px 4px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--panel); }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
+.field > span { color: var(--muted); font-size: 0.78rem; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+select { font: 0.85rem var(--f-body); padding: 5px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); width: 100%; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: 0.85rem; }
+.check input { accent-color: var(--accent); margin-top: 3px; }
+.check small { display: block; color: var(--muted); font-size: 0.75rem; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.btns button, .copy { font: 500 0.8rem var(--f-body); padding: 5px 10px; border-radius: 5px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.btns button:hover, .copy:hover, .seg button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible, circle:focus-visible { outline: 2px solid var(--hot); outline-offset: 2px; }
+#dvbars { width: 100%; }
+.dvhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.note { font-size: 0.8rem; color: var(--muted); margin: 0; }
+.howto { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px 24px; }
+.howto div { min-width: 0; }
+.howto h3 { font: 600 0.95rem var(--f-display); margin: 0 0 4px; letter-spacing: 0.01em; }
+.howto p { margin: 0; color: var(--muted); font-size: 0.86rem; max-width: 62ch; }
+code { font-family: var(--f-mono); font-size: 0.9em; }
+.warn { color: var(--bad); font-size: 0.8rem; margin: 0; }
+.stopline { margin: 0 0 8px; min-height: 1.5em; font-size: 0.82rem; color: var(--muted); }
+.stopline.hit { color: var(--hot); font-weight: 500; }
+.regh { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.regh .check { font-size: 0.8rem; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Front-Wing FFD Explorer</h1>
+    <p>NACA 0012 section, chord 0.70 m, above the ground at 100 km/h. Drag a control point to see how the surface follows. The box and maths are the same as pyGeo's <code>DVGeometry</code>, with no flow solve.</p>
+  </header>
+
+  <div class="layout">
+    <section style="min-width:0">
+      <div class="chips" id="chips"></div>
+      <p class="stopline" id="stop" role="status" aria-live="polite"></p>
+      <div class="board">
+        <svg id="main" aria-label="Section, FFD box and control points"></svg>
+        <div class="strip-head"><span><b>Chordwise basis functions N<sub>i</sub>(u)</b> &nbsp;how much of a control point's move each part of the surface receives</span><span id="hoverinfo"></span></div>
+        <svg id="basis" viewBox="0 0 1000 150" aria-label="B-spline basis functions"></svg>
+        <div class="legend">
+          <span><i class="sw" style="border-color:var(--accent)"></i>control polygon</span>
+          <span><i class="sw" style="border-color:var(--accent);border-top-style:dotted"></i>actual box edge (B-spline)</span>
+          <span><i class="sw" style="border-color:var(--ghost);border-top-style:dashed"></i>baseline NACA 0012</span>
+          <span><i class="sw" style="border-color:var(--hot);border-top-width:4px;opacity:.6"></i>influence of the hovered point</span>
+          <span><i class="sw" style="border-color:var(--box);border-top-style:dashed"></i>regulation box (constraint)</span>
+          <span><i class="sw" style="border-color:var(--ground);border-top-style:dashed"></i>0.20 m minimum clearance</span>
+        </div>
+      </div>
+
+      <div class="howto">
+        <div><h3>What a control point does</h3><p>Every surface point is tied to fixed coordinates (u, v) inside the box. When a control point moves by Δ, a surface point moves by N<sub>i</sub>(u) · N<sub>j</sub>(v) · Δ: the chordwise basis value times the share of the lower or upper row. The motion is linear in Δ, which is why pyGeo's geometric constraints are linear in the shape variables.</p></div>
+        <div><h3>Why the move is local</h3><p>A B-spline of order k makes each basis function non-zero over at most k knot spans. With cubic splines (order 4) and 10 stations, one control point reshapes about 40 % of the chord and leaves the rest exactly unchanged. Order 2 gives hat functions with sharp kinks; fewer stations give broad, smooth changes.</p></div>
+        <div><h3>Global versus local</h3><p>Incidence rotates the whole box about c/4 and ride height lifts it. pyGeo applies these first, then adds the local Δy along global y. The LE/TE constraint keeps the end pairs moving equal and opposite, so local variables cannot sneak in a rotation or a lift that duplicates the global ones.</p></div>
+        <div><h3>The regulation box is a constraint</h3><p>The section starts with its lowest point exactly on the 0.20 m floor, so the floor is active from the first move: the lower surface cannot go down until the section is lifted (ride height, or "Seat on the floor"). Each surface coordinate is linear in a control-point move, so a drag stops exactly at the first contact. In the optimization this becomes a set of linear inequality constraints on the lower- and upper-surface points.</p></div>
+        <div><h3>Why the section cannot turn inside out</h3><p>At a given x the upper and lower surface points share the same u, so the local thickness is (v<sub>upper</sub> − v<sub>lower</sub>) · Σ N<sub>i</sub>(u) g<sub>i</sub>, where g<sub>i</sub> is the vertical gap between station i's two control points. The first factor is fixed and positive and the N<sub>i</sub> are never negative. So if every g<sub>i</sub> stays above g<sub>min</sub>, the thickness is positive everywhere, not only at the sampled stations. Turn both constraints off and drag a pair together near the trailing edge to see the loop cross itself and the signed area drop.</p></div>
+        <div><h3>The FFD box has to contain the section</h3><p>The box edge is the B-spline curve, not the control polygon, and it cuts inside the polygon's corners. With few stations a 2 % c margin is not enough and the section would poke out, which pyGeo cannot embed. The explorer then widens the margin and reports the value it used.</p></div>
+      </div>
+    </section>
+
+    <aside>
+      <div class="panel">
+        <h2>Global variables</h2>
+        <label class="row">Incidence α <output id="alphaOut"></output>
+          <input type="range" id="alpha" min="-4" max="4" step="0.1" value="0">
+          <small>Negative = nose down, LE below TE (repo sign). Rotation about c/4.</small></label>
+        <label class="row">Ride-height change Δh <output id="dhOut"></output>
+          <input type="range" id="dh" min="-50" max="100" step="1" value="0">
+          <small>Vertical translation of the whole box, mm.</small></label>
+      </div>
+
+      <div class="panel">
+        <div class="regh"><h2>Regulation box</h2>
+          <label class="check"><input type="checkbox" id="regOn" checked><span>Enforce</span></label></div>
+        <p class="note">The section must stay inside this box. Drags, sliders and presets stop where the surface touches an edge. The floor doubles as the clearance limit.</p>
+        <div class="two">
+          <label class="row">Front x <output id="reg_x0Out"></output>
+            <input type="range" id="reg_x0" min="-0.10" max="0.10" step="0.005" value="-0.02"></label>
+          <label class="row">Rear x <output id="reg_x1Out"></output>
+            <input type="range" id="reg_x1" min="0.60" max="0.85" step="0.005" value="0.72"></label>
+          <label class="row">Floor y <output id="reg_y0Out"></output>
+            <input type="range" id="reg_y0" min="0.10" max="0.30" step="0.005" value="0.20"></label>
+          <label class="row">Roof y <output id="reg_y1Out"></output>
+            <input type="range" id="reg_y1" min="0.25" max="0.45" step="0.005" value="0.32"></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Shape constraints</h2>
+        <label class="check"><input type="checkbox" id="gapOn" checked><span>Control gap ≥ g<sub>min</sub><small>Upper minus lower control point, every station. While every gap is positive the box cannot fold, so the section cannot cross itself.</small></span></label>
+        <label class="row">g<sub>min</sub> <output id="gminOut"></output>
+          <input type="range" id="gmin" min="0.5" max="40" step="0.5" value="5"></label>
+        <label class="check"><input type="checkbox" id="thkOn" checked><span>Thickness ≥ fraction of baseline<small>33 stations from 2 % to 99 % c, between embedded upper/lower point pairs (pyGeo style, but signed).</small></span></label>
+        <label class="row">t / t₀ at least <output id="tfracOut"></output>
+          <input type="range" id="tfrac" min="0" max="1" step="0.05" value="0.5"></label>
+        <p class="note">Both are linear in the control-point moves, so drags stop exactly at the limit. Horizontal moves only check the regulation box.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Dragging</h2>
+        <div class="field"><span>A drag on one point moves</span>
+          <div class="seg" id="coupling" role="group" aria-label="Coupling">
+            <button type="button" data-v="one" aria-pressed="true">that point</button>
+            <button type="button" data-v="camber" aria-pressed="false">pair, same way</button>
+            <button type="button" data-v="thick" aria-pressed="false">pair, opposite</button>
+          </div></div>
+        <label class="check"><input type="checkbox" id="lete" checked><span>LE/TE constraint<small>End stations: upper and lower move equal and opposite (<code>addLeTeConstraints</code>).</small></span></label>
+        <label class="check"><input type="checkbox" id="bounds" checked><span>Bounds ±0.05 c<small>±35 mm per control point, the proposed shape-variable bounds.</small></span></label>
+        <label class="check"><input type="checkbox" id="free"><span>Allow horizontal moves<small>Not part of the optimization's variables (they move y only).</small></span></label>
+        <p class="note">Keyboard: Tab to a point, ↑/↓ moves 1 mm (Shift: 5 mm), ←/→ picks the neighbouring station.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Box and view</h2>
+        <div class="two">
+          <label class="field"><span>Chordwise stations</span><select id="nst"></select></label>
+          <label class="field"><span>Spline order (chordwise)</span><select id="ord">
+            <option value="2">2, linear</option><option value="3">3, quadratic</option><option value="4" selected>4, cubic (pyGeo)</option></select></label>
+          <label class="field"><span>View</span><select id="view"><option value="section">Section</option><option value="ground">Section and ground</option></select></label>
+          <label class="field"><span>Vertical scale</span><select id="exag"><option value="1">×1, true shape</option><option value="2">×2</option><option value="4">×4</option></select></label>
+        </div>
+        <p class="note" id="margininfo"></p>
+      </div>
+
+      <div class="panel">
+        <h2>Try</h2>
+        <div class="btns">
+          <button type="button" data-preset="reset">Reset</button>
+          <button type="button" data-preset="camber">Camber toward the ground, re-seated</button>
+          <button type="button" data-preset="nose">Nose down 3°, seated on the floor</button>
+          <button type="button" data-preset="reseat">Seat on the floor</button>
+          <button type="button" data-preset="single">One point, 15 mm</button>
+          <button type="button" data-preset="thin">Thin the aft half</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="dvhead"><h2>Design vector</h2><button type="button" class="copy" id="copy">Copy</button></div>
+        <svg id="dvbars" viewBox="0 0 300 120" aria-label="Local design variables"></svg>
+        <p class="note" id="copynote">Δy of every control point, mm, lower and upper row.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const C = 0.7, H0 = 0.2, BOUND = 0.05 * C, NSIDE = 160, NTE = 8, XM = 0.001;
+  const S = 1000;                     // svg units per metre
+  const $ = (id) => document.getElementById(id);
+  const svgNS = "http://www.w3.org/2000/svg";
+  const yt = (x) => 0.6 * (0.2969 * Math.sqrt(x) - 0.126 * x - 0.3516 * x * x + 0.2843 * x ** 3 - 0.1015 * x ** 4);
+
+  // ---------- baseline section, body frame (x along chord, metres)
+  const body = [];
+  for (let i = 0; i <= 2 * NSIDE; i++) {
+    const th = (Math.PI * i) / NSIDE, x = (1 + Math.cos(th)) / 2;
+    body.push([x * C, (i <= NSIDE ? 1 : -1) * yt(x) * C]);
+  }
+  const yTE = yt(1) * C;
+  for (let i = 1; i < NTE; i++) body.push([C, -yTE + (2 * yTE * i) / NTE]);
+  const LE = NSIDE;
+  const OFFSET = H0 - Math.min(...body.map((p) => p[1]));   // lowest point at 0.20 m for alpha = 0
+  const PC = 0.25 * C;
+
+  const st = { n: 10, k: 4, alpha: 0, dh: 0, coupling: "one", lete: true, bounds: true, free: false,
+               view: "section", E: 1, dy: [], dx: [], hover: null, sel: [4, 0], margin: 0.02 };
+  const reg = { on: true, x0: -0.02, x1: 0.72, y0: 0.2, y1: 0.32 };   // regulation box, m
+  const cons = { gap: true, gmin: 0.005, thick: true, tfrac: 0.5 };    // shape constraints
+  const NPAIR = 33;                                                     // thickness stations, 2 % .. 99 % c
+  let stopMsg = "";
+
+  function place(bx, by, alpha = st.alpha, dh = st.dh) {
+    const a = (-alpha * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
+    return [c * (bx - PC) - s * by + PC, s * (bx - PC) + c * by + OFFSET + dh];
+  }
+  function unplace(x, y) {
+    const a = (st.alpha * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a), yy = y - OFFSET - st.dh;
+    return [c * (x - PC) - s * yy + PC, s * (x - PC) + c * yy];
+  }
+
+  // ---------- B-splines (clamped uniform knots, order k = degree + 1)
+  function knots(n, k) {
+    const t = [];
+    for (let i = 0; i < k; i++) t.push(0);
+    for (let i = 1; i <= n - k; i++) t.push(i / (n - k + 1));
+    for (let i = 0; i < k; i++) t.push(1);
+    return t;
+  }
+  function basis(u, n, k, t) {        // all n basis values at u (NURBS book A2.2)
+    let s = n - 1;
+    if (u < 1) for (s = k - 1; s < n - 1; s++) if (u < t[s + 1]) break;
+    const N = new Array(k).fill(0), L = [], R = [];
+    N[0] = 1;
+    for (let j = 1; j < k; j++) {
+      L[j] = u - t[s + 1 - j]; R[j] = t[s + j] - u;
+      let saved = 0;
+      for (let r = 0; r < j; r++) {
+        const tmp = N[r] / (R[r + 1] + L[j - r]);
+        N[r] = saved + R[r + 1] * tmp; saved = L[j - r] * tmp;
+      }
+      N[j] = saved;
+    }
+    const full = new Float64Array(n);
+    for (let r = 0; r < k; r++) full[s - k + 1 + r] = N[r];
+    return full;
+  }
+
+  // ---------- fitted box in the body frame and embedding of the surface
+  let box = null;   // {P0: [[ [x,y] lower, [x,y] upper ] per station], t, emb: [{N, v}], k}
+  function buildBox() {
+    const n = st.n, k = Math.min(st.k, n), t = knots(n, k);
+    const xs = Array.from({ length: n }, (_, i) => (-XM + ((1 + 2 * XM) * i) / (n - 1)) * C);
+    for (let m = 0.02; m <= 0.2; m += 0.005) {
+      const P0 = xs.map((x) => { const h = yt(Math.min(Math.max(x / C, 0), 1)) * C + m * C; return [[x, -h], [x, h]]; });
+      const curve = (u, j) => { const N = basis(u, n, k, t); let x = 0, y = 0; for (let i = 0; i < n; i++) { x += N[i] * P0[i][j][0]; y += N[i] * P0[i][j][1]; } return [x, y]; };
+      const embed = (bx, by) => {   // parametric (u, v) of a body-frame point in the baseline box
+        let lo = 0, hi = 1;
+        for (let it = 0; it < 60; it++) { const mid = 0.5 * (lo + hi); if (curve(mid, 0)[0] < bx) lo = mid; else hi = mid; }
+        const u = 0.5 * (lo + hi), yl = curve(u, 0)[1], yu = curve(u, 1)[1];
+        return { N: basis(u, n, k, t), v: (by - yl) / (yu - yl) };
+      };
+      const emb = body.map(([bx, by]) => embed(bx, by));
+      const ok = emb.every((e) => e.v > 0.01 && e.v < 0.99);
+      if (ok || m >= 0.195) {
+        // thickness stations: upper/lower point pairs at the same x embed at the same u
+        const pairs = [];
+        for (let q = 0; q < NPAIR; q++) {
+          const xc = 0.02 + (0.97 * q) / (NPAIR - 1), h = yt(xc) * C, up = embed(xc * C, h), dn = embed(xc * C, -h);
+          pairs.push({ xc, N: up.N, vu: up.v, vl: dn.v, t0: 2 * h });
+        }
+        box = { P0, t, emb, k, curve, pairs }; st.margin = m; return;
+      }
+    }
+  }
+
+  function resetDV() {
+    st.dy = Array.from({ length: st.n }, () => [0, 0]);
+    st.dx = Array.from({ length: st.n }, () => [0, 0]);
+  }
+
+  function ctrl() {   // placed + displaced control points
+    return box.P0.map((row, i) => row.map((p, j) => {
+      const q = place(p[0], p[1]);
+      return [q[0] + st.dx[i][j], q[1] + st.dy[i][j]];
+    }));
+  }
+  function surface(P) {
+    return box.emb.map(({ N, v }) => {
+      let x = 0, y = 0;
+      for (let i = 0; i < st.n; i++) {
+        if (!N[i]) continue;
+        const a = P[i][0], b = P[i][1];
+        x += N[i] * ((1 - v) * a[0] + v * b[0]);
+        y += N[i] * ((1 - v) * a[1] + v * b[1]);
+      }
+      return [x, y];
+    });
+  }
+
+  function evalUV(P, N, v) {
+    let x = 0, y = 0;
+    for (let i = 0; i < st.n; i++) {
+      if (!N[i]) continue;
+      x += N[i] * ((1 - v) * P[i][0][0] + v * P[i][1][0]);
+      y += N[i] * ((1 - v) * P[i][0][1] + v * P[i][1][1]);
+    }
+    return [x, y];
+  }
+  // signed thickness at each station, along the section normal (rotated with the incidence)
+  function pairThick(P) {
+    const a = (-st.alpha * Math.PI) / 180, nx = -Math.sin(a), ny = Math.cos(a);
+    return box.pairs.map((pr) => {
+      const U = evalUV(P, pr.N, pr.vu), L = evalUV(P, pr.N, pr.vl);
+      return { t: (U[0] - L[0]) * nx + (U[1] - L[1]) * ny, U, L };
+    });
+  }
+  const ctrlGaps = (P) => P.map((r) => r[1][1] - r[0][1]);   // upper minus lower control point, per station
+
+  // ---------- geometry measures
+  function interp(pts, x) {   // pts sorted by x
+    let lo = 0, hi = pts.length - 1;
+    if (x <= pts[0][0]) return pts[0][1];
+    if (x >= pts[hi][0]) return pts[hi][1];
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pts[m][0] <= x) lo = m; else hi = m; }
+    const [x0, y0] = pts[lo], [x1, y1] = pts[hi];
+    return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+  }
+  const area = (pts) => { let a = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; };   // signed: positive for the baseline loop
+  const A0 = area(body);
+
+  function measures(surf, P) {
+    const b = surf.map((p) => unplace(p[0], p[1]));
+    const up = b.slice(0, LE + 1).reverse().sort((p, q) => p[0] - q[0]);
+    const lo = b.slice(LE, 2 * NSIDE + 1).sort((p, q) => p[0] - q[0]);
+    let tmax = -1, xt = 0, cmax = 0, xc = 0, rmin = Infinity, xr = 0;
+    for (let i = 1; i < 100; i++) {
+      const x = (i / 100) * C, yu = interp(up, x), yl = interp(lo, x), t = yu - yl, cam = 0.5 * (yu + yl);
+      if (t > tmax) { tmax = t; xt = x; }
+      if (Math.abs(cam) > Math.abs(cmax)) { cmax = cam; xc = x; }
+    }
+    pairThick(P).forEach((r, q) => { const ratio = r.t / box.pairs[q].t0; if (ratio < rmin) { rmin = ratio; xr = box.pairs[q].xc * C; } });
+    let gmin = Infinity, gi = 0;
+    ctrlGaps(P).forEach((g, i) => { if (g < gmin) { gmin = g; gi = i; } });
+    const le = surf[LE], te = [0.5 * (surf[0][0] + surf[2 * NSIDE][0]), 0.5 * (surf[0][1] + surf[2 * NSIDE][1])];
+    const chordAngle = (Math.atan2(te[1] - le[1], te[0] - le[0]) * 180) / Math.PI;
+    let ymin = Infinity, xmin = 0;
+    for (const p of surf) if (p[1] < ymin) { ymin = p[1]; xmin = p[0]; }
+    return { ymin, xmin, tmax, xt, cmax, xc, rmin, xr, gmin, gi, area: area(surf) / A0, incidence: -chordAngle, up, lo };
+  }
+
+  // ---------- view mapping
+  const main = $("main"), basisSvg = $("basis");
+  let V = null;
+  function setView() {
+    const W = 0.86, x0 = -0.07, Aspect = window.innerWidth < 600 ? 0.62 : 0.44;
+    const E = st.view === "ground" ? 1 : st.E;
+    const yr = (W * Aspect) / E;
+    let yc = st.view === "ground" ? -0.025 + yr / 2 : OFFSET;
+    V = { x0, x1: x0 + W, y1: yc + yr / 2, y0: yc - yr / 2, E };
+    main.setAttribute("viewBox", `0 0 ${W * S} ${W * Aspect * S}`);
+  }
+  const sx = (x) => (x - V.x0) * S;
+  const sy = (y) => (V.y1 - y) * S * V.E;
+  const pxPerUnit = () => main.getBoundingClientRect().width / ((V.x1 - V.x0) * S) || 1;
+  const path = (pts, close) => pts.map((p, i) => `${i ? "L" : "M"}${sx(p[0]).toFixed(2)} ${sy(p[1]).toFixed(2)}`).join("") + (close ? "Z" : "");
+
+  // ---------- rendering
+  let circles = [];
+  function buildPoints() {
+    const g = $("gpts");
+    g.innerHTML = "";
+    circles = [];
+    for (let i = 0; i < st.n; i++) for (let j = 0; j < 2; j++) {
+      const c = document.createElementNS(svgNS, "circle");
+      c.setAttribute("tabindex", "0");
+      c.setAttribute("role", "slider");
+      c.setAttribute("aria-label", `Control point station ${i + 1}, ${j ? "upper" : "lower"} row`);
+      c.dataset.i = i; c.dataset.j = j;
+      c.style.cursor = "grab";
+      c.addEventListener("pointerdown", startDrag);
+      c.addEventListener("pointerenter", () => { st.hover = [i, j]; render(); });
+      c.addEventListener("pointerleave", () => { st.hover = null; render(); });
+      c.addEventListener("focus", () => { st.sel = [i, j]; render(); });
+      c.addEventListener("keydown", onKey);
+      g.appendChild(c);
+      circles.push(c);
+    }
+  }
+
+  function scaffold() {
+    main.innerHTML = `
+      <defs><pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="10" stroke="var(--ground)" stroke-width="1.2" opacity="0.5"/></pattern></defs>
+      <g id="gground"></g><g id="ggrid"></g>
+      <path id="ghost" fill="none" stroke="var(--ghost)" stroke-dasharray="6 5"/>
+      <path id="shape" fill="var(--shape)" fill-opacity="0.13" stroke="var(--shape)" stroke-linejoin="round"/>
+      <path id="camber" fill="none" stroke="var(--shape)" stroke-opacity="0.55" stroke-dasharray="2 4"/>
+      <g id="greg"></g><g id="gthk"></g><g id="ginf"></g><g id="gbox"></g><g id="gnet"></g><g id="gbnd"></g><g id="gpiv"></g><g id="gpts"></g>`;
+    buildPoints();
+  }
+
+  function render() {
+    const P = ctrl(), surf = surface(P), m = measures(surf, P), u = 1 / pxPerUnit();
+    const sw = (w) => (w * u).toFixed(2);
+    // ground, clearance line and axis ticks
+    let g = "";
+    if (V.y0 < 0.002) g += `<rect x="0" y="${sy(0)}" width="${(V.x1 - V.x0) * S}" height="${Math.max(0, sy(V.y0) - sy(0))}" fill="url(#hatch)"/>
+      <line x1="0" x2="${(V.x1 - V.x0) * S}" y1="${sy(0)}" y2="${sy(0)}" stroke="var(--ground)" stroke-width="${sw(1.5)}"/>
+      <text x="${sx(0.66)}" y="${sy(0) - 6 * u}" fill="var(--muted)" font-size="${11 * u}" font-family="var(--f-body)" text-anchor="end">ground, ideal slip plane (y = 0)</text>`;
+    if (H0 > V.y0 && H0 < V.y1 && !(reg.on && Math.abs(reg.y0 - H0) < 1e-9)) g += `<line x1="0" x2="${(V.x1 - V.x0) * S}" y1="${sy(H0)}" y2="${sy(H0)}" stroke="var(--ground)" stroke-dasharray="${8 * u} ${6 * u}" stroke-width="${sw(1)}"/>
+      <text x="${sx(V.x1) - 6 * u}" y="${sy(H0) + 14 * u}" fill="var(--muted)" font-size="${11 * u}" font-family="var(--f-body)" text-anchor="end">0.20 m minimum clearance</text>`;
+    $("gground").innerHTML = g;
+    let gr = "";
+    for (let x = 0; x <= 0.7001; x += 0.1) gr += `<line x1="${sx(x)}" x2="${sx(x)}" y1="${sy(V.y0)}" y2="${sy(V.y0) - 6 * u}" stroke="var(--muted)" stroke-width="${sw(1)}"/>
+      <text x="${sx(x)}" y="${sy(V.y0) - 10 * u}" fill="var(--muted)" font-size="${10 * u}" font-family="var(--f-mono)" text-anchor="middle">${x.toFixed(1)} m</text>`;
+    if (V.E > 1) gr += `<text x="${8 * u}" y="${16 * u}" fill="var(--hot)" font-size="${11 * u}" font-family="var(--f-body)">vertical scale ×${V.E}: shapes look ${V.E}× thicker than they are</text>`;
+    $("ggrid").innerHTML = gr;
+
+    // regulation box: edges turn hot when the section touches them, red when it is outside
+    const gaps = regGaps(surf), TOL = 3e-4;
+    const edge = (x1, y1, x2, y2, gap) => {
+      const col = gap < -TOL ? "var(--bad)" : gap < TOL ? "var(--hot)" : "var(--box)";
+      return `<line x1="${sx(x1)}" y1="${sy(y1)}" x2="${sx(x2)}" y2="${sy(y2)}" stroke="${col}" stroke-width="${sw(gap < TOL ? 3 : 1.4)}"${gap < TOL ? "" : ` stroke-dasharray="${7 * u} ${5 * u}"`} stroke-opacity="${reg.on ? 1 : 0.45}"/>`;
+    };
+    const lab = (x, y, t, anchor = "start") => `<text x="${sx(x)}" y="${sy(y)}" fill="var(--box)" font-size="${10 * u}" font-family="var(--f-mono)" text-anchor="${anchor}">${t}</text>`;
+    $("greg").innerHTML = `<rect x="${sx(reg.x0)}" y="${sy(reg.y1)}" width="${sx(reg.x1) - sx(reg.x0)}" height="${sy(reg.y0) - sy(reg.y1)}" fill="var(--box)" fill-opacity="${reg.on ? 0.07 : 0.025}"/>` +
+      edge(reg.x0, reg.y0, reg.x1, reg.y0, gaps.floor) + edge(reg.x0, reg.y1, reg.x1, reg.y1, gaps.roof) +
+      edge(reg.x0, reg.y0, reg.x0, reg.y1, gaps.front) + edge(reg.x1, reg.y0, reg.x1, reg.y1, gaps.rear) +
+      lab(reg.x0 + 0.004, reg.y0 + 6 * u / (S * V.E), `floor ${reg.y0.toFixed(3)} m`) +
+      lab(reg.x0 + 0.004, reg.y1 - 14 * u / (S * V.E), `roof ${reg.y1.toFixed(3)} m`) +
+      lab(reg.x1 - 0.004, reg.y1 - 14 * u / (S * V.E), `x ${reg.x0.toFixed(3)} … ${reg.x1.toFixed(3)} m`, "end");
+
+    // shapes
+    const base = body.map(([x, y]) => place(x, y, 0, 0));
+    const gh = $("ghost"); gh.setAttribute("d", path(base, true)); gh.setAttribute("stroke-width", sw(1.2));
+    const sh = $("shape"); sh.setAttribute("d", path(surf, true)); sh.setAttribute("stroke-width", sw(2));
+    const camb = [];
+    for (let i = 0; i <= 50; i++) { const x = (i / 50) * C; camb.push(place(x, 0.5 * (interp(m.up, x) + interp(m.lo, x)))); }
+    const cl = $("camber"); cl.setAttribute("d", path(camb)); cl.setAttribute("stroke-width", sw(1.2));
+
+    // influence of the hovered (or selected) point
+    const act = st.hover || st.sel;
+    let inf = "";
+    if (act) {
+      const [ai, aj] = act;
+      for (let p = 0; p < surf.length; p++) {
+        const q = (p + 1) % surf.length, e = box.emb[p], w = e.N[ai] * (aj ? e.v : 1 - e.v);
+        if (w < 0.01) continue;
+        inf += `<line x1="${sx(surf[p][0])}" y1="${sy(surf[p][1])}" x2="${sx(surf[q][0])}" y2="${sy(surf[q][1])}" stroke="var(--hot)" stroke-opacity="${(0.15 + 0.75 * w).toFixed(2)}" stroke-width="${sw(2 + 9 * w)}" stroke-linecap="round"/>`;
+      }
+    }
+    $("ginf").innerHTML = inf;
+
+    // box edges (B-spline) and control polygon
+    let bx = "";
+    for (let j = 0; j < 2; j++) {
+      const pts = [];
+      for (let s = 0; s <= 120; s++) {
+        const N = basis(s / 120, st.n, box.k, box.t);
+        let x = 0, y = 0;
+        for (let i = 0; i < st.n; i++) { x += N[i] * P[i][j][0]; y += N[i] * P[i][j][1]; }
+        pts.push([x, y]);
+      }
+      bx += `<path d="${path(pts)}" fill="none" stroke="var(--accent)" stroke-width="${sw(1.3)}" stroke-dasharray="${2 * u} ${4 * u}"/>`;
+    }
+    $("gbox").innerHTML = bx;
+    let net = "";
+    for (let j = 0; j < 2; j++) net += `<path d="${path(P.map((r) => r[j]))}" fill="none" stroke="var(--accent)" stroke-opacity="0.75" stroke-width="${sw(1)}"/>`;
+    const G = ctrlGaps(P), TOLC = 3e-4;
+    for (let i = 0; i < st.n; i++) {   // station verticals: hot at the gap limit, red when folded or below it
+      const bad = G[i] <= 0 || (cons.gap && G[i] < cons.gmin - TOLC), hot = cons.gap && G[i] < cons.gmin + TOLC;
+      net += `<path d="${path([P[i][0], P[i][1]])}" fill="none" stroke="${bad ? "var(--bad)" : hot ? "var(--hot)" : "var(--accent)"}" stroke-opacity="${bad || hot ? 1 : 0.35}" stroke-width="${sw(bad || hot ? 2.5 : 1)}"/>`;
+    }
+    $("gnet").innerHTML = net;
+    let thk = "";
+    pairThick(P).forEach((r, q) => {
+      const lim = cons.tfrac * box.pairs[q].t0;
+      const bad = r.t < 0 || (cons.thick && r.t < lim - 1e-5), hot = cons.thick && r.t < lim + 1e-4;
+      thk += `<path d="${path([r.L, r.U])}" stroke="${bad ? "var(--bad)" : hot ? "var(--hot)" : "var(--ghost)"}" stroke-opacity="${bad || hot ? 1 : cons.thick ? 0.45 : 0.2}" stroke-width="${sw(bad || hot ? 2 : 0.8)}" fill="none"/>`;
+    });
+    $("gthk").innerHTML = thk;
+
+    // bounds and displacement arrows
+    let bnd = "";
+    for (let i = 0; i < st.n; i++) for (let j = 0; j < 2; j++) {
+      const q = place(box.P0[i][j][0], box.P0[i][j][1]), X = sx(q[0] + st.dx[i][j]);
+      if (st.bounds) bnd += `<line x1="${X}" x2="${X}" y1="${sy(q[1] - BOUND)}" y2="${sy(q[1] + BOUND)}" stroke="var(--accent)" stroke-opacity="0.18" stroke-width="${sw(5)}" stroke-linecap="round"/>`;
+      if (Math.abs(st.dy[i][j]) + Math.abs(st.dx[i][j]) > 1e-5)
+        bnd += `<line x1="${sx(q[0])}" y1="${sy(q[1])}" x2="${X}" y2="${sy(q[1] + st.dy[i][j])}" stroke="var(--accent)" stroke-width="${sw(1)}"/><circle cx="${sx(q[0])}" cy="${sy(q[1])}" r="${2.5 * u}" fill="var(--accent)"/>`;
+    }
+    $("gbnd").innerHTML = bnd;
+
+    // pivot and chord
+    const pv = place(PC, 0), leP = surf[LE], teP = [0.5 * (surf[0][0] + surf[2 * NSIDE][0]), 0.5 * (surf[0][1] + surf[2 * NSIDE][1])];
+    $("gpiv").innerHTML = `<path d="${path([leP, teP])}" stroke="var(--muted)" stroke-width="${sw(0.8)}" stroke-dasharray="${6 * u} ${3 * u} ${1 * u} ${3 * u}" fill="none"/>
+      <circle cx="${sx(pv[0])}" cy="${sy(pv[1])}" r="${4 * u}" fill="var(--panel)" stroke="var(--ink)" stroke-width="${sw(1.2)}"/>
+      <text x="${sx(pv[0]) + 7 * u}" y="${sy(pv[1]) - 7 * u}" fill="var(--muted)" font-size="${10 * u}" font-family="var(--f-mono)">c/4 pivot</text>`;
+
+    // control points
+    circles.forEach((c) => {
+      const i = +c.dataset.i, j = +c.dataset.j, p = P[i][j];
+      const isAct = act && act[0] === i && act[1] === j;
+      const locked = st.lete && (i === 0 || i === st.n - 1);
+      c.setAttribute("cx", sx(p[0])); c.setAttribute("cy", sy(p[1]));
+      c.setAttribute("r", (isAct ? 8 : 6.5) * u);
+      c.setAttribute("fill", isAct ? "var(--hot)" : locked ? "var(--panel)" : "var(--accent)");
+      c.setAttribute("stroke", isAct ? "var(--hot)" : "var(--accent)");
+      c.setAttribute("stroke-width", sw(2));
+      c.setAttribute("aria-valuenow", (st.dy[i][j] * 1000).toFixed(1));
+      c.setAttribute("aria-valuetext", `${(st.dy[i][j] * 1000).toFixed(1)} mm`);
+    });
+
+    renderBasis(act);
+    renderChips(m, gaps);
+    const stop = $("stop");
+    stop.textContent = stopMsg || (reg.on ? "The regulation box is enforced: control points stop where the section touches it." : "Regulation box off: shapes may leave it (edges turn red).");
+    stop.classList.toggle("hit", !!stopMsg);
+    for (const k of ["x0", "x1", "y0", "y1"]) $(`reg_${k}Out`).textContent = `${reg[k].toFixed(3)} m`;
+    $("gminOut").textContent = `${(cons.gmin * 1000).toFixed(1)} mm`;
+    $("tfracOut").textContent = cons.tfrac.toFixed(2);
+    renderBars(act);
+    $("alphaOut").textContent = `${st.alpha > 0 ? "+" : ""}${st.alpha.toFixed(1)}°  ${st.alpha < 0 ? "nose down" : st.alpha > 0 ? "nose up" : ""}`;
+    $("dhOut").textContent = `${st.dh >= 0 ? "+" : ""}${(st.dh * 1000).toFixed(0)} mm`;
+  }
+
+  function renderBasis(act) {
+    const n = st.n, X0 = 46, X1 = 984, Y0 = 122, Y1 = 14;
+    const xmap = (xc) => X0 + ((xc + 0.03) / 1.06) * (X1 - X0), ymap = (v) => Y0 + (Y1 - Y0) * v;
+    const samples = [];
+    for (let s = 0; s <= 300; s++) {
+      const u = s / 300, N = basis(u, n, box.k, box.t);
+      let x = 0; for (let i = 0; i < n; i++) x += N[i] * box.P0[i][0][0];
+      samples.push([x / C, N]);
+    }
+    let h = `<line x1="${X0}" x2="${X1}" y1="${Y0}" y2="${Y0}" stroke="var(--line)"/>
+      <text x="${X0 - 8}" y="${ymap(1) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--f-mono)">1</text>
+      <text x="${X0 - 8}" y="${Y0 + 4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--f-mono)">0</text>`;
+    for (let x = 0; x <= 1.0001; x += 0.2) h += `<text x="${xmap(x)}" y="${Y0 + 18}" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="var(--f-mono)">${x.toFixed(1)}</text>`;
+    h += `<text x="${X1}" y="${Y0 + 18}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--f-body)">x/c</text>`;
+    for (let i = 0; i < n; i++) {
+      const on = act && act[0] === i;
+      const d = samples.map(([x, N], s) => `${s ? "L" : "M"}${xmap(x).toFixed(1)} ${ymap(N[i]).toFixed(1)}`).join("");
+      h += `<path d="${d}" fill="none" stroke="${on ? "var(--hot)" : "var(--accent)"}" stroke-opacity="${on ? 1 : 0.35}" stroke-width="${on ? 2.5 : 1.2}"/>`;
+      h += `<circle cx="${xmap(box.P0[i][0][0] / C)}" cy="${Y0}" r="3" fill="${on ? "var(--hot)" : "var(--accent)"}"/>`;
+    }
+    basisSvg.innerHTML = h;
+    if (act) {
+      let wmax = 0, xm = 0;
+      for (const [x, N] of samples) if (N[act[0]] > wmax) { wmax = N[act[0]]; xm = x; }
+      const span = samples.filter(([, N]) => N[act[0]] > 1e-9).map(([x]) => x);
+      $("hoverinfo").textContent = `station ${act[0] + 1}, ${act[1] ? "upper" : "lower"}: peak N = ${wmax.toFixed(2)} at x/c = ${xm.toFixed(2)}, reaches x/c ${Math.max(0, span[0]).toFixed(2)} to ${Math.min(1, span[span.length - 1]).toFixed(2)}`;
+    }
+  }
+
+  function renderChips(m, gaps) {
+    const chip = (k, v, s, bad) => `<div class="chip${bad ? " bad" : ""}"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+    const worst = Math.min(gaps.floor, gaps.roof, gaps.front, gaps.rear);
+    const touching = Object.entries(gaps).filter(([, g]) => Math.abs(g) < 3e-4).map(([k]) => k);
+    const boxState = worst < -3e-4 ? `outside ${(-worst * 1000).toFixed(1)} mm` : touching.length ? `touching ${touching.join(", ")}` : "inside";
+    const mm = (g) => `${g >= 0 ? "+" : ""}${(g * 1000).toFixed(1)}`;
+    $("chips").innerHTML =
+      chip("Regulation box", boxState, `gap, mm: floor ${mm(gaps.floor)} · roof ${mm(gaps.roof)} · front ${mm(gaps.front)} · rear ${mm(gaps.rear)}`, worst < -3e-4) +
+      chip("Lowest point", `${m.ymin.toFixed(4)} m`, m.ymin < H0 - 1e-6 ? `below 0.20 m by ${((H0 - m.ymin) * 1000).toFixed(1)} mm` : `at x = ${m.xmin.toFixed(3)} m, limit 0.20 m`, m.ymin < H0 - 1e-6) +
+      chip("Max thickness", `${((m.tmax / C) * 100).toFixed(2)} % c`, `at x/c = ${(m.xt / C).toFixed(2)}, baseline 12.00 %`) +
+      chip("Thickness, min", `${m.rmin.toFixed(3)} t₀`, m.rmin < 0 ? `section crossed at x/c ${(m.xr / C).toFixed(2)}` : `signed, at x/c ${(m.xr / C).toFixed(2)}${cons.thick ? `, limit ${cons.tfrac.toFixed(2)} t₀` : ""}`, m.rmin < 0 || (cons.thick && m.rmin < cons.tfrac - 1e-3)) +
+      chip("Control gap, min", `${(m.gmin * 1000).toFixed(1)} mm`, m.gmin <= 0 ? `box folded at station ${m.gi + 1}` : `station ${m.gi + 1}${cons.gap ? `, limit ${(cons.gmin * 1000).toFixed(1)} mm` : ""}`, m.gmin <= 0 || (cons.gap && m.gmin < cons.gmin - 3e-4)) +
+      chip("Area, signed", `${m.area.toFixed(3)} A₀`, m.area <= 0 ? "section inverted" : m.rmin < 0 ? "loop crosses itself: lobes cancel" : "section area vs baseline", m.area <= 0 || m.rmin < 0) +
+      chip("Max camber", `${((m.cmax / C) * 100).toFixed(2)} % c`, `at x/c ${(m.xc / C).toFixed(2)}, negative = toward ground`) +
+      chip("Chord-line incidence", `${m.incidence >= 0 ? "+" : ""}${m.incidence.toFixed(2)}°`, "LE→TE line incl. local moves");
+  }
+
+  function renderBars(act) {
+    const n = st.n, W = 300, Hh = 120, mid = 60, sc = 50 / (BOUND * 1000);
+    const bw = (W - 30) / n;
+    let h = `<line x1="24" x2="${W}" y1="${mid}" y2="${mid}" stroke="var(--line)"/>
+      <text x="0" y="${mid - 50 + 4}" font-size="9" fill="var(--muted)" font-family="var(--f-mono)">+35</text>
+      <text x="0" y="${mid + 50 + 2}" font-size="9" fill="var(--muted)" font-family="var(--f-mono)">−35</text>`;
+    for (let i = 0; i < n; i++) for (let j = 0; j < 2; j++) {
+      const v = st.dy[i][j] * 1000, x = 28 + i * bw + j * bw * 0.45, on = act && act[0] === i && act[1] === j;
+      const y = v >= 0 ? mid - v * sc : mid, hgt = Math.max(Math.abs(v * sc), 0.5);
+      h += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bw * 0.4).toFixed(1)}" height="${hgt.toFixed(1)}" fill="${on ? "var(--hot)" : j ? "var(--accent)" : "var(--ghost)"}"/>`;
+    }
+    h += `<text x="28" y="${Hh - 2}" font-size="9" fill="var(--muted)" font-family="var(--f-body)">each station: lower (grey), upper (blue)</text>`;
+    $("dvbars").innerHTML = h;
+  }
+
+  // ---------- regulation box
+  function regGaps(surf) {   // signed clearance to each edge, m (negative = outside)
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const [x, y] of surf) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    return { floor: y0 - reg.y0, roof: reg.y1 - y1, front: x0 - reg.x0, rear: reg.x1 - x1 };
+  }
+  const violation = () => {   // largest violation of any enforced constraint, m
+    const P = ctrl(), g = regGaps(surface(P));
+    let v = reg.on ? Math.max(0, -g.floor, -g.roof, -g.front, -g.rear) : 0;
+    if (cons.gap) for (const gi of ctrlGaps(P)) v = Math.max(v, cons.gmin - gi);
+    if (cons.thick) pairThick(P).forEach((r, q) => { v = Math.max(v, cons.tfrac * box.pairs[q].t0 - r.t); });
+    return v;
+  };
+
+  // Linear limits a + b d >= L on a move d; returns d clamped to the admissible interval.
+  function linLimit(d, terms, msg) {
+    let lo = -Infinity, hi = Infinity, tlo = null, thi = null;
+    for (const term of terms) {
+      if (Math.abs(term.b) < 1e-12) continue;
+      const r = (term.L - term.a) / term.b;
+      if (term.b > 0 && r > lo) { lo = r; tlo = term; }
+      if (term.b < 0 && r < hi) { hi = r; thi = term; }
+    }
+    if (d < lo) { stopMsg = msg(lo, tlo); return lo; }
+    if (d > hi) { stopMsg = msg(hi, thi); return hi; }
+    return d;
+  }
+  function withZeroed(i, j, fn) {   // evaluate fn with the dragged point (and its coupled partner) at zero move
+    const f = partnerFactor(i, j), keep = [st.dy[i][0], st.dy[i][1]];
+    st.dy[i][j] = 0;
+    if (f !== null) st.dy[i][1 - j] = 0;
+    const r = fn();
+    st.dy[i][0] = keep[0]; st.dy[i][1] = keep[1];
+    return r;
+  }
+  // control gap of station i: g(d) = g_base + s d; a gap already below g_min may only grow
+  function limitGap(i, j, d) {
+    const f = partnerFactor(i, j), s = (j ? 1 : -1) + (f !== null ? f * (j ? -1 : 1) : 0);
+    const cur = ctrlGaps(ctrl())[i], base = withZeroed(i, j, () => ctrlGaps(ctrl())[i]);
+    return linLimit(d, [{ a: base, b: s, L: Math.min(cons.gmin, cur) }],
+      (v) => `Stopped at ${(v * 1000).toFixed(1)} mm: the control gap at station ${i + 1} reached ${(cons.gmin * 1000).toFixed(1)} mm.`);
+  }
+  // signed thickness at every station: t_k(d) = t_base,k + c_k d
+  function limitThick(i, j, d) {
+    const f = partnerFactor(i, j), ny = Math.cos((st.alpha * Math.PI) / 180);
+    const cur = pairThick(ctrl()), base = withZeroed(i, j, () => pairThick(ctrl()));
+    const rw = (v) => (j ? v : 1 - v) + (f !== null ? f * (j ? 1 - v : v) : 0);
+    const terms = box.pairs.map((pr, q) => ({ a: base[q].t, b: ny * pr.N[i] * (rw(pr.vu) - rw(pr.vl)),
+      L: Math.min(cons.tfrac * pr.t0, cur[q].t), xc: pr.xc }));
+    return linLimit(d, terms, (v, term) => `Stopped at ${(v * 1000).toFixed(1)} mm: the thickness at x/c ${term.xc.toFixed(2)} reached ${cons.tfrac.toFixed(2)} of the baseline.`);
+  }
+
+  // A drag moves the dragged control point by d and, when coupled, its partner in the same
+  // station by f*d. Each surface coordinate is linear in d: y_p(d) = a_p + b_p d, so the largest
+  // admissible move is an exact interval. A point already outside may only move back in.
+  function partnerFactor(i, j) {
+    if (st.lete && (i === 0 || i === st.n - 1)) return -1;
+    if (st.coupling === "camber") return 1;
+    if (st.coupling === "thick") return -1;
+    return null;
+  }
+  function limitAxis(i, j, d, axis) {
+    const k = axis === "y" ? 1 : 0, f = axis === "y" ? partnerFactor(i, j) : null;
+    const arr = axis === "y" ? st.dy : st.dx, keep = [arr[i][0], arr[i][1]], d0 = arr[i][j];
+    arr[i][j] = 0;
+    if (f !== null) arr[i][1 - j] = 0;
+    const base = surface(ctrl());
+    arr[i][0] = keep[0]; arr[i][1] = keep[1];
+    const lim0 = axis === "y" ? reg.y0 : reg.x0, lim1 = axis === "y" ? reg.y1 : reg.x1;
+    let lo = -Infinity, hi = Infinity, loEdge = "", hiEdge = "";
+    box.emb.forEach(({ N, v }, p) => {
+      if (!N[i]) return;
+      const b = N[i] * ((j ? v : 1 - v) + (f !== null ? f * (j ? 1 - v : v) : 0));
+      if (Math.abs(b) < 1e-12) return;
+      const a = base[p][k], cur = a + b * d0;
+      const dL = (Math.min(lim0, cur) - a) / b, dU = (Math.max(lim1, cur) - a) / b;
+      const [l, h, el, eh] = b > 0 ? [dL, dU, "lo", "hi"] : [dU, dL, "hi", "lo"];
+      if (l > lo) { lo = l; loEdge = el; }
+      if (h < hi) { hi = h; hiEdge = eh; }
+    });
+    const name = axis === "y" ? { lo: "floor", hi: "roof" } : { lo: "front edge", hi: "rear edge" };
+    if (d < lo) { stopMsg = `Stopped at ${(lo * 1000).toFixed(1)} mm: the section touches the box ${name[loEdge]}.`; return lo; }
+    if (d > hi) { stopMsg = `Stopped at ${(hi * 1000).toFixed(1)} mm: the section touches the box ${name[hiEdge]}.`; return hi; }
+    return d;
+  }
+  function moveDy(i, j, d) {
+    stopMsg = "";
+    if (st.bounds && Math.abs(d) > BOUND) { d = Math.sign(d) * BOUND; stopMsg = "Stopped at the ±35 mm variable bound."; }
+    if (reg.on) d = limitAxis(i, j, d, "y");
+    if (cons.gap) d = limitGap(i, j, d);
+    if (cons.thick) d = limitThick(i, j, d);
+    st.dy[i][j] = d;
+    const f = partnerFactor(i, j);
+    if (f !== null) st.dy[i][1 - j] = f * d;
+  }
+  function moveDx(i, j, d) {
+    if (reg.on) d = limitAxis(i, j, d, "x");
+    st.dx[i][j] = d;
+  }
+  // Global moves are not linear in the variable (rotation), so their limit is found by bisection.
+  function guarded(set, from, to, what) {
+    stopMsg = "";
+    if (!reg.on && !cons.gap && !cons.thick) { set(to); return to; }
+    set(from);
+    const v0 = violation();
+    set(to);
+    if (violation() <= v0 + 1e-9) return to;
+    let lo = 0, hi = 1;
+    for (let it = 0; it < 40; it++) { const m = 0.5 * (lo + hi); set(from + m * (to - from)); if (violation() <= v0 + 1e-9) lo = m; else hi = m; }
+    const val = from + lo * (to - from);
+    set(val);
+    stopMsg = `${what}: a constraint became active (box, control gap or thickness).`;
+    return val;
+  }
+
+  // ---------- interaction
+
+  let drag = null;
+  function toWorld(e) {
+    const pt = main.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const p = pt.matrixTransform(main.getScreenCTM().inverse());
+    return [V.x0 + p.x / S, V.y1 - p.y / (S * V.E)];
+  }
+  function startDrag(e) {
+    const i = +e.currentTarget.dataset.i, j = +e.currentTarget.dataset.j, w = toWorld(e);
+    st.sel = [i, j];
+    drag = { i, j, oy: w[1] - st.dy[i][j], ox: w[0] - st.dx[i][j], id: e.pointerId };
+    main.setPointerCapture(e.pointerId);
+    e.currentTarget.style.cursor = "grabbing";
+    e.preventDefault();
+    render();
+  }
+  main.addEventListener("pointermove", (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const w = toWorld(e);
+    moveDy(drag.i, drag.j, w[1] - drag.oy);
+    if (st.free) moveDx(drag.i, drag.j, w[0] - drag.ox);
+    st.hover = [drag.i, drag.j];
+    render();
+  });
+  const endDrag = (e) => { if (drag && e.pointerId === drag.id) { drag = null; circles.forEach((c) => (c.style.cursor = "grab")); } };
+  main.addEventListener("pointerup", endDrag);
+  main.addEventListener("pointercancel", endDrag);
+
+  function onKey(e) {
+    const i = +e.currentTarget.dataset.i, j = +e.currentTarget.dataset.j, step = (e.shiftKey ? 5 : 1) / 1000;
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      moveDy(i, j, st.dy[i][j] + (e.key === "ArrowUp" ? step : -step)); st.sel = [i, j]; render(); e.preventDefault();
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      const ni = Math.max(0, Math.min(st.n - 1, i + (e.key === "ArrowRight" ? 1 : -1)));
+      circles[ni * 2 + j].focus(); e.preventDefault();
+    }
+  }
+
+  $("alpha").addEventListener("input", (e) => {
+    const v = guarded((x) => (st.alpha = x), st.alpha, +e.target.value, "Incidence stopped");
+    if (v !== +e.target.value) e.target.value = v;
+    render();
+  });
+  $("dh").addEventListener("input", (e) => {
+    const v = guarded((x) => (st.dh = x), st.dh, +e.target.value / 1000, "Ride height stopped");
+    if (v * 1000 !== +e.target.value) e.target.value = v * 1000;
+    render();
+  });
+  $("regOn").addEventListener("change", (e) => { reg.on = e.target.checked; stopMsg = ""; render(); });
+  const consChanged = () => {
+    stopMsg = violation() > 1e-9 ? "The current shape violates an enforced constraint: moves can only reduce the violation." : "";
+    render();
+  };
+  $("gapOn").addEventListener("change", (e) => { cons.gap = e.target.checked; consChanged(); });
+  $("gmin").addEventListener("input", (e) => { cons.gmin = +e.target.value / 1000; consChanged(); });
+  $("thkOn").addEventListener("change", (e) => { cons.thick = e.target.checked; consChanged(); });
+  $("tfrac").addEventListener("input", (e) => { cons.tfrac = +e.target.value; consChanged(); });
+  for (const k of ["x0", "x1", "y0", "y1"]) $(`reg_${k}`).addEventListener("input", (e) => {
+    reg[k] = +e.target.value;
+    if (reg.y1 < reg.y0 + 0.02) { if (k === "y0") reg.y1 = reg.y0 + 0.02; else reg.y0 = reg.y1 - 0.02; }
+    if (reg.x1 < reg.x0 + 0.3) { if (k === "x0") reg.x1 = reg.x0 + 0.3; else reg.x0 = reg.x1 - 0.3; }
+    for (const q of ["x0", "x1", "y0", "y1"]) $(`reg_${q}`).value = reg[q];
+    stopMsg = violation() > 0 && reg.on ? "The current shape is outside the new box: points can only move back inside." : "";
+    render();
+  });
+  $("coupling").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    st.coupling = b.dataset.v;
+    $("coupling").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  });
+  $("lete").addEventListener("change", (e) => { st.lete = e.target.checked; if (st.lete) for (const i of [0, st.n - 1]) st.dy[i][0] = -st.dy[i][1]; render(); });
+  $("bounds").addEventListener("change", (e) => { st.bounds = e.target.checked; render(); });
+  $("free").addEventListener("change", (e) => { st.free = e.target.checked; if (!st.free) resetDx(); render(); });
+  const resetDx = () => { st.dx = Array.from({ length: st.n }, () => [0, 0]); };
+  const nst = $("nst");
+  for (let n = 4; n <= 14; n++) nst.insertAdjacentHTML("beforeend", `<option value="${n}"${n === 10 ? " selected" : ""}>${n}${n === 10 ? " (study)" : ""}</option>`);
+  function rebuild() {
+    buildBox(); resetDV();
+    st.sel = [Math.min(st.sel[0], st.n - 1), st.sel[1]];
+    $("margininfo").textContent = `Box margin ${(st.margin * 100).toFixed(1)} % c above and below the section` +
+      (st.margin > 0.0201 ? ": widened from 2 % so the B-spline box edge still contains the section." : ", as in the study's FFD.") +
+      ` ${st.n} × 2 control points, order ${box.k}.`;
+    scaffold(); render();
+  }
+  nst.addEventListener("change", (e) => { st.n = +e.target.value; rebuild(); });
+  $("ord").addEventListener("change", (e) => { st.k = +e.target.value; rebuild(); });
+  $("view").addEventListener("change", (e) => { st.view = e.target.value; $("exag").disabled = st.view === "ground"; setView(); render(); });
+  $("exag").addEventListener("change", (e) => { st.E = +e.target.value; setView(); render(); });
+
+  const floorY = () => (reg.on ? reg.y0 : H0);
+  const lowest = () => Math.min(...surface(ctrl()).map((p) => p[1]));
+  document.querySelectorAll("[data-preset]").forEach((b) => b.addEventListener("click", () => {
+    const p = b.dataset.preset;
+    stopMsg = "";
+    if (p === "reseat") {   // lift or lower the whole section until its lowest point sits on the floor
+      guarded((x) => (st.dh = x), st.dh, st.dh + floorY() - lowest(), "Seating stopped");
+    } else if (p === "nose") {   // nose down about c/4, then re-seat (the repo's placement rule)
+      resetDV(); st.alpha = -3; st.dh = 0; st.dh = floorY() - lowest();
+    } else {
+      const T = Array.from({ length: st.n }, () => [0, 0]);
+      if (p === "camber") for (let i = 0; i < st.n; i++) { const s = i / (st.n - 1), d = -0.04 * C * Math.sin(Math.PI * s) ** 1.5; T[i][0] = d; T[i][1] = d; }
+      if (p === "single") { const i = Math.round((st.n - 1) * 0.45); T[i][1] = 0.015; st.sel = [i, 1]; }
+      if (p === "thin") for (let i = 0; i < st.n; i++) { const s = i / (st.n - 1); if (s > 0.45 && i < st.n - 1) { const d = 0.35 * yt(Math.min(s, 1)) * C; T[i][1] = -d; T[i][0] = d; } }
+      if (st.lete) for (const i of [0, st.n - 1]) T[i][0] = -T[i][1];
+      st.alpha = 0; st.dh = 0;
+      // camber pushes the lower surface into the floor, so that preset re-seats the section as it bends
+      const reseat = p === "camber";
+      const s = guarded((x) => {
+        st.dy = T.map((r) => r.map((v) => x * v));
+        if (reseat) { st.dh = 0; st.dh = floorY() - lowest(); }
+      }, 0, 1, "Preset");
+      if (s < 1) stopMsg = `Preset scaled to ${(s * 100).toFixed(0)} % so the section stays inside the box.`;
+    }
+    $("alpha").value = st.alpha; $("dh").value = st.dh * 1000;
+    render();
+  }));
+
+  $("copy").addEventListener("click", () => {
+    const shape = {};
+    for (let i = 0; i < st.n; i++) for (let j = 0; j < 2; j++) shape[`${i}:${j}`] = +st.dy[i][j].toFixed(6);
+    const text = JSON.stringify({ incidence: st.alpha, rideheight: +st.dh.toFixed(4), shape });
+    const note = $("copynote");
+    navigator.clipboard.writeText(text).then(() => { note.textContent = "Copied as JSON: incidence (deg), ride height (m), shape \"station:row\" (m)."; })
+      .catch(() => { note.textContent = text; });
+  });
+
+  new ResizeObserver(() => { if (V) { const was = V.E; setView(); V.E = was; render(); } }).observe(main);
+  setView(); rebuild();
+})();
+</script>
