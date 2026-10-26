@@ -6,8 +6,8 @@ fully turbulent SA RANS, at incidences α = 0 and −3°. How the shape is param
 optimized is in [`../docs/shape_control_and_optimization.md`](../docs/shape_control_and_optimization.md).
 The [FFD explorer](../docs/ffd_explorer.html) is an interactive version of that set-up.
 
-Status 2026-10-25: the solver test, mesh study and first adjoint check are done. Two
-follow-ups are still running: a jump-free FD check and an NK-tuned solver variant.
+Status 2026-10-25: the solver test, mesh study and adjoint check are done, including the
+follow-ups (a jump-free FD check and an NK-tuned solver variant).
 
 ## Key learnings
 
@@ -25,8 +25,10 @@ follow-ups are still running: a jump-free FD check and an NK-tuned solver varian
    donors. The family therefore refines *upward* from the repo mesh in steps of √2:
    L2 (repo, 77k) → L1.5 (154k) → L1 (307k).
 3. **The repo's one-cell-wide overset layout works.** It gives 0 orphans at L2, L1.5 and L1.
-4. **ANK off is not viable. Turning the coupled ANK phase off is faster on L2/L1.5, but
-   neither variant is robust on fine meshes** (table below).
+4. **ANK off is not viable.** Turning the coupled ANK phase off is faster on L2/L1.5, but on
+   finer meshes NK stalls with either the repo's or the uncoupled settings. **`ank_deep`
+   converges every case tried**: NK at 1e-8, a larger Krylov space and stronger ILU. It is
+   the fastest at L1 (table below).
 5. **`nCycles` counts total (linear) iterations**, the "Iter Tot" column, not nonlinear
    iterations. A cap of 3,000 silently truncated ANK runs and flagged them as failed; use
    about 20,000. `getConvergenceHistory` can raise `UnicodeDecodeError`, so `post.py`
@@ -35,9 +37,16 @@ follow-ups are still running: a jump-free FD check and an NK-tuned solver varian
    pressure drag. At −3° C_L is not yet in the asymptotic range (table below).
 7. **Finite differences straddle a jump of ~2–6e-6 in C_L at the baseline.** With ADflow
    α = 0 the freestream is exactly parallel to the top far-field face, whose inflow/outflow
-   switch flips under any perturbation; P0 found the same. Once the jump is removed, the
-   adjoint matches FD to 2e-4 for rigid motion and 0.15–1.4 % (C_L) / 1–3.6 % (C_D) for
-   shape variables. The gap grows towards the TE.
+   switch flips under any perturbation; P0 found the same. Tilting the baseline by 0.05°
+   removes it, and the FD values become flat across steps 1e-4 … 1e-6. The adjoint then
+   matches FD to:
+   * **6e-7 (C_L) / 2e-4 (C_D) for ride height**, a rigid motion;
+   * **0.15–1.4 % (C_L) / 1.5–2.8 % (C_D) for shape variables**, a systematic gap that grows
+     towards the TE;
+   * **0.25–1.4 % for the objective, downforce/drag.**
+
+   The gap is not caused by the FD. Its cause is still open: the exact-wall-distance test
+   crashes ADflow.
 8. **No separated case has been run yet.** Both incidences are probably attached, but this
    is not checked: surface output was off.
 
@@ -51,18 +60,18 @@ options are the repo's (`common.SOLVERS`).
 | `repo` | ANK → coupled ANK (CSANK) at 1e-2 → NK at 1e-6 |
 | `ank_uncoupled` | Same, but the coupled phase never starts (turbulence solved separately until NK) |
 | `ank_off` | DADI smoother → NK at 1e-6 |
-| `ank_deep` (running) | Uncoupled, NK at 1e-8, NK subspace 400, ILU fill 4, ASM overlap 3 |
+| `ank_deep` | Uncoupled, NK at 1e-8, NK subspace 400, ILU fill 4, ASM overlap 3 |
 
 Wall time in seconds; DNF = did not converge.
 
-| Case | Cells | `repo` to 1e-8 / 1e-12 | `ank_uncoupled` to 1e-8 / 1e-12 | `ank_off` |
-| --- | --- | --- | --- | --- |
-| L2, α = 0 | 77k | 190 / 300 | **172 / 229** | DNF: 30,000 iterations (48 min), reached 3e-6 |
-| L2, α = −3° | 77k | 278 / 324 | **174 / 235** | DNF: 34 min, reached 3e-6 |
-| L1.5, α = 0 | 154k | 681 / 908 | **497 / 716** | not run |
-| L1.5, α = −3° | 154k | 735 / DNF (NK stalled at 6e-10) | **511 / 789** | not run |
-| L1, α = 0 | 307k | **3,764 / 4,197** | DNF (NK stalled at 1.3e-8) | not run |
-| L1, α = −3° | 307k | **2,594 / 3,291** | 2,731 / 3,701 | not run |
+| Case | Cells | `repo` to 1e-8 / 1e-12 | `ank_uncoupled` to 1e-8 / 1e-12 | `ank_deep` to 1e-8 / 1e-12 | `ank_off` |
+| --- | --- | --- | --- | --- | --- |
+| L2, α = 0 | 77k | 190 / 300 | **172 / 229** | not run | DNF: 30,000 iterations (48 min), reached 3e-6 |
+| L2, α = −3° | 77k | 278 / 324 | **174 / 235** | not run | DNF: 34 min, reached 3e-6 |
+| L1.5, α = 0 | 154k | 681 / 908 | **497 / 716** | not run | not run |
+| L1.5, α = −3° | 154k | 735 / DNF (NK stalled at 6e-10) | **511 / 789** | 677 / 856 | not run |
+| L1, α = 0 | 307k | 3,764 / 4,197 | DNF (NK stalled at 1.3e-8) | **2,103 / 2,736** | not run |
+| L1, α = −3° | 307k | **2,594 / 3,291** | 2,731 / 3,701 | not run | not run |
 
 * **ANK.** This is ADflow's pseudo-transient Newton–Krylov start-up solver. Each iteration
   solves (V/Δt + J̃)Δw = −R with GMRES, using a first-order approximate Jacobian J̃. The CFL
@@ -72,9 +81,11 @@ Wall time in seconds; DNF = did not converge.
   the same as in the repo's own log of the 0.5 m case. Turning it off saves 20–30 % on
   L2/L1.5.
 * **The fine-mesh failures are NK stalls.** NK takes steps of 0.01–0.1 and crawls to the cap,
-  with either variant, as P0 saw at L1. `ank_deep` tests whether switching later helps.
-* **Recommendation.** Use `ank_uncoupled` at L2, the optimization level. On finer meshes,
-  keep both variants available until `ank_deep` is evaluated.
+  with either variant, as P0 saw at L1. Handing over to NK two decades later, with a larger
+  Krylov space and stronger ILU (`ank_deep`), fixes both stalled cases. At L1, α = 0 it is
+  35 % faster than the only other converged run.
+* **Recommendation.** Use `ank_uncoupled` at L2, the optimization level, and `ank_deep` on
+  L1.5 and finer.
 
 ![residual histories](figs/solver_test_residuals.png)
 
@@ -142,13 +153,38 @@ with the adjoint:
 
 ![adjoint vs FD](figs/adjoint_fd_c070_h020_a+0.0_L2__repo__frozen.png)
 
+### Follow-up: the jump removed at its source
+
+This run tilts the baseline to ADflow α₀ = 0.05°, P0's fix, which moves the top face's
+inflow/outflow switch off the baseline. Settings: `ank_uncoupled`, steps 1e-4 … 1e-6 m
+(incidence 1e-2 … 1e-4°). The FD values are now flat across the steps, and they reproduce
+the jump-corrected numbers above. That confirms the fit, and it shows the remaining gap is
+not an FD artifact.
+
+| Variable | Δ C_L (rel.) | Δ C_D (rel.) | Δ downforce/drag (rel.) |
+| --- | --- | --- | --- |
+| ride height | 5.9e-7 | 1.8e-4 | 1.3e-5 |
+| incidence | 1.4e-3 | 1.5e-2 | 1.1e-3 |
+| shape 1:0 (lower, near LE) | 3.4e-3 | 2.1e-2 | 4.6e-3 |
+| shape 4:0 (lower, mid-chord) | 1.5e-3 | 1.5e-2 | 2.5e-3 |
+| shape 8:0 (lower, near TE) | 1.4e-2 | 2.8e-2 | 1.4e-2 |
+
+Values are at step 1e-4 m (incidence 1e-2°); the other steps agree to the digits shown.
+
 ### Interpretation and caveats
 
-* **Rigid motion is essentially exact; shape motion has a systematic gap.** The gap grows
-  towards the TE and is larger for C_D. The suspect is ADflow's approximate wall-distance
-  update feeding SA. The follow-up runs it with `useApproxWallDistance = False`.
-* **The fit is a model**: 3 parameters from 4 points. The follow-up removes the jump at its
-  source instead, with the baseline tilted to α₀ = 0.05° (P0's fix).
+* **Rigid motion is exact to FD precision; shape motion has a systematic gap.** The gap grows
+  towards the TE and is larger for C_D. The suspect was ADflow's approximate wall-distance
+  update feeding SA. The test with `useApproxWallDistance = False` could not run: flow and
+  both adjoints converged, then ADflow 2.13.1 segfaulted in the first solve on a warped mesh
+  (`logs/adjoint_L2_alpha0.05_exactwd.log`). Other candidates:
+  * the frozen overset weights while IDWarp moves near-field nodes relative to the
+    background;
+  * the first-order turbulence discretization.
+
+  A single-block control case without overset would separate these. P0's version did not
+  converge.
+* **The fit is a model**: 3 parameters from 4 points. The follow-up above confirms it.
 * **A near-zero derivative makes the relative error meaningless** (shape 4:1, C_D).
 * **The FD solves also used frozen overset weights.** The check therefore verifies the
   adjoint against the frozen-weight discrete model. It does not measure the error of
@@ -172,8 +208,10 @@ with the adjoint:
   1. Write surface output and check the sign of the skin friction for existing runs.
   2. Sweep h/c 0.3 → 0.05 and α 0 → −8° on L2.
   3. Check convergence and the adjoint at the first separated point.
-* **The NK stall** on L1/L1.5 (see `ank_deep`).
-* **The systematic shape-derivative gap** (see the wall-distance follow-up).
+* **The systematic shape-derivative gap**, 1–3 % near the TE. Its cause is open because the
+  exact-wall-distance test crashes.
+* **Choice of FD baseline.** For any future FD check with the repo's BCs, tilt the baseline
+  (`--alpha0 0.05`). Otherwise the top-face jump dominates the small steps.
 * **Frozen weights vs. re-cut holes** after large design moves.
 * **Mesh level L0.5** for C_L at loaded incidence.
 
