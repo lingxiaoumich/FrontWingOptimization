@@ -19,6 +19,9 @@ parser.add_argument('--restart', action='store_true')
 args = parser.parse_args()
 root = args.case_root
 cfg = json.loads((root / 'case_config.json').read_text())
+ground_model = cfg.get('ground_model', 'slip')
+if ground_model not in {'slip', 'moving_no_slip', 'stationary_no_slip'}:
+    raise ValueError(f'Unknown ground_model: {ground_model}')
 for folder in ['geometry', 'meshes', 'reports', 'runs', 'results']:
     if comm.rank == 0:
         (root / folder).mkdir(exist_ok=True)
@@ -64,7 +67,7 @@ def build():
         'inputFile':str(root/'geometry/airfoil_surface.xyz'),
         'unattachedEdgesAreSymmetry':False,'outerFaceBC':'overset','autoConnect':True,
         'BC':{1:{'jLow':'zSymm','jHigh':'zSymm'}},'families':'airfoil',
-        'N':81,'s0':cfg['first_wall_spacing_m'],'marchDist':cfg['nearfield_march_distance_m'],
+        'N':cfg.get('nearfield_normal_nodes',81),'s0':cfg['first_wall_spacing_m'],'marchDist':cfg['nearfield_march_distance_m'],
         'ps0':-1.,'pGridRatio':-1.,'cMax':3.,'epsE':1.,'epsI':2.,
         'theta':3.,'volCoef':.25,'volBlend':.0001,'volSmoothIter':100})
     hyp.run()
@@ -80,7 +83,17 @@ def build():
             return np.array(values)
         xx=np.r_[extend(-.15,-10*chord,.005)[::-1][:-1],
                  np.linspace(-.15,.85,201),extend(.85,15*chord,.005)[1:]]
-        yy=np.r_[np.linspace(0,.35,141),extend(.35,10*chord,.0025)[1:]]
+        if ground_model == 'slip':
+            yy=np.r_[np.linspace(0,.35,141),extend(.35,10*chord,.0025)[1:]]
+        else:
+            # Resolve viscous road shear; the old slip grid had 2.5 mm cells at the ground.
+            ground_y=[0.]
+            step=cfg.get('ground_first_wall_spacing_m', cfg['first_wall_spacing_m'])
+            while ground_y[-1]+step < .025:
+                ground_y.append(ground_y[-1]+step)
+                step=min(1.12*step,.0025)
+            ground_y.append(.025)
+            yy=np.r_[ground_y,np.linspace(.025,.35,131)[1:],extend(.35,10*chord,.0025)[1:]]
         coordinates=np.stack(np.meshgrid(xx,yy,[0,span],indexing='ij'),axis=-1)
         dims=list(coordinates.shape[:3])
         block=Block('background',dims,coordinates)
@@ -91,7 +104,8 @@ def build():
         boundary('inlet','bcfarfield',0,1,'farfield')
         boundary('outlet','bcfarfield',0,dims[0],'farfield')
         boundary('top','bcfarfield',1,dims[1],'farfield')
-        boundary('ground','bcsymmetryplane',1,1,'ground')
+        ground_bc = 'bcsymmetryplane' if ground_model == 'slip' else 'bcwallviscous'
+        boundary('ground',ground_bc,1,1,'ground')
         boundary('span0','bcsymmetryplane',2,1,'symmetry')
         boundary('span1','bcsymmetryplane',2,2,'symmetry')
         background=Grid()
@@ -118,6 +132,8 @@ def build():
                   trailing_edge[1]-leading_edge[1],trailing_edge[0]-leading_edge[0]))),
               'minimum_surface_clearance_m':float(yr.min()),'blocks':checks,
               'total_cells_before_blanking':sum(c['cells'] for c in checks),
+              'ground_model':ground_model,'ground_boundary_type':ground_bc,
+              'ground_first_cell_height_m':float(yy[1]-yy[0]),
               'mesh_build_wall_time_s':time.perf_counter()-started}
         write_json(root/'reports/mesh_check.json',info)
         print(json.dumps(info,indent=2))
@@ -139,10 +155,15 @@ def solve():
         'turbulenceOrder':'first order','discretization':'central plus scalar dissipation',
         'useWallFunctions':False,'useANKSolver':True,'useNKSolver':True,
         'ANKSwitchTol':10.,'NKSwitchTol':1e-6,
-        'ANKCoupledSwitchTol':1e-2,'ANKSecondOrdSwitchTol':1e-2,
+        'ANKCoupledSwitchTol':cfg.get('ank_coupled_switch_tol',1e-2),
+        'ANKSecondOrdSwitchTol':cfg.get('ank_second_order_switch_tol',1e-2),
         'ANKADPC':True,'NKADPC':True,'NKViscPC':True,
-        'NKSubspaceSize':120,'NKPCILUFill':3,'turbResScale':10000.,
-        'nCycles':8000,'L2Convergence':1e-8,'L2ConvergenceRel':1e-8,'MGCycle':'sg',
+        'NKSubspaceSize':cfg.get('nk_subspace_size',120),
+        'NKPCILUFill':cfg.get('nk_pc_ilu_fill',3),
+        'NKLinearSolveTol':cfg.get('nk_linear_solve_tol',.3),
+        'NKUseEW':cfg.get('nk_use_ew',True),'turbResScale':10000.,
+        'nCycles':cfg.get('n_cycles',8000),
+        'L2Convergence':1e-8,'L2ConvergenceRel':1e-8,'MGCycle':'sg',
         'useZipperMesh':False,'nearWallDist':.01,
         'monitorVariables':['resrho','resturb','cl','cd'],
         'volumeVariables':['cp','mach','blank'],
@@ -155,20 +176,35 @@ def solve():
     solver.addFamilyGroup('airfoil_only',['airfoil'])
     solver.addFunction('cl','airfoil_only',name='cl_airfoil')
     solver.addFunction('cd','airfoil_only',name='cd_airfoil')
-    solver.addSlices('z',[span/2],sliceType='absolute')
-    ap=AeroProblem(name=cfg['case_id'],mach=float(mach),reynolds=float(reynolds),
-                   reynoldsLength=chord,T=temperature,alpha=0.,areaRef=chord*span,
+    solver.addSlices('z',[span/2],sliceType='absolute',groupName='airfoil_only')
+    if ground_model == 'moving_no_slip':
+        if not hasattr(solver, 'setWallVelocity'):
+            raise RuntimeError('Moving ground requires the aero588/adflow-moving-wall:2.12.2 image')
+        solver.setWallVelocity([velocity,0.,0.],groupName='ground')
+    flow_inputs=({'mach':float(mach),'reynolds':float(reynolds),'reynoldsLength':chord}
+                 if ground_model=='slip' else {'V':velocity,'P':pressure})
+    ap=AeroProblem(name=cfg['case_id'],**flow_inputs,T=temperature,alpha=0.,areaRef=chord*span,
                    chordRef=chord,evalFuncs=['cl_airfoil','cd_airfoil'])
+    if ground_model!='slip':
+        density,viscosity,mach=float(ap.rho),float(ap.mu),float(ap.mach)
+        reynolds=density*velocity*chord/viscosity
     solver(ap)
     funcs={}
     solver.evalFunctions(ap,funcs)
     initial,start,final=solver.getResNorms()
+    wall_stats = None
+    if ground_model == 'moving_no_slip':
+        wall_stats={'ground':solver.getWallVelocityStats('ground'),
+                    'airfoil':solver.getWallVelocityStats('airfoil')}
     if comm.rank==0:
         cl=float(funcs[f'{cfg["case_id"]}_cl_airfoil'])
         cd=float(funcs[f'{cfg["case_id"]}_cd_airfoil'])
         failed=bool(ap.solveFailed) or bool(ap.fatalFail)
         reduction=float(final/initial)
-        result={**cfg,'model':'fully turbulent SA RANS; ideal slip ground; isolated quasi-2D airfoil',
+        ground_description={'slip':'ideal slip ground','moving_no_slip':'moving no-slip ground',
+                            'stationary_no_slip':'stationary no-slip ground'}[ground_model]
+        result={**cfg,'model':f'fully turbulent SA RANS; {ground_description}; isolated quasi-2D airfoil',
+                'ground_model':ground_model,'wall_velocity_stats':wall_stats,
                 'speed_ms':velocity,'alpha_deg':cfg['incidence_deg'],'freestream_alpha_deg':0.,
                 'density_kg_m3':density,'viscosity_Pa_s':viscosity,
                 'reynolds':float(reynolds),'mach':float(mach),

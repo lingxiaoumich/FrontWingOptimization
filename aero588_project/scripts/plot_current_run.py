@@ -29,6 +29,9 @@ FIELDS = np.load(OUT / 'baseline_fields.npz')
 RESULT_REL='results/cfd_result.json' if IS_NEW_CASE else 'results/baseline_a0.json'
 SURFACE_REL='results/surface.csv' if IS_NEW_CASE else 'results/baseline_surface.csv'
 REPORT = json.loads((ROOT / RESULT_REL).read_text())
+GROUND_LABEL = {'slip':'Ideal slip ground', 'moving_no_slip':'Moving no-slip ground',
+                'stationary_no_slip':'Stationary no-slip ground'}.get(
+                    REPORT.get('ground_model','slip'),'Ground')
 SURFACE = np.genfromtxt(ROOT / SURFACE_REL, delimiter=',', skip_header=1)
 C = REPORT['chord_m']
 H = REPORT['clearance_m']
@@ -60,7 +63,7 @@ def axes_geometry(ax, bounds, label=True):
     ax.set(xlim=bounds[:2], ylim=bounds[2:], xlabel='x (m)', ylabel='Height above ground (m)')
     ax.set_aspect('equal')
     if label:
-        ax.annotate('Ideal slip ground', xy=(bounds[0]+.025,0), xytext=(0,7),
+        ax.annotate(GROUND_LABEL, xy=(bounds[0]+.025,0), xytext=(0,7),
                     textcoords='offset points', fontsize=9, color='#263947', zorder=8)
 
 def draw_grid(ax, tag, stride, color, lw):
@@ -180,7 +183,7 @@ def static_cp_plot():
     contour(ax,vals,levels,'RdBu_r',norm)
     axes_geometry(ax,(-.3*C,2.1*C,-.02*C,HEIGHT+.55*C))
     colorbar(fig,ax,'RdBu_r',norm,'Static-pressure coefficient, $C_p$')
-    fig.text(.5,-.09,'Negative Cp: pressure below freestream. Ideal slip ground; saved CFD volume solution.',ha='center',fontsize=10,color='#455660')
+    fig.text(.5,-.09,f'Negative Cp: pressure below freestream. {GROUND_LABEL}; saved CFD volume solution.',ha='center',fontsize=10,color='#455660')
     save(fig,'static_pressure_cp')
 
 if __name__=='__main__':

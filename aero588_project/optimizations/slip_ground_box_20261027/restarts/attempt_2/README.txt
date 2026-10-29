@@ -1,0 +1,3 @@
+This continuation retained the original optimization problem and replayed the first attempt. The next trial remained above the nonlinear residual target after about 200 Newton steps. Its linear solves repeatedly exhausted NKSubspaceSize=150 with residual ratios around 0.7-0.9. It was interrupted; no unconverged trial was accepted as an optimized result.
+
+The final continuation increases NKSubspaceSize to 500, NKPCILUFill to 5, fixes NKLinearSolveTol=0.1 and NKUseEW=False. The adjoint uses ILUFill=4, a 500-vector subspace, and relative convergence 1e-7, checked again against finite differences. The CFD convergence target, drag cap, design parameterization and physical constraints are unchanged.

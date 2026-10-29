@@ -1,0 +1,370 @@
+--- a/src/modules/prescribedWallMotion.F90
++++ b/src/modules/prescribedWallMotion.F90
+@@ -0,0 +1,84 @@
++! Constant, family-specific physical wall velocities for steady ADflow.
++! Velocities are prescribed data, not aerodynamic design variables.
++module prescribedWallMotion
++    use constants, only: intType, realType
++    implicit none
++    integer, parameter :: maxPrescribedWalls = 64
++    integer(kind=intType), save :: wallFamilies(maxPrescribedWalls) = -1
++    real(kind=realType), save :: wallVelocities(3, maxPrescribedWalls) = 0.0_realType
++contains
++    integer function wallVelocitySlot(family) result(slot)
++        integer(kind=intType), intent(in) :: family
++        integer :: k
++        slot = 0
++        do k = 1, maxPrescribedWalls
++            if (wallFamilies(k) == family) then
++                slot = k
++                return
++            end if
++        end do
++    end function wallVelocitySlot
++
++    subroutine setWallVelocity(families, velocity, nFamilies, ierr)
++        integer(kind=intType), intent(in) :: nFamilies, families(nFamilies)
++        real(kind=realType), intent(in) :: velocity(3)
++        integer(kind=intType), intent(out) :: ierr
++        integer :: k, slot, freeSlot, j
++        ierr = 0
++        do k = 1, nFamilies
++            slot = wallVelocitySlot(families(k))
++            if (slot == 0) then
++                freeSlot = 0
++                do j = 1, maxPrescribedWalls
++                    if (wallFamilies(j) < 0) then
++                        freeSlot = j
++                        exit
++                    end if
++                end do
++                if (freeSlot == 0) then
++                    ierr = 1
++                    return
++                end if
++                slot = freeSlot
++            end if
++            wallFamilies(slot) = families(k)
++            wallVelocities(:, slot) = velocity
++        end do
++    end subroutine setWallVelocity
++
++    subroutine clearWallVelocities()
++        wallFamilies = -1
++        wallVelocities = 0.0_realType
++    end subroutine clearWallVelocities
++
++    subroutine getWallVelocityStats(families, nFamilies, sps, vmin, vmax, nFaces)
++        use block, only: flowDoms, nDom
++        use iteration, only: groundLevel
++        use flowVarRefState, only: uRef
++        integer(kind=intType), intent(in) :: nFamilies, families(nFamilies), sps
++        real(kind=realType), intent(out) :: vmin(3), vmax(3)
++        integer(kind=intType), intent(out) :: nFaces
++        integer :: nn, mm, i, j, k
++        real(kind=realType) :: velocity(3)
++        vmin = huge(1.0_realType)
++        vmax = -huge(1.0_realType)
++        nFaces = 0
++        do nn = 1, nDom
++            do mm = 1, flowDoms(nn, groundLevel, sps)%nViscBocos
++                if (.not. any(families == flowDoms(nn, groundLevel, sps)%BCData(mm)%famID)) cycle
++                do j = flowDoms(nn, groundLevel, sps)%BCData(mm)%jcBeg, &
++                       flowDoms(nn, groundLevel, sps)%BCData(mm)%jcEnd
++                    do i = flowDoms(nn, groundLevel, sps)%BCData(mm)%icBeg, &
++                           flowDoms(nn, groundLevel, sps)%BCData(mm)%icEnd
++                        do k = 1, 3
++                            velocity(k) = flowDoms(nn, groundLevel, sps)%BCData(mm)%uSlip(i, j, k) * uRef
++                        end do
++                        vmin = min(vmin, velocity)
++                        vmax = max(vmax, velocity)
++                        nFaces = nFaces + 1
++                    end do
++                end do
++            end do
++        end do
++    end subroutine getWallVelocityStats
++end module prescribedWallMotion
+--- a/src/build/fileList
++++ b/src/build/fileList
+@@ -23,6 +23,7 @@
+ 		\
+ 		modules/su_cgns.F90\
+ 		modules/constants.F90\
++		modules/prescribedWallMotion.F90\
+ 		modules/killSignals.f90\
+ 		modules/communication.F90\
+ 		modules/block.F90\
+--- a/src/f2py/adflow.pyf
++++ b/src/f2py/adflow.pyf
+@@ -729,6 +729,26 @@
+ 
+        end module aleutils
+ 
++
++       module prescribedwallmotion
++         use precision
++         subroutine setwallvelocity(families,velocity,nfamilies,ierr)
++           integer(kind=inttype), dimension(nfamilies),intent(in) :: families
++           real(kind=realtype), dimension(3),intent(in) :: velocity
++           integer(kind=inttype), optional,intent(in),check(len(families)>=nfamilies),depend(families) :: nfamilies=len(families)
++           integer(kind=inttype),intent(out) :: ierr
++         end subroutine setwallvelocity
++         subroutine clearwallvelocities
++         end subroutine clearwallvelocities
++         subroutine getwallvelocitystats(families,nfamilies,sps,vmin,vmax,nfaces)
++           integer(kind=inttype), dimension(nfamilies),intent(in) :: families
++           integer(kind=inttype), optional,intent(in),check(len(families)>=nfamilies),depend(families) :: nfamilies=len(families)
++           integer(kind=inttype),intent(in) :: sps
++           real(kind=realtype), dimension(3),intent(out) :: vmin,vmax
++           integer(kind=inttype),intent(out) :: nfaces
++         end subroutine getwallvelocitystats
++       end module prescribedwallmotion
++
+        module preprocessingapi
+          subroutine preprocessing ! in :adflow:../../preprocessing/preprocessing.f90
+          end subroutine preprocessing
+--- a/src/solver/solverUtils.F90
++++ b/src/solver/solverUtils.F90
+@@ -1296,6 +1296,7 @@
+         !       otherwise the analytic form is used.
+         !
+         use constants
++    use prescribedWallMotion, only: wallVelocitySlot, wallVelocities
+         use inputTimeSpectral
+         use blockPointers
+         use cgnsGrid
+@@ -2019,6 +2020,19 @@
+             end do bocoLoop2
+ 
+         end if testUseOldCoor
++
++    ! Prescribed absolute wall speed; constant with respect to shape/state.
++    block
++      integer :: mw, slot
++      do mw = 1, nViscBocos
++        slot = wallVelocitySlot(BCData(mw)%famID)
++        if (slot > 0) then
++          BCData(mw)%uSlip(:, :, 1) = wallVelocities(1, slot) / uRef
++          BCData(mw)%uSlip(:, :, 2) = wallVelocities(2, slot) / uRef
++          BCData(mw)%uSlip(:, :, 3) = wallVelocities(3, slot) / uRef
++        end if
++      end do
++    end block
+ 
+     end subroutine slipVelocitiesFineLevel_block
+ 
+--- a/src/adjoint/outputForward/solverUtils_d.f90
++++ b/src/adjoint/outputForward/solverUtils_d.f90
+@@ -1573,6 +1573,7 @@
+ !       otherwise the analytic form is used.
+ !
+     use constants
++    use prescribedWallMotion, only: wallVelocitySlot, wallVelocities
+     use inputtimespectral
+     use blockpointers
+     use cgnsgrid
+@@ -2260,6 +2261,20 @@
+         end if
+       end do bocoloop2
+     end if
++
++    ! Prescribed absolute wall speed; constant with respect to shape/state.
++    block
++      integer :: mw, slot
++      do mw = 1, nViscBocos
++        slot = wallVelocitySlot(BCData(mw)%famID)
++        if (slot > 0) then
++          BCData(mw)%uSlip(:, :, 1) = wallVelocities(1, slot) / uRef
++          BCData(mw)%uSlip(:, :, 2) = wallVelocities(2, slot) / uRef
++          BCData(mw)%uSlip(:, :, 3) = wallVelocities(3, slot) / uRef
++          BCDataD(mw)%uSlip = 0.0_realType
++        end if
++      end do
++    end block
+   end subroutine slipvelocitiesfinelevel_block_d
+ 
+   subroutine slipvelocitiesfinelevel_block(useoldcoor, t, sps, nn)
+@@ -2271,6 +2286,7 @@
+ !       otherwise the analytic form is used.
+ !
+     use constants
++    use prescribedWallMotion, only: wallVelocitySlot, wallVelocities
+     use inputtimespectral
+     use blockpointers
+     use cgnsgrid
+@@ -2677,6 +2693,19 @@
+         end if
+       end do bocoloop2
+     end if
++
++    ! Prescribed absolute wall speed; constant with respect to shape/state.
++    block
++      integer :: mw, slot
++      do mw = 1, nViscBocos
++        slot = wallVelocitySlot(BCData(mw)%famID)
++        if (slot > 0) then
++          BCData(mw)%uSlip(:, :, 1) = wallVelocities(1, slot) / uRef
++          BCData(mw)%uSlip(:, :, 2) = wallVelocities(2, slot) / uRef
++          BCData(mw)%uSlip(:, :, 3) = wallVelocities(3, slot) / uRef
++        end if
++      end do
++    end block
+   end subroutine slipvelocitiesfinelevel_block
+ 
+ !  differentiation of normalvelocities_block in forward (tangent) mode (with options i4 dr8 r8):
+--- a/src/adjoint/outputReverse/solverUtils_b.f90
++++ b/src/adjoint/outputReverse/solverUtils_b.f90
+@@ -2178,6 +2178,7 @@
+ !       otherwise the analytic form is used.
+ !
+     use constants
++    use prescribedWallMotion, only: wallVelocitySlot, wallVelocities
+     use inputtimespectral
+     use blockpointers
+     use cgnsgrid
+@@ -2252,6 +2253,17 @@
+     integer :: ad_from10
+     integer :: ad_to10
+     integer :: branch
++
++    ! Prescribed absolute wall speed; constant with respect to shape/state.
++    block
++      integer :: mw, slot
++      do mw = 1, nViscBocos
++        slot = wallVelocitySlot(BCData(mw)%famID)
++        if (slot > 0) then
++          BCDataD(mw)%uSlip = 0.0_realType
++        end if
++      end do
++    end block
+ ! determine the situation we are having here.
+     if (useoldcoor) then
+       pinfd = 0.0_8
+@@ -3362,6 +3374,19 @@
+       pinfd = tempd
+       rhoinfd = -(pinf*tempd/rhoinf)
+     end if
++
++    ! Prescribed absolute wall speed; constant with respect to shape/state.
++    block
++      integer :: mw, slot
++      do mw = 1, nViscBocos
++        slot = wallVelocitySlot(BCData(mw)%famID)
++        if (slot > 0) then
++          BCData(mw)%uSlip(:, :, 1) = wallVelocities(1, slot) / uRef
++          BCData(mw)%uSlip(:, :, 2) = wallVelocities(2, slot) / uRef
++          BCData(mw)%uSlip(:, :, 3) = wallVelocities(3, slot) / uRef
++        end if
++      end do
++    end block
+   end subroutine slipvelocitiesfinelevel_block_b
+ 
+   subroutine slipvelocitiesfinelevel_block(useoldcoor, t, sps, nn)
+@@ -3373,6 +3398,7 @@
+ !       otherwise the analytic form is used.
+ !
+     use constants
++    use prescribedWallMotion, only: wallVelocitySlot, wallVelocities
+     use inputtimespectral
+     use blockpointers
+     use cgnsgrid
+@@ -3777,6 +3803,19 @@
+         end if
+       end do bocoloop2
+     end if
++
++    ! Prescribed absolute wall speed; constant with respect to shape/state.
++    block
++      integer :: mw, slot
++      do mw = 1, nViscBocos
++        slot = wallVelocitySlot(BCData(mw)%famID)
++        if (slot > 0) then
++          BCData(mw)%uSlip(:, :, 1) = wallVelocities(1, slot) / uRef
++          BCData(mw)%uSlip(:, :, 2) = wallVelocities(2, slot) / uRef
++          BCData(mw)%uSlip(:, :, 3) = wallVelocities(3, slot) / uRef
++        end if
++      end do
++    end block
+   end subroutine slipvelocitiesfinelevel_block
+ 
+ !  differentiation of normalvelocities_block in reverse (adjoint) mode (with options noisize i4 dr8 r8):
+--- a/src/adjoint/outputReverseFast/solverUtils_fast_b.f90
++++ b/src/adjoint/outputReverseFast/solverUtils_fast_b.f90
+@@ -921,6 +921,7 @@
+ !       otherwise the analytic form is used.
+ !
+     use constants
++    use prescribedWallMotion, only: wallVelocitySlot, wallVelocities
+     use inputtimespectral
+     use blockpointers
+     use cgnsgrid
+@@ -1325,6 +1326,19 @@
+         end if
+       end do bocoloop2
+     end if
++
++    ! Prescribed absolute wall speed; constant with respect to shape/state.
++    block
++      integer :: mw, slot
++      do mw = 1, nViscBocos
++        slot = wallVelocitySlot(BCData(mw)%famID)
++        if (slot > 0) then
++          BCData(mw)%uSlip(:, :, 1) = wallVelocities(1, slot) / uRef
++          BCData(mw)%uSlip(:, :, 2) = wallVelocities(2, slot) / uRef
++          BCData(mw)%uSlip(:, :, 3) = wallVelocities(3, slot) / uRef
++        end if
++      end do
++    end block
+   end subroutine slipvelocitiesfinelevel_block
+ 
+   subroutine normalvelocities_block(sps)
+--- a/adflow/pyADflow.py
++++ b/adflow/pyADflow.py
+@@ -1118,6 +1118,46 @@
+             newFuncNames.append(adflowFuncName)
+ 
+         return newFuncNames
++
++    def setWallVelocity(self, velocity, groupName):
++        """Prescribe a constant physical wall velocity [m/s] for a viscous family.
++
++        Steady, real-valued problems only. The caller must prescribe a tangential
++        velocity on a fixed wall. Velocity is constant data, not a design variable.
++        Call on every MPI rank before the flow solve. Airfoil families are untouched.
++        """
++        if self.getOption("equationMode").lower() != "steady":
++            raise Error("Prescribed wall translation currently supports steady mode only")
++        if numpy.issubdtype(numpy.dtype(self.dtype), numpy.complexfloating):
++            raise Error("Prescribed wall translation requires the patched real solver")
++        velocity = numpy.asarray(velocity, dtype=float)
++        if velocity.shape != (3,) or not numpy.isfinite(velocity).all():
++            raise Error("Wall velocity must be a finite three-component vector in m/s")
++        families = numpy.asarray(self._getFamilyList(groupName), dtype=numpy.int32)
++        if len(families) == 0:
++            raise Error("The requested wall family group is empty")
++        signature = (tuple(families.tolist()), tuple(velocity.tolist()))
++        if any(item != signature for item in self.comm.allgather(signature)):
++            raise Error("Every MPI rank must prescribe identical wall velocity data")
++        ierr = self.adflow.prescribedwallmotion.setwallvelocity(families, velocity)
++        if ierr:
++            raise Error("Too many prescribed moving-wall families (maximum 64)")
++
++    def getWallVelocityStats(self, groupName):
++        """Return MPI-global min/max physical wall speeds and number of faces.
++
++        This reads the actual internal no-slip boundary data after a flow solve.
++        It does not return first-off-wall fluid velocities.
++        """
++        families = numpy.asarray(self._getFamilyList(groupName), dtype=numpy.int32)
++        lo, hi, count = self.adflow.prescribedwallmotion.getwallvelocitystats(families, 1)
++        count = self.comm.allreduce(int(count), op=MPI.SUM)
++        if count == 0:
++            raise Error("No viscous faces found in the requested wall family")
++        globalLo, globalHi = numpy.empty_like(lo), numpy.empty_like(hi)
++        self.comm.Allreduce(lo, globalLo, op=MPI.MIN)
++        self.comm.Allreduce(hi, globalHi, op=MPI.MAX)
++        return {"min_mps": globalLo.tolist(), "max_mps": globalHi.tolist(), "faces": count}
+ 
+     def setRotationRate(self, rotCenter, rotRate, cgnsBlocks=None):
+         """
