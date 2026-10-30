@@ -1,5 +1,7 @@
 # Racing-car front-wing section optimization
 
+[Plain-text file guide](main_readme.txt) explains every version-controlled file and the main workflow.
+
 This project studies a NACA 0012 airfoil section in ground effect using MACH-Aero: ADflow for steady RANS and discrete adjoints, pyGeo for free-form deformation (FFD), IDWarp for mesh deformation, and pyOptSparse for optimization. It is a quasi-two-dimensional section study; finite-span effects, endplates, wheels, and the vehicle body are excluded.
 
 The current optimization uses a 0.50 m initial chord, 200 km/h horizontal freestream, an initial incidence of −3°, and ideal slip ground. It minimizes upward-positive CL to maximize downforce. Incidence is free. The latest FFD lattice has five upper/lower pairs along the chord, extruded across two tied span planes: 20 physical control points, 10 x-displacement variables, 10 y-displacement variables, and one incidence variable.

@@ -1,5 +1,7 @@
 # Front Wing Optimization
 
+[Plain-text file guide](main_readme.txt) explains every version-controlled file and the main workflow.
+
 MACH-Aero CFD and adjoint-based optimization of a racing-car front-wing section in ground effect. The project code, input meshes, flow solutions, plots, run settings, and optimization histories are in [`aero588_project/`](aero588_project/README.md).
 
 The latest configuration uses a 0.5 m initial chord, 200 km/h freestream, slip ground, free incidence, and five upper/lower FFD pairs with independent x/y movement. It maximizes downforce with CD ≤ 0.05 and actual-surface box/thickness constraints.
