@@ -16,6 +16,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 p=argparse.ArgumentParser();p.add_argument('--sweep',type=Path,required=True)
+p.add_argument('--reference',type=Path,help='another sweep folder whose runs are overlaid as dashed grey reference lines')
+p.add_argument('--reference-label',default='main settings')
 a=p.parse_args();sweep=a.sweep
 ramp=['#86b6ef','#3987e5','#1c5cab','#0d366b','#082447']
 ink,muted,grid='#2b2b2b','#6b6b6b','#e4e4e4'
@@ -33,9 +35,10 @@ def load(run):
     nit={int(i):int(v) for i,v,_,_ in lines}  # last NFV reported for each major iteration
     complete=(run/'run_complete.json').exists()
     nfv=max(nit.values())
-    # optimizer evaluations are the last nfv records (plus the final re-solve when complete)
-    end=len(history)-1 if complete else len(history)
-    opt=history[end-nfv:end]
+    # history eval 0 is the pre-PSQP re-solve of the restart design; PSQP's NFV=1 is
+    # history eval 1. Slicing from the front stays right mid-run, when history may
+    # already hold an evaluation PSQP.out has not reported yet.
+    opt=history[1:1+nfv]
     acc=[opt[nit[i]-1] for i in sorted(nit)]
     for i,r in zip(sorted(nit),acc):
         f=float(dict((int(n),float(F)) for n,_,_,F in lines)[i])
@@ -62,6 +65,12 @@ for r,c in zip(runs,shade):
     if len(r['step']):
         axs[1,1].plot(r['it'][1:],r['step'],'-o',c=c,ms=4,lw=1.6,label=lab)
         axs[1,1].axhline(r['xmax'],c=c,ls=':',lw=1)
+if a.reference:
+    for r in sorted((load(x) for x in a.reference.glob('xmax_*') if (x/'PSQP.out').exists()),key=lambda r:r['xmax']):
+        if len(r['it'])<2:continue  # a reference that never took a step is a dot at the origin
+        lab=f"{a.reference_label}, XMAX = {r['xmax']:g}"+('' if r['complete'] else ' (incomplete)')
+        for ax,x,y in [(axs[0,0],r['it'],-r['clc']),(axs[0,1],r['t'],-r['clc']),(axs[1,0],-r['clc'],r['cdc'])]:
+            ax.plot(x,y,'--',c='#9a9a9a',lw=1.2,label=lab)
 axs[0,0].set(xlabel='PSQP major iteration after restart',ylabel="Downforce $-C_L c = -L'/q_\\infty$ (m)",
              title='(a) Downforce per major iteration')
 axs[0,1].set(xlabel='Wall time since restart (min, 4 MPI ranks)',ylabel="$-C_L c$ (m)",
