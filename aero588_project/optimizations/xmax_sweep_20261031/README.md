@@ -30,7 +30,7 @@ The exact trial shape that stalled under the main settings (`xmax_0.2/incoming_d
 
 ## Next step
 
-Re-run the sweep (0.05, 0.2, 0.5, 1.0) with `--solver ank_deep` throughout, so the comparison measures PSQP's step limit rather than the flow solver. The main-settings arm of the 0.2 test was not re-run with live output, so the hand-off diagnosis above is read off the `ank_deep` trace rather than observed directly.
+Done: [the `ank_deep` sweep](../xmax_sweep_ank_deep_20261031/README.md) re-runs 0.05, 0.2, 0.5 and 1.0 with `--solver ank_deep` throughout, so the comparison measures PSQP's step limit rather than the flow solver. The main-settings arm of the 0.2 test was not re-run with live output, so the hand-off diagnosis above is read off the `ank_deep` trace rather than observed directly.
 
 ## Reproduction
 
