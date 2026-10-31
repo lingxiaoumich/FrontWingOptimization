@@ -37,6 +37,8 @@ p.add_argument('--xmax',type=float,default=.05,help='PSQP maximum step length in
 p.add_argument('--ncycles',type=int,default=4000,help='ADflow nCycles: caps total (incl. linear) iterations')
 p.add_argument('--restart-flow',type=Path,help='converged volume solution at --restart-design; '
                'the first evaluation is then the restart design instead of the NACA baseline')
+p.add_argument('--solver',choices=['main','ank_uncoupled','ank_deep'],default='main',
+               help='flow-solver variant from the solver study (study/solver-mesh-adjoint)')
 a = p.parse_args()
 if a.restart_flow and not (a.restart_design and a.reuse_checks):
     p.error('--restart-flow needs --restart-design and --reuse-checks (the checks solve the NACA baseline)')
@@ -218,6 +220,11 @@ if (root/'source/restart_vol.cgns').exists():
     options['restartFile']=str(root/'source/restart_vol.cgns')
 if a.restart_flow:
     options['restartFile']=str(a.restart_flow.resolve())
+# ank_uncoupled skips coupled ANK; ank_deep also hands over to NK four decades later
+# with a larger Krylov space and stronger ILU, which cured the study's NK stalls.
+options.update({'main':{},'ank_uncoupled':{'ANKCoupledSwitchTol':1e-16},
+    'ank_deep':{'ANKCoupledSwitchTol':1e-16,'NKSwitchTol':1e-8,'NKSubspaceSize':400,
+                'NKPCILUFill':4,'NKASMOverlap':3}}[a.solver])
 meshoptions={'gridFile':options['gridFile'],
     'symmetryPlanes':[[[0.,0.,0.],[0.,1.,0.]],[[0.,0.,0.],[0.,0.,1.]],
                       [[0.,0.,span],[0.,0.,1.]]]}

@@ -31,4 +31,6 @@ NCYCLES=20000 bash /project/scripts/run_xmax_sweep.sh 10 0.05 0.2 0.5 1.0
 python scripts/plot_xmax_sweep.py --sweep optimizations/xmax_sweep_20261031
 ```
 
-The sweep uses three driver options added on branch `opt1031` (defaults reproduce the main setup): `--xmax`, `--ncycles`, and `--restart-flow`, which starts from the converged October 29 final flow at the restart design instead of solving the NACA baseline first. Flow solutions (`*.cgns`, `*.plt`) and `optimization.hst` stay local and are not committed.
+Single-step test: `bash /project/scripts/run_step_test.sh <design.json> ank_deep <run name> [minutes]`.
+
+The sweep uses four driver options added on branch `opt1031` (defaults reproduce the main setup): `--xmax`, `--ncycles`, `--solver`, and `--restart-flow`, which starts from the converged October 29 final flow at the restart design instead of solving the NACA baseline first. Flow solutions (`*.cgns`, `*.plt`) and `optimization.hst` stay local and are not committed.
