@@ -18,9 +18,19 @@ Other observations:
 - This laptop (WSL2 + Docker, 4 ranks) is about 3× slower than the Mac that ran October 29: about 50 s per flow solve and 130 s for the two adjoints, against 17 s and 42 s.
 - The baseline reproduces the partner's to 1e-13 in C_L with ADflow 2.13.1 (theirs 2.12.2), so results are directly comparable.
 
-## Next step, if the sweep is resumed
+## Single-step test with `ank_deep` (`step0.2_ank_deep/`)
 
-Our solver study (branch `study/solver-mesh-adjoint`) diagnosed this pattern as a Newton–Krylov stall after an early hand-off (`NKSwitchTol = 1e-4` in the driver). It found `ank_uncoupled` fastest on this mesh, and `ank_deep` (NK at 1e-8, Krylov subspace 400, ILU fill 4) robust everywhere. Re-running all XMAX values, 0.05 included, with one of those would separate the solver limit from the optimizer's step limit.
+The exact trial shape that stalled under the main settings (`xmax_0.2/incoming_design.json`: ≤1.07 mm of control-point movement, −0.105° incidence) was re-solved from the same converged restart flow with `--solver ank_deep` (NK hand-off at 1e-8 instead of 1e-4, Krylov subspace 400, ILU fill 4) and live residual output.
+
+- **Converged in 377 s** to a residual ratio of 8.6e-11: 132 segregated-ANK iterations from a starting residual of 1.0e3 down to 1.7e-2, then **2 NK iterations** to 1e-10.
+- Under the main settings the NK hand-off fires at 1.8e2 absolute, which this trace crosses at ANK iteration 3, while C_L is still swinging between −1.54 and −1.58. The flow is four decades short of where Newton converges; that is the stall.
+- C_L·c = −0.77936 m, C_D·c = 0.014451 m. The 0.05 control step along the same direction gave ΔC_L·c = −0.00900; four times that predicts −0.78056. The 0.2 step delivered 97 % of the linear extrapolation, so the aerodynamics are linear across it and the optimizer would have accepted it.
+- Mesh cleared: 0 orphans, no negative-volume or warping warnings.
+- Cost per unit progress: control = 4 × (≈50 s flow + ≈130 s adjoints) ≈ 720 s; this = 377 s + 130 s ≈ 510 s.
+
+## Next step
+
+Re-run the sweep (0.05, 0.2, 0.5, 1.0) with `--solver ank_deep` throughout, so the comparison measures PSQP's step limit rather than the flow solver. The main-settings arm of the 0.2 test was not re-run with live output, so the hand-off diagnosis above is read off the `ank_deep` trace rather than observed directly.
 
 ## Reproduction
 
