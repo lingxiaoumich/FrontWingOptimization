@@ -2,8 +2,9 @@
 
 Figure 1 (control_point_history): every FFD control point at every PSQP major
 iteration, light (early) to dark (late), with the allowed surface box.
-Figure 2 (cl_cd_history): CL and CD histories, the drag polar against the CD cap,
-and the signed suction-surface skin friction of the saved baseline/final flows,
+Figure 2 (cl_cd_history): CL*c and CD*c histories (L'/q and D'/q in m, so the
+choice of reference chord drops out), the drag polar against the drag cap, and
+the signed suction-surface skin friction of the saved baseline/final flows,
 used to judge whether the run moved into separated flow.
 
 The lattice is rebuilt without pyGeo: rotate the baseline lattice about the
@@ -38,7 +39,8 @@ start=len(history)-1-nmajor
 run=history[start:start+nmajor]
 assert np.allclose([h['cl'] for h in run],iters[:nmajor,3],atol=1e-5), 'history/PSQP iteration mismatch'
 k=np.arange(nmajor)
-cl=np.array([h['cl'] for h in run]);cd=np.array([h['cd'] for h in run])
+# L'/q and D'/q (m): coefficients times the chord they were referenced to
+clc=c0*np.array([h['cl'] for h in run]);cdc=c0*np.array([h['cd'] for h in run]);capc=c0*cap
 
 ramp=['#86b6ef','#6da7ec','#5598e7','#3987e5','#2a78d6','#256abf','#1c5cab','#184f95','#104281','#0d366b']
 cmap=LinearSegmentedColormap.from_list('early_to_late',ramp)
@@ -148,17 +150,19 @@ def suction_side(label):
 sep={l:suction_side(l) for l in ['baseline','final']}
 
 fig,axs=plt.subplots(2,2,figsize=(12,8.4),constrained_layout=True)
-ax=axs[0,0];ax.plot(k,cl,c='#c8c8c8',lw=.8,zorder=1);ax.scatter(k,cl,c=colors,s=16,lw=0,zorder=2)
-ax.set(xlabel='PSQP major iteration',ylabel='$C_L$ (upward positive)',title='(a) Lift coefficient: more negative = more downforce')
-ax=axs[0,1];ax.plot(k,cd,c='#c8c8c8',lw=.8,zorder=1);ax.scatter(k,cd,c=colors,s=16,lw=0,zorder=2)
-ax.set(xlabel='PSQP major iteration',ylabel='$C_D$',title=f'(b) Drag coefficient (cap {cap} is off this scale)')
+ax=axs[0,0];ax.plot(k,clc,c='#c8c8c8',lw=.8,zorder=1);ax.scatter(k,clc,c=colors,s=16,lw=0,zorder=2)
+ax.set(xlabel='PSQP major iteration',ylabel="$C_L c = L'/q_\\infty$ (m, upward positive)",
+       title='(a) Lift: more negative = more downforce')
+ax=axs[0,1];ax.plot(k,cdc,c='#c8c8c8',lw=.8,zorder=1);ax.scatter(k,cdc,c=colors,s=16,lw=0,zorder=2)
+ax.set(xlabel='PSQP major iteration',ylabel="$C_D c = D'/q_\\infty$ (m)",title=f'(b) Drag (cap {capc:.3f} m is off this scale)')
 ax=axs[1,0]
-ax.axhline(cap,c=muted,ls='--',lw=1);ax.text(-cl.max()+.005,cap-.0006,f'$C_D$ cap = {cap} (never active)',va='top',color=muted,fontsize=9)
+ax.axhline(capc,c=muted,ls='--',lw=1)
+ax.text(-clc.max()+.003,capc-.0003,f'$C_D c$ cap = {capc:.3f} m (never active)',va='top',color=muted,fontsize=9)
 for ld in [40,50,60]:
-    xs=np.array([1.1,1.55]);ax.plot(xs,xs/ld,c=grid,lw=.8,zorder=0)
-    ax.text(1.55,1.55/ld,f'  −$C_L/C_D$ = {ld}',va='center',fontsize=8,color=muted)
-ax.plot(-cl,cd,c='#c8c8c8',lw=.8,zorder=1);ax.scatter(-cl,cd,c=colors,s=16,lw=0,zorder=2)
-ax.set(xlim=(1.12,1.68),ylim=(.018,.053),xlabel='Downforce coefficient $-C_L$',ylabel='$C_D$',
+    xs=np.array([.55,.775]);ax.plot(xs,xs/ld,c=grid,lw=.8,zorder=0)
+    ax.text(xs[1],xs[1]/ld,f'  $-L/D$ = {ld}',va='center',fontsize=8,color=muted)
+ax.plot(-clc,cdc,c='#c8c8c8',lw=.8,zorder=1);ax.scatter(-clc,cdc,c=colors,s=16,lw=0,zorder=2)
+ax.set(xlim=(.56,.84),ylim=(.009,.0265),xlabel='Downforce $-C_L c$ (m)',ylabel='$C_D c$ (m)',
        title='(c) Drag polar of the iterates')
 ax=axs[1,1];ax.axhline(0,c=ink,lw=.8)
 for l,c,lab in [('baseline',ramp[0],'Baseline (iteration 0)'),('final',ramp[-1],f'Final (iteration {nmajor-1})')]:
@@ -179,11 +183,12 @@ cb=fig.colorbar(ScalarMappable(norm,cmap),ax=axs,shrink=.6,pad=.01,aspect=30)
 cb.set_label('PSQP major iteration (light = early)')
 save(fig,'cl_cd_history')
 
-slope=np.diff(cd)/np.diff(-cl)
+slope=np.diff(cdc)/np.diff(-clc)
 summary=dict(major_iterations=nmajor,history_evaluations_used=[start,start+nmajor-1],
-    cl=[float(cl[0]),float(cl[-1])],cd=[float(cd[0]),float(cd[-1])],max_cd_over_cap=float(cd.max()/cap),
-    monotonic_cl=bool(np.all(np.diff(cl)<0)),monotonic_cd=bool(np.all(np.diff(cd)>0)),
-    dcd_d_downforce_first_last_5=[float(slope[:5].mean()),float(slope[-5:].mean())],
+    cl_c_m=[float(clc[0]),float(clc[-1])],cd_c_m=[float(cdc[0]),float(cdc[-1])],
+    cd_c_cap_m=float(capc),max_cd_c_over_cap=float(cdc.max()/capc),
+    monotonic_cl_c=bool(np.all(np.diff(clc)<0)),monotonic_cd_c=bool(np.all(np.diff(cdc)>0)),
+    dcd_c_d_downforce_first_last_5=[float(slope[:5].mean()),float(slope[-5:].mean())],
     max_control_point_displacement_mm=float(np.linalg.norm(d,axis=-1).max()),
     separation={l:{q:v for q,v in r.items() if q not in ('x','cf')} for l,r in sep.items()},
     separation_method='sign of first-cell tangential velocity vs. velocity 12 mm off the wall; '

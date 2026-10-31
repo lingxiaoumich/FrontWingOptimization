@@ -9,7 +9,7 @@ The model uses five upper/lower FFD pairs, tied across two span planes: 10 indep
 - `comparison_results.txt` and `.json`: baseline/selected force coefficients, dimensional loads, clearance, chord, thickness, incidence, solver status, and independent validation.
 - `settings.txt` and `.json`: geometry, CFD, mesh, optimizer settings, units, and resolved solver defaults.
 - `plots/`: PNG/SVG comparisons of geometry, mesh, Cp, pressure contours/loss, loads, iteration history, and FFD movement in x and y.
-- `plots/control_point_history`, `plots/cl_cd_history`, `plots/history_separation_check.json`: per-iteration control-point paths with the surface box, CL/CD histories and drag polar, and the suction-side reversed-flow check of the baseline and final flows. Made by `scripts/plot_optimization_trajectory.py --root <this folder>` (added on branch `opt1031`).
+- `plots/control_point_history`, `plots/cl_cd_history`, `plots/history_separation_check.json`: per-iteration control-point paths with the surface box, C_L c / C_D c histories and drag polar, and the suction-side reversed-flow check of the baseline and final flows. Made by `scripts/plot_optimization_trajectory.py --root <this folder>` (added on branch `opt1031`).
 - `baseline/`, `final/`, `best_feasible/`: surface coordinates, physical design variables, CGNS flow/mesh solutions, extracted fields, and result JSON.
 - `ffd_geometry/`: actual pyGeo lattice coordinates and reconstruction verification.
 - `validation.json`: numerical/geometry/mesh checks. `full_connectivity_validation/` contains the independent final CFD evaluation, log, settings, and mesh checks.
