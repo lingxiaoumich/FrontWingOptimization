@@ -33,7 +33,13 @@ p.add_argument('--optimizer',choices=['SLSQP','PSQP'],default='PSQP')
 p.add_argument('--ffd-stations',type=int,default=5)
 p.add_argument('--shape-directions',choices=['y','xy'],default='xy')
 p.add_argument('--drag-cap',type=float,default=.05)
+p.add_argument('--xmax',type=float,default=.05,help='PSQP maximum step length in scaled variables')
+p.add_argument('--ncycles',type=int,default=4000,help='ADflow nCycles: caps total (incl. linear) iterations')
+p.add_argument('--restart-flow',type=Path,help='converged volume solution at --restart-design; '
+               'the first evaluation is then the restart design instead of the NACA baseline')
 a = p.parse_args()
+if a.restart_flow and not (a.restart_design and a.reuse_checks):
+    p.error('--restart-flow needs --restart-design and --reuse-checks (the checks solve the NACA baseline)')
 if a.ffd_stations < 2:
     p.error('--ffd-stations must be at least 2')
 if not np.isfinite(a.drag_cap) or a.drag_cap <= 0:
@@ -199,7 +205,7 @@ options={
     'ANKSwitchTol':10.,'NKSwitchTol':1e-4,'ANKCoupledSwitchTol':1e-2,
     'ANKSecondOrdSwitchTol':1e-2,'ANKADPC':True,'NKADPC':True,'NKViscPC':True,
     'NKSubspaceSize':500,'NKPCILUFill':5,'NKLinearSolveTol':.1,'NKUseEW':False,
-    'turbResScale':10000.,'nCycles':4000,'L2Convergence':1e-10,'L2ConvergenceRel':1e-10,
+    'turbResScale':10000.,'nCycles':a.ncycles,'L2Convergence':1e-10,'L2ConvergenceRel':1e-10,
     'MGCycle':'sg','useZipperMesh':False,'nearWallDist':.01,'oversetUpdateMode':'frozen',
     'designSurfaceFamily':'airfoil','meshSurfaceFamily':'airfoil',
     'monitorVariables':['resrho','resturb','cl','cd'],
@@ -210,11 +216,13 @@ options={
 }
 if (root/'source/restart_vol.cgns').exists():
     options['restartFile']=str(root/'source/restart_vol.cgns')
+if a.restart_flow:
+    options['restartFile']=str(a.restart_flow.resolve())
 meshoptions={'gridFile':options['gridFile'],
     'symmetryPlanes':[[[0.,0.,0.],[0.,1.,0.]],[[0.,0.,0.],[0.,0.,1.]],
                       [[0.,0.,span],[0.,0.,1.]]]}
 optimizeroptions=({'ACC':1e-5,'MAXIT':a.maxit,'IPRINT':2,'IFILE':str(root/'SLSQP.out')}
- if a.optimizer=='SLSQP' else {'XMAX':.05,'TOLX':1e-6,'TOLC':1e-6,'TOLG':1e-4,
+ if a.optimizer=='SLSQP' else {'XMAX':a.xmax,'TOLX':1e-6,'TOLC':1e-6,'TOLG':1e-4,
  'MIT':a.maxit,'MFV':150,'MET':1,'MEC':2,'IPRINT':2,'IFILE':str(root/'PSQP.out')})
 settings={'description':'Minimize upward-positive CL with prescribed CD cap; slip ground',
  'reference_chord_m':c0,'reference_area_m2':c0*span,'span_m':span,
@@ -375,8 +383,10 @@ def aerodynamic_derivative_check(x0):
         raise RuntimeError('Aerodynamic derivative check failed; see saved report')
     objfun(x0)
 
-# Baseline always starts from the same NACA shape, even for a continuation.
-basefuncs,fail=objfun(xinitial)
+# Baseline always starts from the same NACA shape, even for a continuation,
+# unless --restart-flow supplies a converged flow at the restart design: solving
+# the NACA baseline first would force a large jump back to the restart design.
+basefuncs,fail=objfun(load_design(a.restart_design) if a.restart_flow else xinitial)
 if fail: raise RuntimeError('Baseline CFD failed')
 if a.reuse_checks:
     report=json.loads((root/'source/aerodynamic_derivative_check.json').read_text())
