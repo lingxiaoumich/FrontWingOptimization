@@ -35,9 +35,15 @@ p.add_argument('--shape-directions',choices=['y','xy'],default='xy')
 p.add_argument('--drag-cap',type=float,default=.05)
 p.add_argument('--save-iterate-flows',action='store_true',
                help='write the flow, design and surface of every PSQP major iterate to iterates/eval_NNN')
+p.add_argument('--iterate-volume-only',action='store_true',
+               help='with --save-iterate-flows, write only the volume solution and slices (14 of 35 MB)')
 p.add_argument('--min-local-thickness',type=float,default=0.,
-               help='m; lower bound on chord-normal thickness at every paired surface vertex '
+               help='m; lower bound on local thickness at every paired surface vertex '
                     'away from the leading and trailing edges (0 disables)')
+p.add_argument('--thickness-measure',choices=['pair','gap'],default='pair',
+               help='local thickness as the chord-normal distance between vertex k and its mirror 272-k (pair), '
+                    'or as the signed distance from each of those vertices to the other surface (gap)')
+p.add_argument('--max-evaluations',type=int,default=150,help='PSQP MFV: cap on function evaluations')
 p.add_argument('--xmax',type=float,default=.05,help='PSQP maximum step length in scaled variables')
 p.add_argument('--ncycles',type=int,default=4000,help='ADflow nCycles: caps total (incl. linear) iterations')
 p.add_argument('--restart-flow',type=Path,help='converged volume solution at --restart-design; '
@@ -154,10 +160,32 @@ def load_design(path):
 # station) and measures their separation normal to the current chord; it turns
 # negative where the surfaces cross. Pairs 15..124 skip the leading edge and the
 # last 2-3 % of chord, where the section is thin by design.
+# At strong camber and incidence the two surfaces slide along the chord relative to
+# each other, and a pair can read 2 mm while vertex k touches a different part of the
+# other surface. The gap measure instead takes each of those 220 vertices' signed
+# distance to the nearest point of the other surface's polyline: positive on the
+# material side, negative once the surfaces cross.
 local_pairs=np.arange(15,125)
+def surface_gap(xy,vertices,other):
+    q=xy[vertices][:,None,:]; A=other[None,:-1]; AB=(other[1:]-other[:-1])[None]
+    t=((q-A)*AB).sum(-1)/(AB*AB).sum(-1)
+    t=np.where(t.real<0,0,np.where(t.real>1,1,t))
+    r=A+t[...,None]*AB-q; d=np.sqrt((r*r).sum(-1))
+    side=np.sign((AB[...,0]*(q-A)[...,1]-AB[...,1]*(q-A)[...,0]).real)
+    j=np.argmin(d.real,axis=1); i=np.arange(len(vertices))
+    # Both surfaces run in vertex order around the closed section, so the material is
+    # on the same side of every segment: the left for a counterclockwise boundary.
+    x,y=xy[:,0].real,xy[:,1].real
+    orientation=np.sign(x@np.roll(y,-1)-y@np.roll(x,-1))
+    return orientation*side[i,j]*d[i,j]
+def gap_thickness(pts):
+    xy=pts[:,:2]
+    return np.r_[surface_gap(xy,local_pairs,xy[136:273]),surface_gap(xy,272-local_pairs,xy[:137])]
 def local_thickness(pts):
+    if a.thickness_measure=='gap':return gap_thickness(pts)
     xy=pts[:,:2]; ch=(xy[0]+xy[272])/2-xy[136]; ch=ch/np.sqrt(ch@ch)
     return -(xy[272-local_pairs]-xy[local_pairs])@np.array([-ch[1],ch[0]])
+n_local=len(local_pairs)*(2 if a.thickness_measure=='gap' else 1)
 
 def geometry_values(pts):
     xy=pts[:,:2]
@@ -175,6 +203,7 @@ def metrics(pts):
             'maximum_section_thickness_m':float(vals['max_thickness'][0]*c0),
             'maximum_section_thickness_over_reference_chord':float(vals['max_thickness'][0]),
             'minimum_local_thickness_m':float(local_thickness(pts).min()),
+            'minimum_surface_gap_m':float(gap_thickness(pts).min()),
             'actual_chord_m':float(np.linalg.norm(chord)),
             'chord_incidence_deg':float(-np.rad2deg(np.arctan2(chord[1],chord[0]))),
             'box_minimum_margin_m':float(min(xy[:,0].min()+.125,.625-xy[:,0].max(),
@@ -192,7 +221,7 @@ def geometry_sens(pts):
     _,dp=maximum_chord_normal_thickness(pts,return_gradient=True)
     out['max_thickness']=geo.totalSensitivity(dp/c0,'surface_check')
     if a.min_local_thickness>0:
-        dl=np.zeros((len(local_pairs),len(pts),3))
+        dl=np.zeros((n_local,len(pts),3))
         for i in range(len(pts)):
             for axis in range(2):
                 pc=pts.astype(complex);pc[i,axis]+=1e-30j
@@ -276,7 +305,7 @@ meshoptions={'gridFile':options['gridFile'],
 if a.warp_err_tol is not None:meshoptions['errTol']=a.warp_err_tol
 optimizeroptions=({'ACC':1e-5,'MAXIT':a.maxit,'IPRINT':2,'IFILE':str(root/'SLSQP.out')}
  if a.optimizer=='SLSQP' else {'XMAX':a.xmax,'TOLX':1e-6,'TOLC':1e-6,'TOLG':1e-4,
- 'MIT':a.maxit,'MFV':150,'MET':1,'MEC':2,'IPRINT':2,'IFILE':str(root/'PSQP.out')})
+ 'MIT':a.maxit,'MFV':a.max_evaluations,'MET':1,'MEC':2,'IPRINT':2,'IFILE':str(root/'PSQP.out')})
 settings={'description':'Minimize upward-positive CL with prescribed CD cap; slip ground',
  'reference_chord_m':c0,'reference_area_m2':c0*span,'span_m':span,
  'speed_ms':V,'temperature_K':T,'pressure_Pa':P,'initial_incidence_deg':-3.,
@@ -284,6 +313,8 @@ settings={'description':'Minimize upward-positive CL with prescribed CD cap; sli
  'box_m':{'xmin':-.125,'xmax':.625,'ymin':.05,'ymax':.35},
  'max_section_thickness_min_over_initial_chord':.06,
  'min_local_thickness_m':a.min_local_thickness,'local_thickness_vertex_pairs':'k and 272-k, k=15..124',
+ 'local_thickness_measure':{'pair':'chord-normal distance between vertex k and 272-k',
+     'gap':'signed distance from vertex k and from 272-k to the nearest point of the other surface'}[a.thickness_measure],
  'nearfield_normal_nodes':81,'nearfield_march_distance_m':.025,'first_wall_spacing_m':2e-6,
  **geometry_setup,
  'ffd_span_planes_tied':True,'endpoint_equalities':False,
@@ -315,9 +346,14 @@ cache={}
 anchor_state=None
 previous_failed=False
 
-def save_state(folder, record, pts, x):
+def save_state(folder, record, pts, x, surfaces=True):
     folder=root/folder
+    if not surfaces:
+        kept={k:solver.getOption(k) for k in ['writeSurfaceSolution','writeTecplotSurfaceSolution']}
+        for k in kept:solver.setOption(k,False)
     solver.writeSolution(outputDir=str(folder),baseName='flow',number=0)
+    if not surfaces:
+        for k,v in kept.items():solver.setOption(k,v)
     if comm.rank==0:
         np.savetxt(folder/'surface_geometry.csv',pts,delimiter=',',
                    header='x_m,y_m,z_m',comments='')
@@ -344,7 +380,7 @@ def objfun(x, force=False):
     if invalid:
         vals={'surface_x':xy[:,0]/c0,'surface_y':xy[:,1]/c0,
               'max_thickness':np.array([-1.]),'objective':10.,'drag':10.}
-        if a.min_local_thickness>0:vals['local_thickness']=np.full(len(local_pairs),-1.)
+        if a.min_local_thickness>0:vals['local_thickness']=np.full(n_local,-1.)
         if comm.rank==0:print('INVALID_GEOMETRY',realdict(x),flush=True)
         # PSQP may still ask for a gradient here; without this, sensfun would run an
         # adjoint at the previous valid state and pair it with this geometry.
@@ -426,7 +462,7 @@ def sensfun(x, funcs):
         folder=f"iterates/eval_{cache['record']['evaluation']:03d}"
         if comm.rank==0:(root/folder).mkdir(parents=True,exist_ok=True)
         comm.Barrier()
-        save_state(folder,cache['record'],cache['points'],x)
+        save_state(folder,cache['record'],cache['points'],x,surfaces=not a.iterate_volume_only)
     if comm.rank==0:
         print('OPT_GRADIENT',count,'failed',failed,flush=True)
         with (root/'gradients.jsonl').open('a') as f:
@@ -487,7 +523,7 @@ optprob.addConGroup('surface_x',len(points),lower=-.25,upper=1.25)
 optprob.addConGroup('surface_y',len(points),lower=.1,upper=.7)
 optprob.addCon('max_thickness',lower=.06)
 if a.min_local_thickness>0:
-    optprob.addConGroup('local_thickness',len(local_pairs),lower=a.min_local_thickness/c0)
+    optprob.addConGroup('local_thickness',n_local,lower=a.min_local_thickness/c0)
 if comm.rank==0:
     (root/'problem.txt').write_text(str(optprob))
 optimizer=OPT(a.optimizer,options=optimizeroptions)

@@ -149,7 +149,7 @@ def save(fig, name):
 def title(n, it, extra):
     r = it['r']
     return (f"iterate {n+1}/{len(seq)}{' · remeshed grid' if 'remesh' in str(it['dir']) else ' · warped grid'}\n"
-            f"$C_L c$ {r['cl']*.5:.3f} m, $C_D c$ {r['cd']*.5:.3f} m, gap {extra['gap']*1e3:.2f} mm, u < 0 over {extra['reversed_area']*1e4:.0f} cm²")
+            f"$C_L c$ {r['cl']*.5:.3f}, $C_D c$ {r['cd']*.5:.3f}, gap {extra['gap']*1e3:.2f} mm, u < 0 over {extra['reversed_area']*1e4:.0f} cm²")
 def field(ax, zones, xy, extra, xlim=(-.2, 1.05), ylim=(0, .42)):
     for tag in ['background', 'near']:
         f = zones[tag]
@@ -204,7 +204,7 @@ for n, c in zip(pick, colors):
     e = seq[n]['extra']; s, k = e['slice'], e['slice_index']
     for side, ls in [(k <= 136, '-'), (k >= 136, '--')]:
         o = np.argsort(k[side]); ax.plot(s[side][o, 0], s[side][o, 6], ls, c=c, lw=1.4)
-    ax.plot([], [], c=c, lw=2, label=f"it {n+1}: {data[n]['cl_c_m']:.3f} m")
+    ax.plot([], [], c=c, lw=2, label=f"it {n+1}: {data[n]['cl_c_m']:.3f}")
 ax.plot([], [], c=ink, ls='-', label='upper side (vertices 0–136)'); ax.plot([], [], c=ink, ls='--', label='ground side (136–272)')
 ax.invert_yaxis(); ax.grid(c=grid); ax.set(xlabel='x (m)', ylabel='$C_p$', title='Surface pressure at the panel iterates (sections move and rotate; plotted at actual x)')
 ax.legend(ncol=2, fontsize=8, frameon=False, loc='upper right')
@@ -213,7 +213,8 @@ w = seq[-1]['extra']['gap_vertices']; xy = seq[-1]['xy']; centre = xy[w[0]]
 for side, ls, name in [(slice(0, 137), '-', 'upper side'), (slice(136, 273), '--', 'ground side')]:
     ax.plot(xy[side, 0], xy[side, 1], ls, c=ramp[-1], lw=1.3, marker='.', ms=4, label=name)
 ax.scatter(*centre, s=110, facecolor='none', edgecolor=pinch_c, lw=1.4, zorder=5)
-ax.annotate(f"vertex {w[0]} lies on the other surface\n(segment {w[1]}–{w[1]+1}); its pair {272-w[0]}\nreads {data[-1]['pair_min_thickness_mm']:.2f} mm", centre,
+where = 'lies on the other surface' if data[-1]['true_gap_mm'] < 1 else f"is {data[-1]['true_gap_mm']:.2f} mm from the other surface"
+ax.annotate(f"thinnest point: vertex {w[0]} {where}\n(segment {w[1]}–{w[1]+1}); its pair {272-w[0]}\nreads {data[-1]['pair_min_thickness_mm']:.2f} mm", centre,
             xytext=(.03, .97), textcoords='axes fraction', ha='left', va='top', fontsize=8.5, color=ink, arrowprops=dict(arrowstyle='->', color=muted, lw=.8))
 ax.set(xlim=(centre[0]-.04, centre[0]+.04), ylim=(centre[1]-.006, centre[1]+.006), xlabel='x (m)', ylabel='height (m)',
        title=f'Last iterate near vertex {w[0]} (height stretched)'); ax.grid(c=grid); ax.legend(fontsize=8, frameon=False, loc='lower right')
@@ -222,10 +223,10 @@ ax.plot(clc, [d['pair_min_thickness_mm'] for d in data], c=muted, lw=1.4, marker
 ax.plot(clc, [d['true_gap_mm'] for d in data], c=ramp[5], lw=1.8, marker='o', ms=3.5, label='true gap: nearest point on the other surface')
 ax.axhline(2, c=ink, ls='--', lw=.9); ax.text(clc[0], 2.04, '2 mm floor', fontsize=8, color=ink, va='bottom')
 ax.invert_xaxis(); ax.grid(c=grid); ax.set_ylim(bottom=0)
-ax.set(xlabel='$C_L c$ (m), each point a saved iterate', ylabel='minimum thickness (mm)', title='What the constraint measured vs the real gap')
+ax.set(xlabel='$C_L c$, each point a saved iterate', ylabel='minimum thickness (mm)', title='What the constraint measured vs the real gap')
 ax.legend(fontsize=8, frameon=False, loc='lower left')
 ax = fig.add_subplot(gs[1, 2])
 ax.plot(clc, [d['reversed_area_cm2'] for d in data], c=reverse_c, lw=1.8, marker='o', ms=3.5)
 ax.invert_xaxis(); ax.grid(c=grid); ax.set_ylim(bottom=0)
-ax.set(xlabel='$C_L c$ (m)', ylabel='area with u < 0 (cm²)', title='Recirculation zone behind the section')
+ax.set(xlabel='$C_L c$', ylabel='area with u < 0 (cm²)', title='Recirculation zone behind the section')
 save(fig, f'cp_iterates_{a.name}')

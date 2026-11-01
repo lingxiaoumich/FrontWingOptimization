@@ -135,11 +135,11 @@ def label(r):
                                    'remesh': 'local t ≥ 2 mm, remeshed grid'}[r['kind']]
 
 # ---------------------------------------------------------------- performance history
-panels = [('(a) Downforce', 'Downforce $-C_Lc$ (m)', lambda q: -q['cl']*c0),
-          ('(b) Drag against its cap (cap doubles when hit)', '$C_Dc$ (m)', lambda q: q['cd']*c0),
+panels = [('(a) Downforce', 'Downforce $-C_Lc$', lambda q: -q['cl']*c0),
+          ('(b) Drag against its cap (cap doubles when hit)', '$C_Dc$', lambda q: q['cd']*c0),
           ('(c) Thinnest local section (pairs k = 15–124)', 'Minimum local thickness (mm)', lambda q: q['tloc']*1e3),
           ('(d) Distance to the box x limits (goal: 0)', 'x margin (mm)', None),
-          ('(e) Drag polar of the iterates', '$C_Dc$ (m)', None),
+          ('(e) Drag polar of the iterates', '$C_Dc$', None),
           ('(f) Ground clearance', 'Minimum clearance (mm)', lambda q: q['minimum_clearance_m']*1e3)]
 fig, axs = plt.subplots(2, 3, figsize=(16, 9.2)); axs = axs.ravel()
 for name, r in runs.items():
@@ -164,7 +164,7 @@ for name, r in runs.items():
     n = np.arange(len(r['its'])); cap = np.array([q['cap']*c0 for q in r['its']])
     axs[1].step(n, cap, where='post', c=muted, lw=1, ls='--')
     for x, y in zip(n[1:][np.diff(cap) > 0], cap[1:][np.diff(cap) > 0]):
-        axs[1].annotate(f'cap doubled → {y:.3f} m', (x, y), xytext=(6, 4), textcoords='offset points', fontsize=8, color=muted)
+        axs[1].annotate(f'cap doubled → {y:.3f}', (x, y), xytext=(6, 4), textcoords='offset points', fontsize=8, color=muted)
     break
 # A remeshed chain re-solves its parent's design on a fresh grid: the jump is the grid, not progress.
 for r in [r for r in runs.values() if r['kind'] == 'remesh'][:1]:
@@ -181,10 +181,10 @@ axs[3].text(.99, .97, 'dark: leading edge (x ≥ −0.125 m)\nlight: trailing ed
             ha='right', va='top', fontsize=8, color=muted)
 axs[5].axhline(50, c=ink, lw=1, ls='--'); axs[5].text(.5, 50, ' 50 mm limit', va='bottom', fontsize=8, color=ink)
 for capc in [.025, .05, .1, .2]:
-    axs[4].axhline(capc, c=muted, lw=1, ls='--'); axs[4].text(axs[4].get_xlim()[0], capc, f' cap {capc} m', va='bottom', fontsize=8, color=muted)
+    axs[4].axhline(capc, c=muted, lw=1, ls='--'); axs[4].text(axs[4].get_xlim()[0], capc, f' cap {capc}', va='bottom', fontsize=8, color=muted)
 for ax, (title, ylab, _) in zip(axs, panels):
     ax.set_title(title, fontsize=10.5); ax.set_ylabel(ylab); ax.grid(c=grid, lw=.7); ax.set_axisbelow(True)
-    ax.set_xlabel('Downforce $-C_Lc$ (m)' if ax is axs[4] else 'PSQP major iteration from the sweep restart point')
+    ax.set_xlabel('Downforce $-C_Lc$' if ax is axs[4] else 'PSQP major iteration from the sweep restart point')
 axs[0].scatter([], [], facecolor='white', edgecolor=pinched, s=22, label='iterate thinner than 2 mm somewhere (hollow)')
 axs[0].legend(fontsize=8.5, frameon=False, loc='lower right')
 fig.suptitle('Continuation from the October 29 design: performance, constraints and progress toward the box', fontsize=12.5, y=.995)

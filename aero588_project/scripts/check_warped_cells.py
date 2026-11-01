@@ -53,22 +53,23 @@ def hex_volumes(X):
     tets = [(0, 1, 2, 6), (0, 2, 3, 6), (0, 3, 7, 6), (0, 7, 4, 6), (0, 4, 5, 6), (0, 5, 1, 6)]
     return sum(np.einsum('...i,...i', np.cross(p[b]-p[a], p[c]-p[a]), p[d]-p[a])/6 for a, b, c, d in tets)
 
-for path in sys.argv[1:]:
-    print(f'== {path}')
-    for name, X, blank in coords(path):
-        v = hex_volumes(X)
-        s = np.sign(np.median(v)); bad = v*s <= 0
-        line = f'  {name}: {X.shape[:3]} nodes, {v.size} cells, inverted {bad.sum()}'
-        if blank is not None and bad.any():
-            kinds = {int(k): int(((blank == k) & bad).sum()) for k in np.unique(blank[bad])}
-            label = {1: 'computed', 0: 'blanked', -1: 'interpolated'}
-            line += ' (by blanking: '+', '.join(f'{label.get(k, k)} {c}' for k, c in kinds.items())+')'
-        if blank is not None:
-            live = blank != 0
-            live &= blank > -2  # computed (1) and interpolated (-1) cells
-            r = np.abs(v[live])/np.median(np.abs(v))
-            line += f'; live cells: min |V|/median {r.min():.1e}, ratio < 0.01: {(r < .01).sum()}'
-        print(line)
-        if bad.any():
-            c = (X[:-1, :-1, :-1]+X[1:, 1:, 1:])[bad]/2
-            print(f'     inverted cells span x {c[:, 0].min():.3f}–{c[:, 0].max():.3f} m, y {c[:, 1].min():.3f}–{c[:, 1].max():.3f} m')
+if __name__ == '__main__':
+    for path in sys.argv[1:]:
+        print(f'== {path}')
+        for name, X, blank in coords(path):
+            v = hex_volumes(X)
+            s = np.sign(np.median(v)); bad = v*s <= 0
+            line = f'  {name}: {X.shape[:3]} nodes, {v.size} cells, inverted {bad.sum()}'
+            if blank is not None and bad.any():
+                kinds = {int(k): int(((blank == k) & bad).sum()) for k in np.unique(blank[bad])}
+                label = {1: 'computed', 0: 'blanked', -1: 'interpolated'}
+                line += ' (by blanking: '+', '.join(f'{label.get(k, k)} {c}' for k, c in kinds.items())+')'
+            if blank is not None:
+                live = blank != 0
+                live &= blank > -2  # computed (1) and interpolated (-1) cells
+                r = np.abs(v[live])/np.median(np.abs(v))
+                line += f'; live cells: min |V|/median {r.min():.1e}, ratio < 0.01: {(r < .01).sum()}'
+            print(line)
+            if bad.any():
+                c = (X[:-1, :-1, :-1]+X[1:, 1:, 1:])[bad]/2
+                print(f'     inverted cells span x {c[:, 0].min():.3f}–{c[:, 0].max():.3f} m, y {c[:, 1].min():.3f}–{c[:, 1].max():.3f} m')
