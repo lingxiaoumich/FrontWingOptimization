@@ -1,0 +1,1582 @@
+#
+# ADflow, multiblock structured flow solver
+#
+# This code solves the 3D RANS, laminar NS or Euler equations
+# on multiblock structured hexahedral grids.
+# This is a parallel executable running on 32 processors.
+# It has been compiled with the following options:
+# - Optimized mode.
+# - Size of standard integers: 4 bytes.
+# - Size of standard floating point types: 8 bytes.
+# - With cgns support
+# - With support for signals.
+#
++----------------------------------------+
+|          All ADFLOW Options:           |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKAMGLevels': 2,
+ 'ANKAMGNSmooth': 1,
+ 'ANKASMOverlap': 1,
+ 'ANKASMOverlapCoarse': 0,
+ 'ANKCFL0': 5.0,
+ 'ANKCFLCutback': 0.5,
+ 'ANKCFLExponent': 0.5,
+ 'ANKCFLFactor': 10.0,
+ 'ANKCFLLimit': 100000.0,
+ 'ANKCFLMin': 1.0,
+ 'ANKCFLReset': True,
+ 'ANKCharTimeStepType': 'None',
+ 'ANKConstCFLStep': 0.4,
+ 'ANKCoupledSwitchTol': 1e-16,
+ 'ANKGlobalPreconditioner': 'additive Schwarz',
+ 'ANKInnerPreconIts': 1,
+ 'ANKInnerPreconItsCoarse': 1,
+ 'ANKJacobianLag': 10,
+ 'ANKLinResMax': 0.1,
+ 'ANKLinearSolveBuffer': 0.01,
+ 'ANKLinearSolveTol': 0.05,
+ 'ANKMaxIter': 40,
+ 'ANKNSubiterTurb': 1,
+ 'ANKOuterPreconIts': 1,
+ 'ANKPCILUFill': 2,
+ 'ANKPCILUFillCoarse': 0,
+ 'ANKPCUpdateCutoff': 1e-16,
+ 'ANKPCUpdateTol': 0.5,
+ 'ANKPCUpdateTolAfterCutoff': 0.0001,
+ 'ANKPhysicalLSTol': 0.2,
+ 'ANKPhysicalLSTolTurb': 0.99,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKStepFactor': 1.0,
+ 'ANKStepMin': 0.01,
+ 'ANKSubspaceSize': -1,
+ 'ANKSwitchTol': 10.0,
+ 'ANKTurbCFLScale': 1.0,
+ 'ANKTurbKSPDebug': False,
+ 'ANKUnsteadyLSTol': 1.0,
+ 'ANKUseApproxSA': False,
+ 'ANKUseFullVisc': True,
+ 'ANKUseMatrixFree': True,
+ 'ANKUseTurbDADI': True,
+ 'ASMOverlap': 1,
+ 'ASMOverlapCoarse': 0,
+ 'CFL': 1.7,
+ 'CFLCoarse': 1.0,
+ 'CFLLimit': 1.5,
+ 'GMRESOrthogonalizationType': 'modified Gram-Schmidt',
+ 'ILUFill': 4,
+ 'ILUFillCoarse': 0,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceCoarse': 0.01,
+ 'L2ConvergenceRel': 1e-10,
+ 'MGCycle': 'sg',
+ 'MGStartLevel': -1,
+ 'NKADPC': True,
+ 'NKAMGLevels': 2,
+ 'NKAMGNSmooth': 1,
+ 'NKASMOverlap': 3,
+ 'NKASMOverlapCoarse': 0,
+ 'NKFixedStep': 0.25,
+ 'NKGlobalPreconditioner': 'additive Schwarz',
+ 'NKInnerPreconIts': 1,
+ 'NKInnerPreconItsCoarse': 1,
+ 'NKJacobianLag': 20,
+ 'NKLS': 'cubic',
+ 'NKLinearSolveTol': 0.1,
+ 'NKOuterPreconIts': 1,
+ 'NKPCILUFill': 4,
+ 'NKPCILUFillCoarse': 0,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-06,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'RKReset': False,
+ 'TSStability': False,
+ 'acousticScaleFactor': 1.0,
+ 'adjointAMGLevels': 2,
+ 'adjointAMGNSmooth': 1,
+ 'adjointDivTol': 100000.0,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointL2ConvergenceAbs': 1e-16,
+ 'adjointL2ConvergenceRel': 1e-16,
+ 'adjointMaxIter': 2000,
+ 'adjointMaxL2DeviationFactor': 1.0,
+ 'adjointMonitorStep': 10,
+ 'adjointSolver': 'GMRES',
+ 'adjointSubspaceSize': 500,
+ 'alphaFollowing': True,
+ 'alphaMode': False,
+ 'altitudeMode': False,
+ 'applyAdjointPCSubspaceSize': 20,
+ 'applyPCSubspaceSize': 10,
+ 'approxPC': True,
+ 'backgroundVolScale': 1.0,
+ 'betaMode': False,
+ 'blockSplitting': True,
+ 'cavExponent': 0,
+ 'cavSensorOffset': 0.0,
+ 'cavSensorSharpness': 10.0,
+ 'cavitationNumber': 1.4,
+ 'closedSurfaceFamilies': None,
+ 'coarseDiscretization': 'central plus scalar dissipation',
+ 'computeCavitation': False,
+ 'computeSepSensorKs': False,
+ 'coupledSolution': False,
+ 'cpMinRho': 100.0,
+ 'cutCallback': None,
+ 'debugZipper': False,
+ 'deltaT': 0.01,
+ 'designSurfaceFamily': 'airfoil',
+ 'discretization': 'central plus scalar dissipation',
+ 'dissContMagnitude': 1.0,
+ 'dissContMidpoint': 3.0,
+ 'dissContSharpness': 3.0,
+ 'dissipationLumpingParameter': 6.0,
+ 'dissipationScalingExponent': 0.67,
+ 'eddyVisInfRatio': 0.009,
+ 'equationMode': 'steady',
+ 'equationType': 'RANS',
+ 'eulerWallTreatment': 'linear pressure extrapolation',
+ 'explicitSurfaceCallback': None,
+ 'firstRun': True,
+ 'flowType': 'external',
+ 'forcesAsTractions': True,
+ 'frozenTurbulence': False,
+ 'globalPreconditioner': 'additive Schwarz',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/source/ground.cgns',
+ 'gridPrecision': 'double',
+ 'gridPrecisionSurface': 'single',
+ 'infChangeCorrection': True,
+ 'infChangeCorrectionTol': 1e-12,
+ 'infChangeCorrectionType': 'offset',
+ 'innerPreconIts': 1,
+ 'innerPreconItsCoarse': 1,
+ 'isoVariables': [],
+ 'isosurface': {},
+ 'liftIndex': 2,
+ 'limiter': 'van Albada',
+ 'loadBalanceIter': 10,
+ 'loadImbalance': 0.1,
+ 'localPreconditioner': 'ILU',
+ 'lowSpeedPreconditioner': False,
+ 'machMode': False,
+ 'matrixOrdering': 'RCM',
+ 'maxL2DeviationFactor': 1.0,
+ 'meshMaxSkewness': 1.0,
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 20000,
+ 'nCyclesCoarse': 500,
+ 'nFloodIter': -1,
+ 'nRKReset': 5,
+ 'nRefine': 10,
+ 'nSaveSurface': 1,
+ 'nSaveVolume': 1,
+ 'nSubiter': 1,
+ 'nSubiterTurb': 3,
+ 'nTimeStepsCoarse': 48,
+ 'nTimeStepsFine': 400,
+ 'nearWallDist': 0.01,
+ 'numberSolutions': True,
+ 'outerPreconIts': 3,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/evaluations',
+ 'outputSurfaceFamily': 'allSurfaces',
+ 'overlapFactor': 0.9,
+ 'oversetDebugPrint': False,
+ 'oversetLoadBalance': True,
+ 'oversetPriority': {},
+ 'oversetProjTol': 1e-12,
+ 'oversetUpdateMode': 'frozen',
+ 'pMode': False,
+ 'partitionLikeNProc': -1,
+ 'partitionOnly': False,
+ 'preconditionerSide': 'right',
+ 'printAllOptions': True,
+ 'printBadlySkewedCells': False,
+ 'printIntro': True,
+ 'printIterations': True,
+ 'printNegativeVolumes': False,
+ 'printTiming': True,
+ 'printWarnings': True,
+ 'qMode': False,
+ 'rMode': False,
+ 'recomputeOverlapMatrix': True,
+ 'resAveraging': 'alternate',
+ 'restartAdjoint': True,
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/start_vol.cgns',
+ 'restrictionRelaxation': 0.8,
+ 'selfZipCutoff': 120.0,
+ 'sepSensorKsOffset': 0.0,
+ 'sepSensorKsPhi': 90.0,
+ 'sepSensorKsRho': 1000.0,
+ 'sepSensorKsSharpness': 25.0,
+ 'sepSensorOffset': 0.0,
+ 'sepSensorSharpness': 10.0,
+ 'setMonitor': True,
+ 'skipAfterFailedAdjoint': True,
+ 'smoothParameter': 1.5,
+ 'smoother': 'DADI',
+ 'solutionPrecision': 'single',
+ 'solutionPrecisionSurface': 'single',
+ 'storeConvHist': True,
+ 'storeRindLayer': True,
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'timeAccuracy': 2,
+ 'timeIntegrationScheme': 'BDF',
+ 'timeIntervals': 1,
+ 'timeLimit': -1.0,
+ 'turbResScale': 10000.0,
+ 'turbulenceModel': 'SA',
+ 'turbulenceOrder': 'first order',
+ 'turbulenceProduction': 'strain',
+ 'updateWallAssociations': False,
+ 'useALE': True,
+ 'useANKSolver': True,
+ 'useApproxWallDistance': True,
+ 'useBlockettes': True,
+ 'useDiagTSPC': True,
+ 'useDissContinuation': False,
+ 'useExternalDynamicMesh': False,
+ 'useGridMotion': False,
+ 'useLinResMonitor': False,
+ 'useMatrixFreedrdw': True,
+ 'useNKSolver': True,
+ 'useOversetWallScaling': False,
+ 'useQCR': False,
+ 'useRotationSA': False,
+ 'useSkewnessCheck': False,
+ 'useTSInterpolatedGridVelocity': False,
+ 'useWallFunctions': False,
+ 'useZipperMesh': False,
+ 'useft2SA': True,
+ 'verifyExtra': True,
+ 'verifySpatial': True,
+ 'verifyState': True,
+ 'vis2': 0.25,
+ 'vis2Coarse': 0.5,
+ 'vis4': 0.0156,
+ 'viscPC': True,
+ 'viscWallTreatment': 'constant pressure extrapolation',
+ 'viscousSurfaceVelocities': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'wallDistCutoff': 1e+20,
+ 'windAxis': False,
+ 'writeSolutionDigits': 3,
+ 'writeSolutionEachIter': False,
+ 'writeSurfaceSolution': True,
+ 'writeTecplotSurfaceSolution': True,
+ 'writeVolumeSolution': True,
+ 'zipperSurfaceFamily': None}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# It is assumed that the grid is given in meters.
+#
+#
+# Specified load imbalance tolerance 0.100 achieved.
+# Continuing with 0.093 load imbalance for the cells and 0.092 for the faces
+#
+#
+# Grid level: 1, Total number of cells: 88548
+#
++--------------------------------------------------+
+  CGNS Surface Families by Boundary Condition Type
++--------------------------------------------------+
+| Wall Types           : airfoil 
+| Inflow Types         : 
+| Outflow Types        : 
+| Symmetry Types       : ground sym symmetry 
+| Farfield Types       : farfield 
+| Overset Types        : overset 
++--------------------------------------------------+
+ Flood Iteration:           1 Blanked         1644 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       84781
+ | Fringe Cells            :        2022
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1536
+ | FloodSeed Cells         :         209
+ +--------------------------------+
+ Total number of orphans:           0
+ Flood Iteration:           1 Blanked         1745 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       84781
+ | Fringe Cells            :        2022
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1536
+ | FloodSeed Cells         :         209
+ +--------------------------------+
+ Total number of orphans:           0
+ +--------------------------------+
+ | Compute Cells           :       84781
+ | Fringe Cells            :        1036
+ | Blanked Cells           :         986
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1536
+ | FloodSeed Cells         :         209
+ +--------------------------------+
+ Total number of orphans:           0
++--------------------------------------------------+
+|
+| Initialization Times:
+|
+| Library Load Time             :      0.040 sec
+| Set Defaults Time             :      0.000 sec
+| Base Class Init Time          :      0.001 sec
+| Introductory Time             :      0.145 sec
+| Partitioning Time             :      0.005 sec
+| Preprocessing Time            :      0.691 sec
+| Family Setup Time             :      0.000 sec
+| Cut Callback Time             :      0.000 sec
+| Explicit Surface Cut Time     :      0.000 sec
+| Overset Preprocessing Time    :      0.036 sec
+| Initialize Flow Time          :      0.004 sec
+|
+| Total Init Time               :      0.924 sec
++--------------------------------------------------+
++----------------------------------------+
+|          All IDWarp Options:           |
++----------------------------------------+
+{'LdefFact': 1.0,
+ 'aExp': 3.0,
+ 'alpha': 0.25,
+ 'bExp': 5.0,
+ 'bucketSize': 8,
+ 'cornerAngle': 30.0,
+ 'errTol': 1e-05,
+ 'evalMode': 'fast',
+ 'fileType': 'CGNS',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/source/ground.cgns',
+ 'restartFile': None,
+ 'specifiedSurfaces': None,
+ 'symmTol': 1e-06,
+ 'symmetryPlanes': [[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                    [[0.0, 0.0, 0.05], [0.0, 0.0, 1.0]]],
+ 'symmetrySurfaces': None,
+ 'useRotations': True,
+ 'zeroCornerRotations': True}
+  -> Reading CGNS File: /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/source/ground.cgns
+    -> Number of Zones:           2
+#------------------------------#
+ Total Volume Nodes :    178884 
+#------------------------------#
++-------------------- Symmetry Planes -------------------+
+|           Point                        Normal          |
+| (  0.000   0.000   0.000)    (  0.000   1.000   0.000) |
+| (  0.000   0.000   0.000)    (  0.000   0.000   1.000) |
+| (  0.000   0.000   0.050)    (  0.000   0.000   1.000) |
++--------------------------------------------------------+
+#--------------------------------#
+ Unique Surface Nodes :       576 
+#--------------------------------#
+ Computing Denominator Estimate...
+ Load Balancing...
+ Finished Mesh Initialization.
+
++------------------------------------------------------------------------------+
+| pyADFLOW Warning: 'zipperSurfaceFamily' option was not given. Using all wall |
+| boundary conditions for the zipper mesh.                                     |
++------------------------------------------------------------------------------+
+
++----------------------------------------------------------------------+
+|  Switching to Aero Problem: wing                                     |
++----------------------------------------------------------------------+
+-> Alpha... 0.000000 
++----------------------------------------+
+|      All Modified ADFLOW Options:      |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKSwitchTol': 10.0,
+ 'ILUFill': 4,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceRel': 1e-10,
+ 'NKADPC': True,
+ 'NKASMOverlap': 3,
+ 'NKLinearSolveTol': 0.1,
+ 'NKPCILUFill': 4,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-06,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointMaxIter': 2000,
+ 'adjointSubspaceSize': 500,
+ 'designSurfaceFamily': 'airfoil',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/source/ground.cgns',
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 20000,
+ 'nearWallDist': 0.01,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/evaluations',
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/start_vol.cgns',
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'turbResScale': 10000.0,
+ 'useNKSolver': True,
+ 'useZipperMesh': False,
+ 'viscPC': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'writeTecplotSurfaceSolution': True}
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Found restart file: /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/start_vol.cgns
+#
+#
+#                      Warning
+# 192 type mismatches occured when reading the solution of the blocks
+#
+#
+# Grid 1: Performing 20000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.38E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.3756988656448343E-01   1.7140701309226634E-03  -5.0210918863401055E+00   2.1449289790559223E-01   5.1029007248193338E+03 
+      1       1     10    *SANK   2.16E+01  1.00  0.038   1.3783224383516318E-01   9.0187323923480989E-04  -5.0211205881758394E+00   2.1473938044390098E-01   2.6880353799806985E+03 
+      1       2     17     SANK   2.16E+01  1.00  0.036   4.3330225890016977E-01   6.2403656543005956E-04  -5.0214072873840410E+00   2.1569213465177167E-01   1.9173284153620909E+03 
+      1       3     26    *SANK   9.10E+01  1.00  0.044   3.2378921887950529E-01   4.6379283071545333E-04  -5.0293570714102795E+00   2.2053797610189277E-01   1.4302436066573725E+03 
+      1       4     38     SANK   9.10E+01  1.00  0.026   1.8149438469348961E-01   3.4306070847826890E-04  -5.0329692726547233E+00   2.1901500165644325E-01   1.0409384523816020E+03 
+      1       5     48     SANK   9.10E+01  1.00  0.042   2.4091254226220696E-01   2.6234481512979387E-04  -5.0288436022305376E+00   2.1486001697646681E-01   8.2664401352318328E+02 
+      1       6     60    *SANK   3.37E+02  1.00  0.048   3.5601391467903830E-02   2.0400400104990727E-04  -5.0136756138557530E+00   2.1168356288096427E-01   6.1053398215720449E+02 
+      1       7     84     SANK   3.37E+02  1.00  0.049   3.4772370362205499E-02   1.6547257489313636E-04  -4.9929158052346745E+00   2.1060649465104778E-01   4.9386841552422538E+02 
+      1       8    104     SANK   3.37E+02  1.00  0.046   1.9438334036884844E-02   1.4438576312852632E-04  -4.9927756552987157E+00   2.1245762519357927E-01   4.3023695488909641E+02 
+      1       9    129     SANK   3.37E+02  1.00  0.046   1.8775937294837862E-02   1.2857736476909473E-04  -5.0058786356387914E+00   2.1550517539939071E-01   3.8316824418417565E+02 
+      1      10    165    *SANK   1.16E+03  1.00  0.047   7.9460586666429533E-03   1.0380337434886263E-04  -5.0180274367588762E+00   2.1627139383947311E-01   3.0902568164391801E+02 
+      1      11    201     SANK   1.16E+03  1.00  0.048   4.4499441988713447E-03   8.2905966598190953E-05  -5.0211190213213790E+00   2.1560648050785899E-01   2.4675293415122593E+02 
+      1      12    233     SANK   1.16E+03  1.00  0.043   2.1420566142613894E-03   7.1860447342356984E-05  -5.0214867545442798E+00   2.1508003600003980E-01   2.1385003084111167E+02 
+      1      13    275     SANK   1.16E+03  1.00  0.079   1.5337913039543090E-03   6.4626269685442883E-05  -5.0235646235412341E+00   2.1511297661938436E-01   1.9231645090115219E+02 
+      1      14    317     SANK   1.16E+03  1.00  0.048   1.5655385588915910E-03   5.7544337036092858E-05  -5.0252379824116504E+00   2.1498372464590629E-01   1.7124374125354532E+02 
+      1      15    359    *SANK   4.14E+03  1.00  0.074   4.8452661514560805E-04   5.2865980720030925E-05  -5.0268228872977252E+00   2.1482441309753991E-01   1.5731456041047448E+02 
+      1      16    401     SANK   4.14E+03  1.00  0.340   5.2158259355358945E-04   4.7839829158290795E-05  -5.0286912390106151E+00   2.1479082098132868E-01   1.4235862298943658E+02 
+      1      17    443    *SANK   2.18E+03  1.00  0.119   4.0847562601081490E-04   4.4039526982715247E-05  -5.0294673578633837E+00   2.1474781715801314E-01   1.3104938152939334E+02 
+      1      18    485    *SANK   1.14E+03  1.00  0.055   6.5095014176916267E-04   4.0181372466930461E-05  -5.0302529717964033E+00   2.1473391699990677E-01   1.1956970637706168E+02 
+      1      19    519     SANK   1.14E+03  1.00  0.048   4.3608302091258420E-04   3.7109084733478812E-05  -5.0306836432299962E+00   2.1471025565332355E-01   1.1042654747924797E+02 
+      1      20    558     SANK   1.14E+03  1.00  0.049   4.7558697343756613E-04   3.4253638118056536E-05  -5.0312556482495978E+00   2.1470875486218771E-01   1.0192981314809462E+02 
+      1      21    592     SANK   1.14E+03  1.00  0.047   4.2099138897861408E-04   3.1725365460535517E-05  -5.0316945720815651E+00   2.1469438453785578E-01   9.4406240418326050E+01 
+      1      22    627     SANK   1.14E+03  1.00  0.048   3.6790125007960320E-04   2.9511710585026576E-05  -5.0320735512821280E+00   2.1468408974336692E-01   8.7818867825801519E+01 
+      1      23    664     SANK   1.14E+03  1.00  0.049   3.8413947952637269E-04   2.7461677282557857E-05  -5.0324917203220458E+00   2.1468055211899484E-01   8.1718668976747580E+01 
+      1      24    699     SANK   1.14E+03  1.00  0.048   3.6043780974260366E-04   2.5626162964080407E-05  -5.0328560283423300E+00   2.1467296388466378E-01   7.6256650344284481E+01 
+      1      25    736     SANK   1.14E+03  1.00  0.047   3.5596588391266975E-04   2.3965463662206006E-05  -5.0332259921703439E+00   2.1466931162398115E-01   7.1314913790854035E+01 
+      1      26    772     SANK   1.14E+03  1.00  0.049   3.5428173584356687E-04   2.2442477056084058E-05  -5.0335894944576633E+00   2.1466529247062033E-01   6.6782963855049402E+01 
+      1      27    808     SANK   1.14E+03  1.00  0.048   3.4574740297037938E-04   2.1066530123116477E-05  -5.0339389991939418E+00   2.1466126418697037E-01   6.2688547976886156E+01 
+      1      28    850    *SANK   3.77E+03  1.00  0.136   2.5619644712675623E-04   1.9798552232005935E-05  -5.0346700152158297E+00   2.1465527346064239E-01   5.8915218106612514E+01 
+      1      29    892    *SANK   1.95E+03  1.00  0.121   3.7573523302994276E-04   1.8686508924738489E-05  -5.0353678577720054E+00   2.1465705304582774E-01   5.5606643090365033E+01 
+      1      30    928    *SANK   1.00E+03  1.00  0.048   4.2460741351312486E-04   1.7615061214855969E-05  -5.0357818354473656E+00   2.1465317931311612E-01   5.2418629561785593E+01 
+      1      31    961     SANK   1.00E+03  1.00  0.050   3.7093757766929424E-04   1.6697603367341817E-05  -5.0361134605398199E+00   2.1464694580698016E-01   4.9688237636670806E+01 
+      1      32    995     SANK   1.00E+03  1.00  0.045   3.6704548168641681E-04   1.5851714999360663E-05  -5.0364585985442147E+00   2.1464439065934998E-01   4.7171156920381335E+01 
+      1      33   1029     SANK   1.00E+03  1.00  0.045   3.5261852330743446E-04   1.5062724980648232E-05  -5.0367803023947264E+00   2.1464071937445728E-01   4.4823321030789096E+01 
+      1      34   1063     SANK   1.00E+03  1.00  0.047   3.3456765202454153E-04   1.4332186223933366E-05  -5.0370801508952452E+00   2.1463697438307078E-01   4.2649394086429005E+01 
+      1      35   1097     SANK   1.00E+03  1.00  0.048   3.2625285454772937E-04   1.3642534908392166E-05  -5.0373730350731805E+00   2.1463395452473882E-01   4.0597178318598850E+01 
+      1      36   1132     SANK   1.00E+03  1.00  0.046   3.1846335897684158E-04   1.2993641621323293E-05  -5.0376554609027853E+00   2.1463064922022060E-01   3.8666231571495182E+01 
+      1      37   1166     SANK   1.00E+03  1.00  0.050   3.0895148609710085E-04   1.2388647982702317E-05  -5.0379270914915821E+00   2.1462769952000646E-01   3.6865925220964307E+01 
+      1      38   1201     SANK   1.00E+03  1.00  0.046   3.0057916347958180E-04   1.1817850910179888E-05  -5.0381898571212682E+00   2.1462481547879025E-01   3.5167378040576111E+01 
+      1      39   1235     SANK   1.00E+03  1.00  0.048   2.9317972229863656E-04   1.1283681172918434E-05  -5.0384436204005869E+00   2.1462218592663768E-01   3.3577837666713258E+01 
+      1      40   1277    *SANK   2.49E+03  1.00  0.082   2.5076136624401770E-04   1.0769522652268672E-05  -5.0389475345491386E+00   2.1461744329524710E-01   3.2047640596727987E+01 
+      1      41   1319     SANK   2.49E+03  1.00  0.110   2.6794952569885692E-04   1.0291878804521939E-05  -5.0395191012972518E+00   2.1461497235881233E-01   3.0626478959058993E+01 
+      1      42   1361    *SANK   1.28E+03  1.00  0.041   3.1046648068447949E-04   9.8584775406371466E-06  -5.0398845778973564E+00   2.1461359298350990E-01   2.9337138164380516E+01 
+      1      43   1398     SANK   1.28E+03  1.00  0.049   2.6141668983183509E-04   9.4617819253158943E-06  -5.0401657542148737E+00   2.1460802134204235E-01   2.8156363377897890E+01 
+      1      44   1436     SANK   1.28E+03  1.00  0.048   2.4277844587003488E-04   9.1009272081252448E-06  -5.0404220728589504E+00   2.1460505086100079E-01   2.7082443223032385E+01 
+      1      45   1475     SANK   1.28E+03  1.00  0.048   2.4353989733744751E-04   8.7519254957492462E-06  -5.0406818380100278E+00   2.1460199758409940E-01   2.6043932328639521E+01 
+      1      46   1513     SANK   1.28E+03  1.00  0.046   2.3746854252843847E-04   8.4112348222395963E-06  -5.0409350777364965E+00   2.1459905111827696E-01   2.5030120199495499E+01 
+      1      47   1551     SANK   1.28E+03  1.00  0.050   2.2808501203865406E-04   8.0829118890248041E-06  -5.0411753469927714E+00   2.1459619621747381E-01   2.4053096512990852E+01 
+      1      48   1590     SANK   1.28E+03  1.00  0.047   2.2389434620815357E-04   7.7633125251098511E-06  -5.0414116194694003E+00   2.1459352249572111E-01   2.3102053453938471E+01 
+      1      49   1628     SANK   1.28E+03  1.00  0.050   2.1255263188509323E-04   7.4568830345088929E-06  -5.0416313808218467E+00   2.1459056902574800E-01   2.2190162646861882E+01 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1      50   1667     SANK   1.28E+03  1.00  0.048   2.0742217450011319E-04   7.1638134877188737E-06  -5.0418461689375018E+00   2.1458812163063196E-01   2.1318064842381915E+01 
+      1      51   1706     SANK   1.28E+03  1.00  0.047   1.9773924082702016E-04   6.8832729063415639E-06  -5.0420477895056113E+00   2.1458549206496855E-01   2.0483211988637915E+01 
+      1      52   1748    *SANK   2.73E+03  1.00  0.080   1.6570878984074669E-04   6.6092457702659158E-06  -5.0423831274476720E+00   2.1458164775390981E-01   1.9667624127211933E+01 
+      1      53   1790     SANK   2.73E+03  1.00  0.084   1.6780603856868801E-04   6.3492620957588557E-06  -5.0427517661367789E+00   2.1458087828073885E-01   1.8894018787996998E+01 
+      1      54   1832     SANK   2.73E+03  1.00  0.109   1.4005265140025816E-04   6.1149802908266628E-06  -5.0430296100589880E+00   2.1457858285281656E-01   1.8196721759938743E+01 
+      1      55   1874    *SANK   1.39E+03  1.00  0.062   1.8758270260988674E-04   5.8836399779532775E-06  -5.0432482281606097E+00   2.1457669717318500E-01   1.7508652581209052E+01 
+      1      56   1912     SANK   1.39E+03  1.00  0.049   1.6340944090377434E-04   5.6705408807462185E-06  -5.0434295320061393E+00   2.1457310033317115E-01   1.6874382936801211E+01 
+      1      57   1951     SANK   1.39E+03  1.00  0.047   1.5820734645915420E-04   5.4638491681893768E-06  -5.0436081076562891E+00   2.1457110673069837E-01   1.6259310303231505E+01 
+      1      58   1990     SANK   1.39E+03  1.00  0.046   1.4913160152228757E-04   5.2632342261839410E-06  -5.0437723407421160E+00   2.1456826881406998E-01   1.5662285308835777E+01 
+      1      59   2028     SANK   1.39E+03  1.00  0.050   1.3763450903293183E-04   5.0686024817274235E-06  -5.0439205755023897E+00   2.1456609524816528E-01   1.5083064946214389E+01 
+      1      60   2067     SANK   1.39E+03  1.00  0.046   1.3260649944136000E-04   4.8771039542317686E-06  -5.0440626241818327E+00   2.1456395311357571E-01   1.4513199067245180E+01 
+      1      61   2106     SANK   1.39E+03  1.00  0.044   1.2520415868963990E-04   4.6900198474543769E-06  -5.0441944098788314E+00   2.1456184346996202E-01   1.3956466167326342E+01 
+      1      62   2145     SANK   1.39E+03  1.00  0.047   1.1843545957712134E-04   4.5080004969787931E-06  -5.0443170302875728E+00   2.1456001448087691E-01   1.3414788923301405E+01 
+      1      63   2184     SANK   1.39E+03  1.00  0.050   1.1436674963321701E-04   4.3312993077058618E-06  -5.0444350566848790E+00   2.1455832280342030E-01   1.2888961906844333E+01 
+      1      64   2223     SANK   1.39E+03  1.00  0.050   1.0931258778294933E-04   4.1604238601515619E-06  -5.0445466947789566E+00   2.1455671701063753E-01   1.2380472753101394E+01 
+      1      65   2265    *SANK   2.91E+03  1.00  0.084   9.0529649012346930E-05   3.9928549552659460E-06  -5.0447211976367905E+00   2.1455417137237048E-01   1.1881758289903907E+01 
+      1      66   2307     SANK   2.91E+03  1.00  0.095   9.0990016676887350E-05   3.8375200843404620E-06  -5.0449166718395579E+00   2.1455371127344594E-01   1.1419541529915334E+01 
+      1      67   2349     SANK   2.91E+03  1.00  0.108   8.0638621898651265E-05   3.6904467408752853E-06  -5.0450803848114036E+00   2.1455223378887930E-01   1.0981860374960201E+01 
+      1      68   2391    *SANK   1.48E+03  1.00  0.071   9.8401072004853233E-05   3.5506738057178197E-06  -5.0451947137622444E+00   2.1455115733285027E-01   1.0566040670858657E+01 
+      1      69   2431     SANK   1.48E+03  1.00  0.050   9.2429542719676483E-05   3.4192652829175185E-06  -5.0453010323170444E+00   2.1454926466088076E-01   1.0174982393992295E+01 
+      1      70   2470     SANK   1.48E+03  1.00  0.050   8.4620675672043272E-05   3.2939921205677886E-06  -5.0453966762514719E+00   2.1454782303547526E-01   9.8021683842334788E+00 
+      1      71   2509     SANK   1.48E+03  1.00  0.048   7.9643834559381125E-05   3.1729419484629847E-06  -5.0454851430829564E+00   2.1454633186920546E-01   9.4419387626573972E+00 
+      1      72   2548     SANK   1.48E+03  1.00  0.048   7.4491356777473358E-05   3.0560889033112845E-06  -5.0455666505368768E+00   2.1454503099705663E-01   9.0941971612555346E+00 
+      1      73   2587     SANK   1.48E+03  1.00  0.049   7.0120035288499580E-05   2.9415656658409612E-06  -5.0456420372595154E+00   2.1454380647003041E-01   8.7533917064114402E+00 
+      1      74   2627     SANK   1.48E+03  1.00  0.046   6.7099239051181400E-05   2.8297279649062842E-06  -5.0457135315853217E+00   2.1454268719511269E-01   8.4205835014158961E+00 
+      1      75   2667     SANK   1.48E+03  1.00  0.048   6.3931364552713708E-05   2.7212953585868397E-06  -5.0457808694708559E+00   2.1454160889110005E-01   8.0979092798803727E+00 
+      1      76   2706     SANK   1.48E+03  1.00  0.050   6.0069266178509447E-05   2.6167844057406254E-06  -5.0458428045524126E+00   2.1454062422426090E-01   7.7869027121910257E+00 
+      1      77   2746     SANK   1.48E+03  1.00  0.049   5.8148098958143884E-05   2.5158450038682172E-06  -5.0459028814784386E+00   2.1453978123295014E-01   7.4865331392423560E+00 
+      1      78   2788    *SANK   3.09E+03  1.00  0.086   4.6739962385771106E-05   2.4183094760629365E-06  -5.0459898375403069E+00   2.1453832503754375E-01   7.1962555478929309E+00 
+      1      79   2830     SANK   3.09E+03  1.00  0.108   4.5898149006445190E-05   2.3287845578844212E-06  -5.0460841046914444E+00   2.1453796233665670E-01   6.9298579673533576E+00 
+      1      80   2872    *SANK   1.57E+03  1.00  0.058   5.3748011977941406E-05   2.2401482195933106E-06  -5.0461489214390802E+00   2.1453753518289773E-01   6.6661404288189541E+00 
+      1      81   2914     SANK   1.57E+03  1.00  0.047   5.0020475300365051E-05   2.1581041009427224E-06  -5.0462062501881277E+00   2.1453665996034191E-01   6.4219869265845357E+00 
+      1      82   2955     SANK   1.57E+03  1.00  0.049   4.7122031456455056E-05   2.0806098165802545E-06  -5.0462592626749929E+00   2.1453571716816938E-01   6.1913785683913387E+00 
+      1      83   2996     SANK   1.57E+03  1.00  0.049   4.4339520189728861E-05   2.0069059945346880E-06  -5.0463087061767968E+00   2.1453497881712744E-01   5.9720478011968465E+00 
+      1      84   3036     SANK   1.57E+03  1.00  0.050   4.1532030032301449E-05   1.9359470483815366E-06  -5.0463539911281599E+00   2.1453421214835250E-01   5.7608829207141499E+00 
+      1      85   3077     SANK   1.57E+03  1.00  0.046   3.9470012842557496E-05   1.8675422970969215E-06  -5.0463966433990564E+00   2.1453358459287283E-01   5.5573262523859341E+00 
+      1      86   3118     SANK   1.57E+03  1.00  0.048   3.7371811499684567E-05   1.8011374189262443E-06  -5.0464362692329550E+00   2.1453293176592100E-01   5.3597190576375908E+00 
+      1      87   3159     SANK   1.57E+03  1.00  0.049   3.5188621052086375E-05   1.7374515641365059E-06  -5.0464728198928492E+00   2.1453234038028418E-01   5.1702010103678679E+00 
+      1      88   3200     SANK   1.57E+03  1.00  0.049   3.3644201565400416E-05   1.6760719717174790E-06  -5.0465075112990707E+00   2.1453181249113912E-01   4.9875502935728386E+00 
+      1      89   3241     SANK   1.57E+03  1.00  0.050   3.1981908606170260E-05   1.6172578740358056E-06  -5.0465400723750697E+00   2.1453130918043584E-01   4.8125321178061702E+00 
+      1      90   3283    *SANK   3.18E+03  1.00  0.092   2.5619523384993633E-05   1.5609892574820230E-06  -5.0465840763677559E+00   2.1453049929994528E-01   4.6450772084637073E+00 
+      1      91   3325     SANK   3.18E+03  1.00  0.127   2.4999249808087917E-05   1.5086878830930299E-06  -5.0466314651133377E+00   2.1453024485849254E-01   4.4894420723260842E+00 
+      1      92   3367    *SANK   1.62E+03  1.00  0.066   2.9660504121818726E-05   1.4563812466871797E-06  -5.0466667106493617E+00   2.1453010431195424E-01   4.3338115003897348E+00 
+      1      93   3409     SANK   1.62E+03  1.00  0.051   2.7370177406755272E-05   1.4076617809120454E-06  -5.0466972514586077E+00   2.1452961342166499E-01   4.1888296871542003E+00 
+      1      94   3451     SANK   1.62E+03  1.00  0.050   2.5930479079785375E-05   1.3617230460955614E-06  -5.0467256899401587E+00   2.1452912460441223E-01   4.0521256434564821E+00 
+      1      95   3493     SANK   1.62E+03  1.00  0.050   2.4359988612826942E-05   1.3179941719013179E-06  -5.0467519718574358E+00   2.1452870334503346E-01   3.9219965759563009E+00 
+      1      96   3535     SANK   1.62E+03  1.00  0.049   2.2994737575011603E-05   1.2758340635791102E-06  -5.0467763013912332E+00   2.1452830575199716E-01   3.7965368310404957E+00 
+      1      97   3577     SANK   1.62E+03  1.00  0.049   2.1649545179857048E-05   1.2352879322322407E-06  -5.0467986542611056E+00   2.1452794366283029E-01   3.6758797941318546E+00 
+      1      98   3619     SANK   1.62E+03  1.00  0.050   2.0503135367687159E-05   1.1961469384421151E-06  -5.0468193784677489E+00   2.1452760742935642E-01   3.5594049579363944E+00 
+      1      99   3661     SANK   1.62E+03  1.00  0.051   1.9424593367142587E-05   1.1585141099368763E-06  -5.0468386033110777E+00   2.1452729750928703E-01   3.4474181607359857E+00 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     100   3703     SANK   1.62E+03  1.00  0.052   1.8469666553370457E-05   1.1223117355073962E-06  -5.0468565707237216E+00   2.1452701260905013E-01   3.3396885388130828E+00 
+      1     101   3745     SANK   1.62E+03  1.00  0.052   1.7576651668620802E-05   1.0875738920971207E-06  -5.0468733875899217E+00   2.1452674876618055E-01   3.2363170375158887E+00 
+      1     102   3787    *SANK   3.07E+03  1.00  0.094   1.4376162125365358E-05   1.0546103421879037E-06  -5.0468944593615355E+00   2.1452631770665323E-01   3.1382203823087225E+00 
+      1     103   3829     SANK   3.07E+03  1.00  0.127   1.3909142412945106E-05   1.0236530539241332E-06  -5.0469167374779094E+00   2.1452613604107110E-01   3.0461007444976786E+00 
+      1     104   3871    *SANK   1.56E+03  1.00  0.069   1.6269791691488862E-05   9.9235193742534675E-07  -5.0469340064085841E+00   2.1452609977125098E-01   2.9529660031457463E+00 
+      1     105   3913     SANK   1.56E+03  1.00  0.052   1.5025938827356560E-05   9.6288569303188000E-07  -5.0469488710968440E+00   2.1452586145837946E-01   2.8652793767855695E+00 
+      1     106   3955     SANK   1.56E+03  1.00  0.053   1.4220608459996481E-05   9.3505229492217272E-07  -5.0469625890037682E+00   2.1452563758854384E-01   2.7824534830170884E+00 
+      1     107   3997     SANK   1.56E+03  1.00  0.052   1.3427986742349656E-05   9.0849231604715955E-07  -5.0469752372180530E+00   2.1452543360097756E-01   2.7034170703761289E+00 
+      1     108   4039     SANK   1.56E+03  1.00  0.052   1.2744079632193131E-05   8.8291384327613833E-07  -5.0469869769381646E+00   2.1452524781459476E-01   2.6273017479198431E+00 
+      1     109   4081     SANK   1.56E+03  1.00  0.053   1.2084051151791490E-05   8.5824652815047774E-07  -5.0469978184327680E+00   2.1452507662093684E-01   2.5538979310880556E+00 
+      1     110   4123     SANK   1.56E+03  1.00  0.054   1.1497433717066366E-05   8.3443860169574096E-07  -5.0470078939588507E+00   2.1452492212794230E-01   2.4830514616152239E+00 
+      1     111   4165     SANK   1.56E+03  1.00  0.055   1.0962833373136082E-05   8.1148447598400897E-07  -5.0470172916105884E+00   2.1452478221956128E-01   2.4147458541329887E+00 
+      1     112   4207     SANK   1.56E+03  1.00  0.056   1.0479726997348586E-05   7.8937521528827602E-07  -5.0470261058543677E+00   2.1452465570082141E-01   2.3489544876589084E+00 
+      1     113   4253      *NK     ----    1.00  0.094   3.4973223295583350E-05   3.6151578033415472E-08  -5.0470976072693432E+00   2.1452535197252307E-01   1.1496319506716732E-01 
+      1     114   4301       NK     ----    1.00  0.099   3.8129982655200728E-06   1.2100497277626971E-09  -5.0471463517194648E+00   2.1452802605927110E-01   5.3847723996717336E-03 
+      1     115   4414       NK     ----    1.00  0.099   7.1914282114271270E-07   3.3600377749754116E-10  -5.0472633555342012E+00   2.1452543956588427E-01   1.0725973462722028E-03 
+      1     116   4556       NK     ----    1.00  0.098   1.0960275403953583E-07   2.1138221609168132E-11  -5.0472705867617087E+00   2.1452556971784131E-01   7.6411341933076834E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.028 sec
+| Solution Time                 :     77.782 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     78.810 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.002 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 0, "cl": -5.047270586761708, "cd": 0.21452556971784129, "cmz": 0.13901297866997278, "downforce_N_per_m": 4770.727073377013, "drag_N_per_m": 202.77156252903944, "downforce_to_drag": 23.52759437208452, "force_down_N_extruded_span": 238.53635366885067, "residual_initial": 2384338.757318381, "residual_start": 5102.900724819334, "residual_final": 7.641134193307683e-05, "residual_ratio_initial": 3.204718360532593e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 78.81610755901784, "elapsed_wall_time_s": 81.25793675892055, "incidence_variable_deg": -8.375370318836412, "minimum_clearance_m": 0.06286215951982889, "maximum_height_m": 0.202904896294092, "minimum_x_m": -0.1143807443127961, "maximum_x_m": 0.5995082662116654, "maximum_section_thickness_m": 0.03729121338503738, "maximum_section_thickness_over_reference_chord": 0.07458242677007476, "minimum_local_thickness_m": 0.0020003523176354574, "actual_chord_m": 0.7230072045940998, "chord_incidence_deg": -9.233590502775966, "box_minimum_margin_m": 0.010619255687203899, "design": {"incidence": [-8.375370318836412], "shape_x": [-0.10900745742577984, -0.13357311122120105, -0.05458176895471298, -0.03578381042110677, -0.008323557386101585, -0.008709545734087809, 0.10752833908827389, 0.11064281177043205, 0.09264908331194033, 0.11367938181250592], "shape_y": [0.003421506259111293, 0.05251305638272471, 0.053710607199893366, -0.083756362027492, 0.0699683486593808, 0.004250796477232905, 0.05448047793983506, -0.09419279870715247, 0.09442109023571157, 0.05576257138709664]}}
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/baseline/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/baseline/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/baseline/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/baseline/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/baseline/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/best_feasible/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/best_feasible/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/best_feasible/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/best_feasible/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_05/best_feasible/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.956 sec
+| Solution Time                 :      4.920 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :      5.876 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.002 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.003 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 1, "cl": -5.047271429907505, "cd": 0.21452555395061565, "cmz": 0.13901310413191137, "downforce_N_per_m": 4770.727870326258, "drag_N_per_m": 202.7715476257112, "downforce_to_drag": 23.527600031599967, "force_down_N_extruded_span": 238.53639351631293, "residual_initial": 2384338.757318381, "residual_start": 7.641133927368063e-05, "residual_final": 4.826104707336942e-06, "residual_ratio_initial": 2.0240851651318065e-12, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 5.8809226780431345, "elapsed_wall_time_s": 87.56986007490195, "incidence_variable_deg": -8.375370318836412, "minimum_clearance_m": 0.06286215951982889, "maximum_height_m": 0.202904896294092, "minimum_x_m": -0.1143807443127961, "maximum_x_m": 0.5995082662116654, "maximum_section_thickness_m": 0.03729121338503738, "maximum_section_thickness_over_reference_chord": 0.07458242677007476, "minimum_local_thickness_m": 0.0020003523176354574, "actual_chord_m": 0.7230072045940998, "chord_incidence_deg": -9.233590502775966, "box_minimum_margin_m": 0.010619255687203899, "design": {"incidence": [-8.375370318836412], "shape_x": [-0.10900745742577984, -0.13357311122120105, -0.05458176895471298, -0.03578381042110677, -0.008323557386101585, -0.008709545734087809, 0.10752833908827389, 0.11064281177043205, 0.09264908331194033, 0.11367938181250592], "shape_y": [0.003421506259111293, 0.05251305638272471, 0.053710607199893366, -0.083756362027492, 0.0699683486593808, 0.004250796477232905, 0.05448047793983506, -0.09419279870715247, 0.09442109023571157, 0.05576257138709664]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     32.152 sec
+| Total Sensitivity Time - cl_wing:      1.155 sec
+| Adjoint Solve Time - cd_wing  :     26.426 sec
+| Total Sensitivity Time - cd_wing:      1.108 sec
+|
+| Complete Sensitivity Time     :     61.746 sec
++--------------------------------------------------+
+OPT_GRADIENT 2 failed False
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.928 sec
+| Solution Time                 :    168.861 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    169.789 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.002 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.003 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 2, "cl": -5.063538630050179, "cd": 0.21899216308404548, "cmz": 0.1451050932025148, "downforce_N_per_m": 4786.103779105993, "drag_N_per_m": 206.9934280961059, "downforce_to_drag": 23.122008380303903, "force_down_N_extruded_span": 239.30518895529968, "residual_initial": 2384338.757318381, "residual_start": 2456.207974354966, "residual_final": 0.00011044839998642955, "residual_ratio_initial": 4.6322444597028945e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 169.79304531600792, "elapsed_wall_time_s": 319.70869411190506, "incidence_variable_deg": -8.432714848389434, "minimum_clearance_m": 0.0625171689391814, "maximum_height_m": 0.20376787959147957, "minimum_x_m": -0.11460297652592075, "maximum_x_m": 0.5994929677124701, "maximum_section_thickness_m": 0.03733501818178307, "maximum_section_thickness_over_reference_chord": 0.07467003636356614, "minimum_local_thickness_m": 0.0020000382266013787, "actual_chord_m": 0.7234136571400811, "chord_incidence_deg": -9.329547766330089, "box_minimum_margin_m": 0.010397023474079253, "design": {"incidence": [-8.432714848389434], "shape_x": [-0.10927638732009688, -0.13380603371193076, -0.05468323257704661, -0.03588206784563767, -0.008297540860605652, -0.008696499640721963, 0.10785063230535372, 0.11094830312473353, 0.09260410238423872, 0.11375908898187626], "shape_y": [0.0030617630221035186, 0.052318221368969145, 0.05349346791821114, -0.08401431714523856, 0.06991267285953522, 0.004179542781273702, 0.054286258484562706, -0.09441821800602317, 0.0949661380292412, 0.05631600446665056]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     25.307 sec
+| Total Sensitivity Time - cl_wing:      1.156 sec
+| Adjoint Solve Time - cd_wing  :     19.442 sec
+| Total Sensitivity Time - cd_wing:      1.095 sec
+|
+| Complete Sensitivity Time     :     47.899 sec
++--------------------------------------------------+
+OPT_GRADIENT 3 failed False
+-> Alpha... 0.000000 
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 4
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 2
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 23
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 31
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 12
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 3
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 7
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 20
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 28
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 1
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 15
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 21
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 6
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 30
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 18
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 11
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 14
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 25
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 29
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 22
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 17
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 8
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 13
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 27
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 19
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 9
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 24
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#                      Warning
+# Symmetry boundary face BC3 of zone airfoil_near.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC4 of zone airfoil_near.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 16
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 10
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 26
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 5
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#                      Warning
+# Symmetry boundary face BC3 of zone airfoil_near.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC4 of zone airfoil_near.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+Fatal failure during mesh warp! Bad mesh is written in output directory as failed_mesh_wing_003.cgns
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.006 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.007 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 3, "cl": -5.104135156281048, "cd": 0.27206506755952103, "cmz": 0.154249476651404, "downforce_N_per_m": 4824.475993047257, "drag_N_per_m": 257.1584307230707, "downforce_to_drag": 18.760714861581377, "force_down_N_extruded_span": 241.22379965236289, "residual_initial": 2384338.757318381, "residual_start": 2456.207974354966, "residual_final": 0.00011044839998642955, "residual_ratio_initial": 4.6322444597028945e-11, "cfd_failed": true, "nk_fallback": false, "feasible": false, "evaluation_wall_time_s": 0.8913081639911979, "elapsed_wall_time_s": 369.0533084659837, "incidence_variable_deg": -8.935742538736202, "minimum_clearance_m": 0.06066096943521591, "maximum_height_m": 0.21482514809712713, "minimum_x_m": -0.11767676064148096, "maximum_x_m": 0.6000452709676126, "maximum_section_thickness_m": 0.03710861370552446, "maximum_section_thickness_over_reference_chord": 0.07421722741104891, "minimum_local_thickness_m": 0.0020060891120504093, "actual_chord_m": 0.7292972461961559, "chord_incidence_deg": -10.335611992660315, "box_minimum_margin_m": 0.007323239358519043, "design": {"incidence": [-8.935742538736202], "shape_x": [-0.11303982388275426, -0.13668118872013096, -0.05717175322986485, -0.037968063260385786, -0.007603507304335213, -0.008308602685950142, 0.11469058483426733, 0.11723881721972233, 0.09202171861598968, 0.11553454872663364], "shape_y": [0.0014242828513971943, 0.05108092187198122, 0.05413444914107384, -0.08732638433455246, 0.06802559978805724, 0.0020885551734145863, 0.048517978975865204, -0.10035568665813172, 0.1036808117696198, 0.06543986582753301]}}
+-> Alpha... 0.000000 
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 2
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 7
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 3
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 12
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 5
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 1
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 13
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 6
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 9
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 22
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 30
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 14
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 20
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 18
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 28
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 24
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 11
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 16
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 15
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 23
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 25
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 31
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 8
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 17
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 29
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 27
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 21
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 19
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 10
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 26
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#--------------------------- !!! Error !!! ----------------------------
+#* returnFail called by processor 4
+#* Run-time error in procedure metric
+#* Error message: Negative volumes present in grid.
+#*
+#----------------------------------------------------------------------
+#
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+#
+#                      Warning
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+#                      Warning
+# Symmetry boundary face BC3 of zone airfoil_near.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC4 of zone airfoil_near.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+Fatal failure during mesh warp! Bad mesh is written in output directory as failed_mesh_wing_004.cgns
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.002 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 4, "cl": -5.083869649679991, "cd": 0.2455299685698876, "cmz": 0.14969216042513442, "downforce_N_per_m": 4805.3208478384895, "drag_N_per_m": 232.07720851227506, "downforce_to_drag": 20.705699101789765, "force_down_N_extruded_span": 240.2660423919245, "residual_initial": 2384338.757318381, "residual_start": 2456.207974354966, "residual_final": 0.00011044839998642955, "residual_ratio_initial": 4.6322444597028945e-11, "cfd_failed": true, "nk_fallback": false, "feasible": false, "evaluation_wall_time_s": 0.9325297799659893, "elapsed_wall_time_s": 370.2184803909622, "incidence_variable_deg": -8.684228693562817, "minimum_clearance_m": 0.06159953397545269, "maximum_height_m": 0.20929706538095227, "minimum_x_m": -0.1161410595633183, "maximum_x_m": 0.5997726900938805, "maximum_section_thickness_m": 0.037220007176283904, "maximum_section_thickness_over_reference_chord": 0.07444001435256781, "minimum_local_thickness_m": 0.002001996968740835, "actual_chord_m": 0.726332274767048, "chord_incidence_deg": -9.834609620423178, "box_minimum_margin_m": 0.0088589404366817, "design": {"incidence": [-8.684228693562817], "shape_x": [-0.11115810560142558, -0.13524361121603087, -0.05592749290345573, -0.03692506555301173, -0.007950524082470432, -0.008502551163336054, 0.11127060856981053, 0.11409356017222794, 0.0923129105001142, 0.11464681885425494], "shape_y": [0.0022430229367503564, 0.05169957162047518, 0.05381395852964249, -0.08567035073989551, 0.06896913632379623, 0.003134048977344144, 0.051402118730213955, -0.09738695233207743, 0.0993234748994305, 0.060877935147091784]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.942 sec
+| Solution Time                 :    295.747 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    296.690 sec
++--------------------------------------------------+
+NK_FALLBACK {'incidence': [-8.558471770976126], 'shape_x': [-0.11021724646076124, -0.13452482246398081, -0.05530536274025117, -0.036403566699324694, -0.008124032471538043, -0.008599525402029008, 0.10956062043758212, 0.11252093164848073, 0.09245850644217646, 0.1142029539180656], 'shape_y': [0.0026523929794269375, 0.052008896494722165, 0.05365371322392681, -0.08484233394256703, 0.06944090459166573, 0.003656795879308922, 0.05284418860738833, -0.0959025851690503, 0.09714480646433585, 0.05859696980687117]}
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.005 sec
+| Solution Time                 :    292.125 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    292.130 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.002 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 5, "cl": -5.120595928535894, "cd": 0.23270897965481516, "cmz": 0.1443016539943741, "downforce_N_per_m": 4840.0348679866875, "drag_N_per_m": 219.9586906176666, "downforce_to_drag": 22.004290234658935, "force_down_N_extruded_span": 242.00174339933437, "residual_initial": 2384338.757318381, "residual_start": 423952.0196699603, "residual_final": 49.85828495039884, "residual_ratio_initial": 2.0910738793875694e-05, "cfd_failed": true, "nk_fallback": true, "feasible": false, "evaluation_wall_time_s": 588.825402691029, "elapsed_wall_time_s": 959.2753212609095, "incidence_variable_deg": -8.558471770976126, "minimum_clearance_m": 0.06205826896667885, "maximum_height_m": 0.2065326084108741, "minimum_x_m": -0.11537231587808772, "maximum_x_m": 0.5996337218931982, "maximum_section_thickness_m": 0.0372770784268088, "maximum_section_thickness_over_reference_chord": 0.0745541568536176, "minimum_local_thickness_m": 0.0020007489424139647, "actual_chord_m": 0.7248671294676224, "chord_incidence_deg": -9.582585388559755, "box_minimum_margin_m": 0.009627684121912283, "design": {"incidence": [-8.558471770976126], "shape_x": [-0.11021724646076124, -0.13452482246398081, -0.05530536274025117, -0.036403566699324694, -0.008124032471538043, -0.008599525402029008, 0.10956062043758212, 0.11252093164848073, 0.09245850644217646, 0.1142029539180656], "shape_y": [0.0026523929794269375, 0.052008896494722165, 0.05365371322392681, -0.08484233394256703, 0.06944090459166573, 0.003656795879308922, 0.05284418860738833, -0.0959025851690503, 0.09714480646433585, 0.05859696980687117]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#

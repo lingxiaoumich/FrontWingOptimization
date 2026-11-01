@@ -1,0 +1,2042 @@
+#
+# ADflow, multiblock structured flow solver
+#
+# This code solves the 3D RANS, laminar NS or Euler equations
+# on multiblock structured hexahedral grids.
+# This is a parallel executable running on 32 processors.
+# It has been compiled with the following options:
+# - Optimized mode.
+# - Size of standard integers: 4 bytes.
+# - Size of standard floating point types: 8 bytes.
+# - With cgns support
+# - With support for signals.
+#
++----------------------------------------+
+|          All ADFLOW Options:           |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKAMGLevels': 2,
+ 'ANKAMGNSmooth': 1,
+ 'ANKASMOverlap': 1,
+ 'ANKASMOverlapCoarse': 0,
+ 'ANKCFL0': 5.0,
+ 'ANKCFLCutback': 0.5,
+ 'ANKCFLExponent': 0.5,
+ 'ANKCFLFactor': 10.0,
+ 'ANKCFLLimit': 100000.0,
+ 'ANKCFLMin': 1.0,
+ 'ANKCFLReset': True,
+ 'ANKCharTimeStepType': 'None',
+ 'ANKConstCFLStep': 0.4,
+ 'ANKCoupledSwitchTol': 1e-16,
+ 'ANKGlobalPreconditioner': 'additive Schwarz',
+ 'ANKInnerPreconIts': 1,
+ 'ANKInnerPreconItsCoarse': 1,
+ 'ANKJacobianLag': 10,
+ 'ANKLinResMax': 0.1,
+ 'ANKLinearSolveBuffer': 0.01,
+ 'ANKLinearSolveTol': 0.05,
+ 'ANKMaxIter': 40,
+ 'ANKNSubiterTurb': 1,
+ 'ANKOuterPreconIts': 1,
+ 'ANKPCILUFill': 2,
+ 'ANKPCILUFillCoarse': 0,
+ 'ANKPCUpdateCutoff': 1e-16,
+ 'ANKPCUpdateTol': 0.5,
+ 'ANKPCUpdateTolAfterCutoff': 0.0001,
+ 'ANKPhysicalLSTol': 0.2,
+ 'ANKPhysicalLSTolTurb': 0.99,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKStepFactor': 1.0,
+ 'ANKStepMin': 0.01,
+ 'ANKSubspaceSize': -1,
+ 'ANKSwitchTol': 10.0,
+ 'ANKTurbCFLScale': 1.0,
+ 'ANKTurbKSPDebug': False,
+ 'ANKUnsteadyLSTol': 1.0,
+ 'ANKUseApproxSA': False,
+ 'ANKUseFullVisc': True,
+ 'ANKUseMatrixFree': True,
+ 'ANKUseTurbDADI': True,
+ 'ASMOverlap': 1,
+ 'ASMOverlapCoarse': 0,
+ 'CFL': 1.7,
+ 'CFLCoarse': 1.0,
+ 'CFLLimit': 1.5,
+ 'GMRESOrthogonalizationType': 'modified Gram-Schmidt',
+ 'ILUFill': 4,
+ 'ILUFillCoarse': 0,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceCoarse': 0.01,
+ 'L2ConvergenceRel': 1e-10,
+ 'MGCycle': 'sg',
+ 'MGStartLevel': -1,
+ 'NKADPC': True,
+ 'NKAMGLevels': 2,
+ 'NKAMGNSmooth': 1,
+ 'NKASMOverlap': 3,
+ 'NKASMOverlapCoarse': 0,
+ 'NKFixedStep': 0.25,
+ 'NKGlobalPreconditioner': 'additive Schwarz',
+ 'NKInnerPreconIts': 1,
+ 'NKInnerPreconItsCoarse': 1,
+ 'NKJacobianLag': 20,
+ 'NKLS': 'cubic',
+ 'NKLinearSolveTol': 0.1,
+ 'NKOuterPreconIts': 1,
+ 'NKPCILUFill': 4,
+ 'NKPCILUFillCoarse': 0,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-06,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'RKReset': False,
+ 'TSStability': False,
+ 'acousticScaleFactor': 1.0,
+ 'adjointAMGLevels': 2,
+ 'adjointAMGNSmooth': 1,
+ 'adjointDivTol': 100000.0,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointL2ConvergenceAbs': 1e-16,
+ 'adjointL2ConvergenceRel': 1e-16,
+ 'adjointMaxIter': 2000,
+ 'adjointMaxL2DeviationFactor': 1.0,
+ 'adjointMonitorStep': 10,
+ 'adjointSolver': 'GMRES',
+ 'adjointSubspaceSize': 500,
+ 'alphaFollowing': True,
+ 'alphaMode': False,
+ 'altitudeMode': False,
+ 'applyAdjointPCSubspaceSize': 20,
+ 'applyPCSubspaceSize': 10,
+ 'approxPC': True,
+ 'backgroundVolScale': 1.0,
+ 'betaMode': False,
+ 'blockSplitting': True,
+ 'cavExponent': 0,
+ 'cavSensorOffset': 0.0,
+ 'cavSensorSharpness': 10.0,
+ 'cavitationNumber': 1.4,
+ 'closedSurfaceFamilies': None,
+ 'coarseDiscretization': 'central plus scalar dissipation',
+ 'computeCavitation': False,
+ 'computeSepSensorKs': False,
+ 'coupledSolution': False,
+ 'cpMinRho': 100.0,
+ 'cutCallback': None,
+ 'debugZipper': False,
+ 'deltaT': 0.01,
+ 'designSurfaceFamily': 'airfoil',
+ 'discretization': 'central plus scalar dissipation',
+ 'dissContMagnitude': 1.0,
+ 'dissContMidpoint': 3.0,
+ 'dissContSharpness': 3.0,
+ 'dissipationLumpingParameter': 6.0,
+ 'dissipationScalingExponent': 0.67,
+ 'eddyVisInfRatio': 0.009,
+ 'equationMode': 'steady',
+ 'equationType': 'RANS',
+ 'eulerWallTreatment': 'linear pressure extrapolation',
+ 'explicitSurfaceCallback': None,
+ 'firstRun': True,
+ 'flowType': 'external',
+ 'forcesAsTractions': True,
+ 'frozenTurbulence': False,
+ 'globalPreconditioner': 'additive Schwarz',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/source/ground.cgns',
+ 'gridPrecision': 'double',
+ 'gridPrecisionSurface': 'single',
+ 'infChangeCorrection': True,
+ 'infChangeCorrectionTol': 1e-12,
+ 'infChangeCorrectionType': 'offset',
+ 'innerPreconIts': 1,
+ 'innerPreconItsCoarse': 1,
+ 'isoVariables': [],
+ 'isosurface': {},
+ 'liftIndex': 2,
+ 'limiter': 'van Albada',
+ 'loadBalanceIter': 10,
+ 'loadImbalance': 0.1,
+ 'localPreconditioner': 'ILU',
+ 'lowSpeedPreconditioner': False,
+ 'machMode': False,
+ 'matrixOrdering': 'RCM',
+ 'maxL2DeviationFactor': 1.0,
+ 'meshMaxSkewness': 1.0,
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 60000,
+ 'nCyclesCoarse': 500,
+ 'nFloodIter': -1,
+ 'nRKReset': 5,
+ 'nRefine': 10,
+ 'nSaveSurface': 1,
+ 'nSaveVolume': 1,
+ 'nSubiter': 1,
+ 'nSubiterTurb': 3,
+ 'nTimeStepsCoarse': 48,
+ 'nTimeStepsFine': 400,
+ 'nearWallDist': 0.01,
+ 'numberSolutions': True,
+ 'outerPreconIts': 3,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/evaluations',
+ 'outputSurfaceFamily': 'allSurfaces',
+ 'overlapFactor': 0.9,
+ 'oversetDebugPrint': False,
+ 'oversetLoadBalance': True,
+ 'oversetPriority': {},
+ 'oversetProjTol': 1e-12,
+ 'oversetUpdateMode': 'frozen',
+ 'pMode': False,
+ 'partitionLikeNProc': -1,
+ 'partitionOnly': False,
+ 'preconditionerSide': 'right',
+ 'printAllOptions': True,
+ 'printBadlySkewedCells': False,
+ 'printIntro': True,
+ 'printIterations': True,
+ 'printNegativeVolumes': False,
+ 'printTiming': True,
+ 'printWarnings': True,
+ 'qMode': False,
+ 'rMode': False,
+ 'recomputeOverlapMatrix': True,
+ 'resAveraging': 'alternate',
+ 'restartAdjoint': True,
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/start_vol.cgns',
+ 'restrictionRelaxation': 0.8,
+ 'selfZipCutoff': 120.0,
+ 'sepSensorKsOffset': 0.0,
+ 'sepSensorKsPhi': 90.0,
+ 'sepSensorKsRho': 1000.0,
+ 'sepSensorKsSharpness': 25.0,
+ 'sepSensorOffset': 0.0,
+ 'sepSensorSharpness': 10.0,
+ 'setMonitor': True,
+ 'skipAfterFailedAdjoint': True,
+ 'smoothParameter': 1.5,
+ 'smoother': 'DADI',
+ 'solutionPrecision': 'single',
+ 'solutionPrecisionSurface': 'single',
+ 'storeConvHist': True,
+ 'storeRindLayer': True,
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'timeAccuracy': 2,
+ 'timeIntegrationScheme': 'BDF',
+ 'timeIntervals': 1,
+ 'timeLimit': -1.0,
+ 'turbResScale': 10000.0,
+ 'turbulenceModel': 'SA',
+ 'turbulenceOrder': 'first order',
+ 'turbulenceProduction': 'strain',
+ 'updateWallAssociations': False,
+ 'useALE': True,
+ 'useANKSolver': True,
+ 'useApproxWallDistance': True,
+ 'useBlockettes': True,
+ 'useDiagTSPC': True,
+ 'useDissContinuation': False,
+ 'useExternalDynamicMesh': False,
+ 'useGridMotion': False,
+ 'useLinResMonitor': False,
+ 'useMatrixFreedrdw': True,
+ 'useNKSolver': True,
+ 'useOversetWallScaling': False,
+ 'useQCR': False,
+ 'useRotationSA': False,
+ 'useSkewnessCheck': False,
+ 'useTSInterpolatedGridVelocity': False,
+ 'useWallFunctions': False,
+ 'useZipperMesh': False,
+ 'useft2SA': True,
+ 'verifyExtra': True,
+ 'verifySpatial': True,
+ 'verifyState': True,
+ 'vis2': 0.25,
+ 'vis2Coarse': 0.5,
+ 'vis4': 0.0156,
+ 'viscPC': True,
+ 'viscWallTreatment': 'constant pressure extrapolation',
+ 'viscousSurfaceVelocities': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'wallDistCutoff': 1e+20,
+ 'windAxis': False,
+ 'writeSolutionDigits': 3,
+ 'writeSolutionEachIter': False,
+ 'writeSurfaceSolution': True,
+ 'writeTecplotSurfaceSolution': True,
+ 'writeVolumeSolution': True,
+ 'zipperSurfaceFamily': None}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# It is assumed that the grid is given in meters.
+#
+#
+# Specified load imbalance tolerance 0.100 achieved.
+# Continuing with 0.093 load imbalance for the cells and 0.092 for the faces
+#
+#
+# Grid level: 1, Total number of cells: 88548
+#
++--------------------------------------------------+
+  CGNS Surface Families by Boundary Condition Type
++--------------------------------------------------+
+| Wall Types           : airfoil 
+| Inflow Types         : 
+| Outflow Types        : 
+| Symmetry Types       : ground sym symmetry 
+| Farfield Types       : farfield 
+| Overset Types        : overset 
++--------------------------------------------------+
+ Flood Iteration:           1 Blanked          619 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       85535
+ | Fringe Cells            :        2268
+ | Blanked Cells           :           1
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :         512
+ | FloodSeed Cells         :         232
+ +--------------------------------+
+ Total number of orphans:           0
+ Flood Iteration:           1 Blanked          745 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       85535
+ | Fringe Cells            :        2268
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :         513
+ | FloodSeed Cells         :         232
+ +--------------------------------+
+ Total number of orphans:           0
+ Flood Iteration:           1 Blanked          745 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       85535
+ | Fringe Cells            :        2268
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :         513
+ | FloodSeed Cells         :         232
+ +--------------------------------+
+ Total number of orphans:           0
+ +--------------------------------+
+ | Compute Cells           :       85535
+ | Fringe Cells            :        1231
+ | Blanked Cells           :        1037
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :         513
+ | FloodSeed Cells         :         232
+ +--------------------------------+
+ Total number of orphans:           0
++--------------------------------------------------+
+|
+| Initialization Times:
+|
+| Library Load Time             :      0.031 sec
+| Set Defaults Time             :      0.000 sec
+| Base Class Init Time          :      0.001 sec
+| Introductory Time             :      0.025 sec
+| Partitioning Time             :      0.026 sec
+| Preprocessing Time            :      0.604 sec
+| Family Setup Time             :      0.000 sec
+| Cut Callback Time             :      0.000 sec
+| Explicit Surface Cut Time     :      0.000 sec
+| Overset Preprocessing Time    :      0.031 sec
+| Initialize Flow Time          :      0.005 sec
+|
+| Total Init Time               :      0.726 sec
++--------------------------------------------------+
++----------------------------------------+
+|          All IDWarp Options:           |
++----------------------------------------+
+{'LdefFact': 1.0,
+ 'aExp': 3.0,
+ 'alpha': 0.25,
+ 'bExp': 5.0,
+ 'bucketSize': 8,
+ 'cornerAngle': 30.0,
+ 'errTol': 1e-05,
+ 'evalMode': 'fast',
+ 'fileType': 'CGNS',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/source/ground.cgns',
+ 'restartFile': None,
+ 'specifiedSurfaces': None,
+ 'symmTol': 1e-06,
+ 'symmetryPlanes': [[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                    [[0.0, 0.0, 0.05], [0.0, 0.0, 1.0]]],
+ 'symmetrySurfaces': None,
+ 'useRotations': True,
+ 'zeroCornerRotations': True}
+  -> Reading CGNS File: /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/source/ground.cgns
+    -> Number of Zones:           2
+#------------------------------#
+ Total Volume Nodes :    178884 
+#------------------------------#
++-------------------- Symmetry Planes -------------------+
+|           Point                        Normal          |
+| (  0.000   0.000   0.000)    (  0.000   1.000   0.000) |
+| (  0.000   0.000   0.000)    (  0.000   0.000   1.000) |
+| (  0.000   0.000   0.050)    (  0.000   0.000   1.000) |
++--------------------------------------------------------+
+#--------------------------------#
+ Unique Surface Nodes :       576 
+#--------------------------------#
+ Computing Denominator Estimate...
+ Load Balancing...
+ Finished Mesh Initialization.
+
++------------------------------------------------------------------------------+
+| pyADFLOW Warning: 'zipperSurfaceFamily' option was not given. Using all wall |
+| boundary conditions for the zipper mesh.                                     |
++------------------------------------------------------------------------------+
+
++----------------------------------------------------------------------+
+|  Switching to Aero Problem: wing                                     |
++----------------------------------------------------------------------+
+-> Alpha... 0.000000 
++----------------------------------------+
+|      All Modified ADFLOW Options:      |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKSwitchTol': 10.0,
+ 'ILUFill': 4,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceRel': 1e-10,
+ 'NKADPC': True,
+ 'NKASMOverlap': 3,
+ 'NKLinearSolveTol': 0.1,
+ 'NKPCILUFill': 4,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-06,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointMaxIter': 2000,
+ 'adjointSubspaceSize': 500,
+ 'designSurfaceFamily': 'airfoil',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/source/ground.cgns',
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 60000,
+ 'nearWallDist': 0.01,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/evaluations',
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/start_vol.cgns',
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'turbResScale': 10000.0,
+ 'useNKSolver': True,
+ 'useZipperMesh': False,
+ 'viscPC': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'writeTecplotSurfaceSolution': True}
+#
+#                      Warning
+# 2 bad quality volumes found.
+# Computation will continue, but be aware of this.
+#
+#
+# Found restart file: /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/start_vol.cgns
+#
+#
+#                      Warning
+# 192 type mismatches occured when reading the solution of the blocks
+#
+#
+# Grid 1: Performing 60000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.12E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   2.8636543881103944E-04   6.1700472328408712E-09  -5.9528628736996545E+00   4.0000952415231839E-01   3.7960502393667866E-01 
+      1       1      4      *NK     ----    1.00  0.067   6.0327391048978037E-05   4.4396814187342709E-10  -5.9528624990190373E+00   4.0000955470089433E-01   2.5328971039968784E-02 
+      1       2     11       NK     ----    1.00  0.097   4.9575873749357248E-06   7.1431219016075213E-11  -5.9528626865366627E+00   4.0000956335603721E-01   2.4250792670971505E-03 
+      1       3     32       NK     ----    1.00  0.098   4.2233372309937052E-07   8.0227868856669179E-12  -5.9528624630176781E+00   4.0000953942131889E-01   2.3798631712586280E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.868 sec
+| Solution Time                 :      4.118 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :      4.986 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.003 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.003 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 0, "cl": -5.952862463017679, "cd": 0.4000095394213189, "cmz": 0.08302445721566647, "downforce_N_per_m": 5626.700932360575, "drag_N_per_m": 378.09273478058765, "downforce_to_drag": 14.881801248113973, "force_down_N_extruded_span": 281.3350466180288, "residual_initial": 3117604.9826108553, "residual_start": 0.37960502393667866, "residual_final": 0.0002379863171258628, "residual_ratio_initial": 7.633626404027615e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 4.99304467998445, "elapsed_wall_time_s": 6.611748039023951, "incidence_variable_deg": -4.141090445746963, "minimum_clearance_m": 0.05627604056147929, "maximum_height_m": 0.2369141095816759, "minimum_x_m": -0.1249999786229382, "maximum_x_m": 0.6180559131917711, "maximum_section_thickness_m": 0.03825881175506882, "maximum_section_thickness_over_reference_chord": 0.07651762351013763, "minimum_local_thickness_m": 0.0019998122491364915, "actual_chord_m": 0.7589569600616792, "chord_incidence_deg": -11.837214006889178, "box_minimum_margin_m": 2.137706180127541e-08, "design": {"incidence": [-4.141090445746963], "shape_x": [-0.00545744698243384, -0.004105670424383728, -0.0017268604647529835, -0.005291482419976362, 0.007195720822459173, 0.0015451080164683093, 0.05114974761342536, 0.04113600834203814, 0.013246507545582903, 0.02044694294137337], "shape_y": [0.00532208947531666, 0.0027057446910622508, -0.01187871707657353, -0.018247398566984593, -0.0002354596099934357, 0.00048264406805934896, -0.018335043595973453, -0.022072743935411962, 0.02697329115971999, 0.031964875564626]}}
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/baseline/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/baseline/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/baseline/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/baseline/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/baseline/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/best_feasible/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/best_feasible/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/best_feasible/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/best_feasible/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/continuation_remesh2_xmax1.0_20261031/stage_02/best_feasible/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.791 sec
+| Solution Time                 :      1.208 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :      1.999 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.001 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.001 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 1, "cl": -5.952862559872322, "cd": 0.4000095738724644, "cmz": 0.08302442874073453, "downforce_N_per_m": 5626.701023908484, "drag_N_per_m": 378.0927673441306, "downforce_to_drag": 14.881800208537713, "force_down_N_extruded_span": 281.3350511954242, "residual_initial": 3117604.9826108553, "residual_start": 0.00023798632031076026, "residual_final": 2.391886553614279e-05, "residual_ratio_initial": 7.672192490567488e-12, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 2.0040403340244666, "elapsed_wall_time_s": 9.045337880961597, "incidence_variable_deg": -4.141090445746963, "minimum_clearance_m": 0.05627604056147929, "maximum_height_m": 0.2369141095816759, "minimum_x_m": -0.1249999786229382, "maximum_x_m": 0.6180559131917711, "maximum_section_thickness_m": 0.03825881175506882, "maximum_section_thickness_over_reference_chord": 0.07651762351013763, "minimum_local_thickness_m": 0.0019998122491364915, "actual_chord_m": 0.7589569600616792, "chord_incidence_deg": -11.837214006889178, "box_minimum_margin_m": 2.137706180127541e-08, "design": {"incidence": [-4.141090445746963], "shape_x": [-0.00545744698243384, -0.004105670424383728, -0.0017268604647529835, -0.005291482419976362, 0.007195720822459173, 0.0015451080164683093, 0.05114974761342536, 0.04113600834203814, 0.013246507545582903, 0.02044694294137337], "shape_y": [0.00532208947531666, 0.0027057446910622508, -0.01187871707657353, -0.018247398566984593, -0.0002354596099934357, 0.00048264406805934896, -0.018335043595973453, -0.022072743935411962, 0.02697329115971999, 0.031964875564626]}}
+-> Alpha... 0.000000 
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     28.130 sec
+| Total Sensitivity Time - cl_wing:      0.987 sec
+| Adjoint Solve Time - cd_wing  :     20.433 sec
+| Total Sensitivity Time - cd_wing:      0.981 sec
+|
+| Complete Sensitivity Time     :     51.300 sec
++--------------------------------------------------+
+OPT_GRADIENT 2 failed False
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.778 sec
+| Solution Time                 :     34.199 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     34.977 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.004 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.004 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 2, "cl": -5.959630754420974, "cd": 0.4036828922215466, "cmz": 0.08638859984306319, "downforce_N_per_m": 5633.098384306761, "drag_N_per_m": 381.5648219914608, "downforce_to_drag": 14.76314916796189, "force_down_N_extruded_span": 281.65491921533805, "residual_initial": 3117604.9826108553, "residual_start": 699.5029887415675, "residual_final": 3.61725566614699e-05, "residual_ratio_initial": 1.1602674765799546e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 34.982816697098315, "elapsed_wall_time_s": 95.95114804699551, "incidence_variable_deg": -4.180081285392056, "minimum_clearance_m": 0.05605718155592879, "maximum_height_m": 0.23752518068313494, "minimum_x_m": -0.12499994319269377, "maximum_x_m": 0.6180690400981735, "maximum_section_thickness_m": 0.038261519633224265, "maximum_section_thickness_over_reference_chord": 0.07652303926644853, "minimum_local_thickness_m": 0.0020000310052562245, "actual_chord_m": 0.7591486320371816, "chord_incidence_deg": -11.901431337266379, "box_minimum_margin_m": 5.6807306234030186e-08, "design": {"incidence": [-4.180081285392056], "shape_x": [-0.005475097144535301, -0.004085121774399255, -0.0017397052908414148, -0.005329186544213012, 0.007279446755244909, 0.0015530548683986042, 0.051537985417676846, 0.04140536653245734, 0.013318302731246914, 0.02054347356680286], "shape_y": [0.005226008626627739, 0.002618790755224845, -0.011984003347210408, -0.018397710301574437, -0.00034825480401245263, 0.0003955250865240859, -0.018407187132598393, -0.022214367441435026, 0.027277163169140306, 0.03230274135694683]}}
+-> Alpha... 0.000000 
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     28.103 sec
+| Total Sensitivity Time - cl_wing:      1.062 sec
+| Adjoint Solve Time - cd_wing  :     20.438 sec
+| Total Sensitivity Time - cd_wing:      1.103 sec
+|
+| Complete Sensitivity Time     :     51.476 sec
++--------------------------------------------------+
+OPT_GRADIENT 3 failed False
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.888 sec
+| Solution Time                 :    380.239 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    381.126 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.001 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 3, "cl": -6.035369865590781, "cd": 0.4347873424767178, "cmz": 0.07203213724827444, "downforce_N_per_m": 5704.687696185349, "drag_N_per_m": 410.9650374909156, "downforce_to_drag": 13.881199556571648, "force_down_N_extruded_span": 285.23438480926745, "residual_initial": 3117604.9826108553, "residual_start": 7350.186714405115, "residual_final": 0.00028382602406862653, "residual_ratio_initial": 9.10397647077581e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 381.13113696407527, "elapsed_wall_time_s": 529.2294746279949, "incidence_variable_deg": -4.436590680867331, "minimum_clearance_m": 0.05529864804301176, "maximum_height_m": 0.2432891155460125, "minimum_x_m": -0.12499518398370266, "maximum_x_m": 0.6187884165022436, "maximum_section_thickness_m": 0.037990507105577276, "maximum_section_thickness_over_reference_chord": 0.07598101421115455, "minimum_local_thickness_m": 0.002014150986247224, "actual_chord_m": 0.7612532197727354, "chord_incidence_deg": -12.383263660686078, "box_minimum_margin_m": 4.816016297343184e-06, "design": {"incidence": [-4.436590680867331], "shape_x": [-0.005718453508555534, -0.0037874553552542725, -0.0019686660249610606, -0.005883350382446496, 0.008460002324862926, 0.0016847589077036435, 0.05662475059916052, 0.04494553419650324, 0.01422655924985794, 0.02177399992936107], "shape_y": [0.005908662852346738, 0.0024205277128680584, -0.012182339231775098, -0.019667477237656494, -0.0024407752954401637, -0.001059891014500714, -0.019972164476101676, -0.024637278656514026, 0.03117785446687385, 0.03661155808212662]}}
+-> Alpha... 0.000000 
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     23.578 sec
+| Total Sensitivity Time - cl_wing:      0.983 sec
+| Adjoint Solve Time - cd_wing  :     17.904 sec
+| Total Sensitivity Time - cd_wing:      0.981 sec
+|
+| Complete Sensitivity Time     :     44.214 sec
++--------------------------------------------------+
+OPT_GRADIENT 4 failed False
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.778 sec
+| Solution Time                 :    341.313 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    342.090 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.002 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 4, "cl": -6.107576664562031, "cd": 0.4639356612468551, "cmz": 0.053812102535649886, "downforce_N_per_m": 5772.938233740747, "drag_N_per_m": 438.51629932832316, "downforce_to_drag": 13.164706175307908, "force_down_N_extruded_span": 288.64691168703735, "residual_initial": 3117604.9826108553, "residual_start": 7699.078647908307, "residual_final": 0.00027567696301702076, "residual_ratio_initial": 8.842587965912012e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 342.0950034230482, "elapsed_wall_time_s": 916.1263000409817, "incidence_variable_deg": -4.676540389766001, "minimum_clearance_m": 0.05487864384028289, "maximum_height_m": 0.24884805551332514, "minimum_x_m": -0.12499341444469092, "maximum_x_m": 0.6192768700101118, "maximum_section_thickness_m": 0.037704595211390565, "maximum_section_thickness_over_reference_chord": 0.07540919042278113, "minimum_local_thickness_m": 0.0020251661007962174, "actual_chord_m": 0.7630693785135093, "chord_incidence_deg": -12.82709041003549, "box_minimum_margin_m": 6.5855553090798935e-06, "design": {"incidence": [-4.676540389766001], "shape_x": [-0.005990578172202228, -0.0034658356586556873, -0.0021603576570967567, -0.0065616740515138695, 0.009787044148783605, 0.001753472732203843, 0.06211517946774423, 0.04861126066372186, 0.014873150260075659, 0.02266016053519061], "shape_y": [0.006912032305986202, 0.0024055595216336298, -0.012130830057485317, -0.0205139549645915, -0.00417400596058699, -0.00219400687450274, -0.021459860006108417, -0.02711694612664708, 0.03496191416235842, 0.0408916300719996]}}
+-> Alpha... 0.000000 
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     24.345 sec
+| Total Sensitivity Time - cl_wing:      0.986 sec
+| Adjoint Solve Time - cd_wing  :     18.083 sec
+| Total Sensitivity Time - cd_wing:      0.982 sec
+|
+| Complete Sensitivity Time     :     45.167 sec
++--------------------------------------------------+
+OPT_GRADIENT 5 failed False
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.776 sec
+| Solution Time                 :    370.946 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    371.722 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.001 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 5, "cl": -6.177528738651962, "cd": 0.4919015212800355, "cmz": 0.03763494730014566, "downforce_N_per_m": 5839.05758438048, "drag_N_per_m": 464.94989017651375, "downforce_to_drag": 12.558466423475739, "force_down_N_extruded_span": 291.952879219024, "residual_initial": 3117604.9826108553, "residual_start": 7799.28027607499, "residual_final": 0.00028449488605459237, "residual_ratio_initial": 9.125430824027635e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 371.7271076149773, "elapsed_wall_time_s": 1333.64816105098, "incidence_variable_deg": -4.900090207251676, "minimum_clearance_m": 0.05448077837698486, "maximum_height_m": 0.25406556177132245, "minimum_x_m": -0.12499209239335608, "maximum_x_m": 0.6197469317683787, "maximum_section_thickness_m": 0.03745402349091051, "maximum_section_thickness_over_reference_chord": 0.07490804698182102, "minimum_local_thickness_m": 0.0020271292854718097, "actual_chord_m": 0.764838523011922, "chord_incidence_deg": -13.244715604506684, "box_minimum_margin_m": 7.907606643917098e-06, "design": {"incidence": [-4.900090207251676], "shape_x": [-0.006279513021262013, -0.0031281925929385747, -0.002339351026191217, -0.00736050524089078, 0.011290749350249688, 0.0017497200462884017, 0.0680590512037249, 0.052356878147621855, 0.015489681928850859, 0.023427216911004578], "shape_y": [0.007748744086871476, 0.0023689560466244428, -0.011977343935494541, -0.021232049631873848, -0.005552428177298658, -0.0031392813015638722, -0.022855073558925933, -0.02964196307727148, 0.038473936363094666, 0.04499713037938234]}}
+-> Alpha... 0.000000 
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     23.073 sec
+| Total Sensitivity Time - cl_wing:      0.987 sec
+| Adjoint Solve Time - cd_wing  :     18.201 sec
+| Total Sensitivity Time - cd_wing:      0.982 sec
+|
+| Complete Sensitivity Time     :     44.012 sec
++--------------------------------------------------+
+OPT_GRADIENT 6 failed False
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.777 sec
+| Solution Time                 :    366.729 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    367.506 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.001 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 6, "cl": -6.245472514756169, "cd": 0.5180930408236439, "cmz": 0.021994493237502532, "downforce_N_per_m": 5903.278673096821, "drag_N_per_m": 489.70635790132906, "downforce_to_drag": 12.054731530127025, "force_down_N_extruded_span": 295.16393365484106, "residual_initial": 3117604.9826108553, "residual_start": 7836.076119222065, "residual_final": 3.0241893016525525e-05, "residual_ratio_initial": 9.700360752951866e-12, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 367.5117719399277, "elapsed_wall_time_s": 1745.759986324003, "incidence_variable_deg": -5.102745849993571, "minimum_clearance_m": 0.05415552166245441, "maximum_height_m": 0.2588791760035061, "minimum_x_m": -0.12499122757802461, "maximum_x_m": 0.6201875118693949, "maximum_section_thickness_m": 0.0372234026847057, "maximum_section_thickness_over_reference_chord": 0.0744468053694114, "minimum_local_thickness_m": 0.0020291365621130882, "actual_chord_m": 0.7665041135051907, "chord_incidence_deg": -13.624590892897796, "box_minimum_margin_m": 8.7724219753893e-06, "design": {"incidence": [-5.102745849993571], "shape_x": [-0.006594407878840808, -0.0027656532331295797, -0.0025107102025188287, -0.008252573807999491, 0.012981739952815407, 0.0016684990522862365, 0.07446139915614997, 0.05613730050809218, 0.016052401495993445, 0.024051137541342867], "shape_y": [0.008540695293753025, 0.002383431473506809, -0.011791108807926807, -0.021912755070603137, -0.006655853809977123, -0.0039257456591876546, -0.02407495443238815, -0.0321117353529813, 0.041687040738510074, 0.04888432193423331]}}
+-> Alpha... 0.000000 
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     28.635 sec
+| Total Sensitivity Time - cl_wing:      1.027 sec
+| Adjoint Solve Time - cd_wing  :     19.011 sec
+| Total Sensitivity Time - cd_wing:      1.075 sec
+|
+| Complete Sensitivity Time     :     50.516 sec
++--------------------------------------------------+
+OPT_GRADIENT 7 failed False
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.863 sec
+| Solution Time                 :    305.003 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    305.865 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.001 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 7, "cl": -6.311753076606726, "cd": 0.5421091173157948, "cmz": 0.006552106185874208, "downforce_N_per_m": 5965.927676240908, "drag_N_per_m": 512.4065766329956, "downforce_to_drag": 11.642956878974497, "force_down_N_extruded_span": 298.2963838120454, "residual_initial": 3117604.9826108553, "residual_start": 7865.04707200951, "residual_final": 3.0077868182635263e-05, "residual_ratio_initial": 9.647748303714342e-12, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 305.87101494998205, "elapsed_wall_time_s": 2102.7405283079715, "incidence_variable_deg": -5.283610066609865, "minimum_clearance_m": 0.053925487719162384, "maximum_height_m": 0.26324723170900866, "minimum_x_m": -0.12499075056308839, "maximum_x_m": 0.6205913119109784, "maximum_section_thickness_m": 0.03699975068005007, "maximum_section_thickness_over_reference_chord": 0.07399950136010014, "minimum_local_thickness_m": 0.002031168107737389, "actual_chord_m": 0.7680294792012207, "chord_incidence_deg": -13.961341374703926, "box_minimum_margin_m": 9.249436911606956e-06, "design": {"incidence": [-5.283610066609865], "shape_x": [-0.0069326273724647615, -0.002379310740957698, -0.00267190731802521, -0.009229379635360382, 0.014865373397733266, 0.0014949513172172416, 0.08132081239083964, 0.05991447518563376, 0.016550407214743254, 0.024521531165515222], "shape_y": [0.00935259134146767, 0.0024683779122585455, -0.011598481161223096, -0.022592588412522156, -0.007520547622675745, -0.004562381655419715, -0.02503067776319969, -0.034460115663824765, 0.04456248137321641, 0.052504242882023176]}}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     22.470 sec
+| Total Sensitivity Time - cl_wing:      0.985 sec
+| Adjoint Solve Time - cd_wing  :     18.323 sec
+| Total Sensitivity Time - cd_wing:      0.984 sec
+|
+| Complete Sensitivity Time     :     43.531 sec
++--------------------------------------------------+
+OPT_GRADIENT 8 failed False
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+#
+#
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.777 sec
+| Solution Time                 :    248.623 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    249.399 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.001 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 8, "cl": -6.376409012788158, "cd": 0.5633855332276804, "cmz": -0.008515254557397272, "downforce_N_per_m": 6027.041068101517, "drag_N_per_m": 532.5172427188386, "downforce_to_drag": 11.318020497007094, "force_down_N_extruded_span": 301.3520534050759, "residual_initial": 3117604.9826108553, "residual_start": 7938.993790853702, "residual_final": 3.184358563965502e-05, "residual_ratio_initial": 1.0214118150718197e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 249.40337224502582, "elapsed_wall_time_s": 2396.2587090890156, "incidence_variable_deg": -5.438935995546036, "minimum_clearance_m": 0.05380822179498082, "maximum_height_m": 0.2670848605445914, "minimum_x_m": -0.12499033289749777, "maximum_x_m": 0.6209487144681874, "maximum_section_thickness_m": 0.036779539417564434, "maximum_section_thickness_over_reference_chord": 0.07355907883512887, "minimum_local_thickness_m": 0.0020330421192007475, "actual_chord_m": 0.7693710045490663, "chord_incidence_deg": -14.24858834743204, "box_minimum_margin_m": 9.667102502233793e-06, "design": {"incidence": [-5.438935995546036], "shape_x": [-0.007287598491565477, -0.001971501635556965, -0.0028264273519543522, -0.010295077240116675, 0.01693213857927257, 0.0012145609736970186, 0.08862746244086653, 0.0636729234260813, 0.016955686751544654, 0.024823764450501634], "shape_y": [0.010183964072705463, 0.002612976761941644, -0.011375897065798533, -0.023252946730315718, -0.008117652605913166, -0.004999880349524148, -0.025692635628034886, -0.036666135481752474, 0.047040137744053655, 0.05579476638076229]}}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     22.658 sec
+| Total Sensitivity Time - cl_wing:      0.984 sec
+| Adjoint Solve Time - cd_wing  :     18.592 sec
+| Total Sensitivity Time - cd_wing:      0.993 sec
+|
+| Complete Sensitivity Time     :     43.998 sec
++--------------------------------------------------+
+OPT_GRADIENT 9 failed False
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.786 sec
+| Solution Time                 :    177.774 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    178.560 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.001 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 9, "cl": -6.438676690095713, "cd": 0.5807067049529366, "cmz": -0.023671357540911167, "downforce_N_per_m": 6085.897055475487, "drag_N_per_m": 548.8893752351795, "downforce_to_drag": 11.087656875974139, "force_down_N_extruded_span": 304.2948527737744, "residual_initial": 3117604.9826108553, "residual_start": 8051.325297817437, "residual_final": 3.257939168673474e-05, "residual_ratio_initial": 1.0450134596414119e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 178.56786838406697, "elapsed_wall_time_s": 2619.37416741997, "incidence_variable_deg": -5.559194812368801, "minimum_clearance_m": 0.05385787665557652, "maximum_height_m": 0.2701975254932609, "minimum_x_m": -0.12498906793092544, "maximum_x_m": 0.6212389556259235, "maximum_section_thickness_m": 0.03655313250072495, "maximum_section_thickness_over_reference_chord": 0.0731062650014499, "minimum_local_thickness_m": 0.0020344780445245773, "actual_chord_m": 0.7704337164412712, "chord_incidence_deg": -14.468597119057785, "box_minimum_margin_m": 1.0932069074556794e-05, "design": {"incidence": [-5.559194812368801], "shape_x": [-0.007660069003912941, -0.0015343615299636354, -0.0029842377251330684, -0.011459766889826296, 0.019166690304272416, 0.0008191548029537707, 0.09639272285333832, 0.06742917378302908, 0.017213203419224984, 0.02491046102833902], "shape_y": [0.01107513254576175, 0.0028239277347151177, -0.011104922341585936, -0.023877374419995493, -0.008419463409972556, -0.005164823784635389, -0.02597238778894733, -0.038645541733523435, 0.04898098717366816, 0.05862795247779436]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     23.897 sec
+| Total Sensitivity Time - cl_wing:      1.033 sec
+| Adjoint Solve Time - cd_wing  :     20.974 sec
+| Total Sensitivity Time - cd_wing:      1.001 sec
+|
+| Complete Sensitivity Time     :     47.680 sec
++--------------------------------------------------+
+OPT_GRADIENT 10 failed False
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.779 sec
+| Solution Time                 :    114.393 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    115.173 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.001 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 10, "cl": -6.497194456113587, "cd": 0.5937066196460149, "cmz": -0.03782713917421926, "downforce_N_per_m": 6141.208591842736, "drag_N_per_m": 561.177015438288, "downforce_to_drag": 10.943442840484755, "force_down_N_extruded_span": 307.0604295921368, "residual_initial": 3117604.9826108553, "residual_start": 8402.396075061313, "residual_final": 0.00030796884539320633, "residual_ratio_initial": 9.878379304336887e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 115.17724922299385, "elapsed_wall_time_s": 2782.847258478985, "incidence_variable_deg": -5.645940253044525, "minimum_clearance_m": 0.05408321587188056, "maximum_height_m": 0.27252071315595294, "minimum_x_m": -0.12498711521981165, "maximum_x_m": 0.6212677198581387, "maximum_section_thickness_m": 0.03631808856174401, "maximum_section_thickness_over_reference_chord": 0.07263617712348802, "minimum_local_thickness_m": 0.002035410973267486, "actual_chord_m": 0.7710030882009038, "chord_incidence_deg": -14.62104411628745, "box_minimum_margin_m": 1.2884780188349154e-05, "design": {"incidence": [-5.645940253044525], "shape_x": [-0.008051116982443502, -0.0010629487438863197, -0.0031546751029421444, -0.012737516349022343, 0.021556444836096828, 0.00029963468527808906, 0.10452761474998187, 0.07110974129982796, 0.01709792176487212, 0.02460328684982324], "shape_y": [0.012034049629602086, 0.0030987621071569076, -0.01075930067789368, -0.02443644249981509, -0.008402525739608433, -0.005004750302789124, -0.025834719676103592, -0.040360225184638304, 0.050289625095366636, 0.06092459389288805]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     22.991 sec
+| Total Sensitivity Time - cl_wing:      0.984 sec
+| Adjoint Solve Time - cd_wing  :     22.603 sec
+| Total Sensitivity Time - cd_wing:      1.069 sec
+|
+| Complete Sensitivity Time     :     48.418 sec
++--------------------------------------------------+
+OPT_GRADIENT 11 failed False
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.855 sec
+| Solution Time                 :     89.346 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     90.200 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.001 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 11, "cl": -6.552515766453052, "cd": 0.6045146816973619, "cmz": -0.04970981651430642, "downforce_N_per_m": 6193.498808591449, "drag_N_per_m": 571.3928961509926, "downforce_to_drag": 10.839299631325476, "force_down_N_extruded_span": 309.6749404295725, "residual_initial": 3117604.9826108553, "residual_start": 9040.782658259886, "residual_final": 3.238822982740179e-05, "residual_ratio_initial": 1.0388817700784558e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 90.20556316897273, "elapsed_wall_time_s": 2922.141626717057, "incidence_variable_deg": -5.722394600560511, "minimum_clearance_m": 0.054393192292424855, "maximum_height_m": 0.2744407500642163, "minimum_x_m": -0.12498757378172456, "maximum_x_m": 0.6209069247921619, "maximum_section_thickness_m": 0.036077875923954617, "maximum_section_thickness_over_reference_chord": 0.07215575184790923, "minimum_local_thickness_m": 0.0020361564808831075, "actual_chord_m": 0.7710732963700415, "chord_incidence_deg": -14.744995697788772, "box_minimum_margin_m": 1.242621827543533e-05, "design": {"incidence": [-5.722394600560511], "shape_x": [-0.00845902447544824, -0.0005649076212421544, -0.0033383274323300544, -0.014109035886738909, 0.0240597011972985, -0.0003264039516909526, 0.1127882936714099, 0.07460765569888547, 0.016512164496240773, 0.023870322555128567], "shape_y": [0.013040016453542918, 0.0034245184879088553, -0.010354107364280631, -0.02495938642361059, -0.008193591218937516, -0.004654018973642928, -0.025429773751643504, -0.04192957475159254, 0.05119545185720061, 0.0629003705603072]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     22.929 sec
+| Total Sensitivity Time - cl_wing:      0.985 sec
+| Adjoint Solve Time - cd_wing  :     18.181 sec
+| Total Sensitivity Time - cd_wing:      0.983 sec
+|
+| Complete Sensitivity Time     :     43.848 sec
++--------------------------------------------------+
+OPT_GRADIENT 12 failed False
+
+
+Optimization Problem -- Slip-ground downforce with surface box
+================================================================================
+    Objective Function: objfun
+
+    Solution: 
+--------------------------------------------------------------------------------
+    Total Time:                 2959.5797
+       User Objective Time :    2442.0565
+       User Sensitivity Time :   516.8697
+       Interface Time :            0.4909
+       Opt Solver Time:            0.1625
+    Calls to Objective Function :      11
+    Calls to Sens Function :           11
+
+
+   Objectives
+      Index  Name                 Value
+          0  objective    -6.552516E+00
+
+   Variables (c - continuous, i - integer, d - discrete)
+      Index  Name          Type      Lower Bound            Value      Upper Bound     Status
+          0  incidence_0      c    -1.000000E+20    -5.722395E+00     1.000000E+20           
+          1  shape_x_0        c    -1.000000E+20    -8.459024E-01     1.000000E+20           
+          2  shape_x_1        c    -1.000000E+20    -5.649076E-02     1.000000E+20           
+          3  shape_x_2        c    -1.000000E+20    -3.338327E-01     1.000000E+20           
+          4  shape_x_3        c    -1.000000E+20    -1.410904E+00     1.000000E+20           
+          5  shape_x_4        c    -1.000000E+20     2.405970E+00     1.000000E+20           
+          6  shape_x_5        c    -1.000000E+20    -3.264040E-02     1.000000E+20           
+          7  shape_x_6        c    -1.000000E+20     1.127883E+01     1.000000E+20           
+          8  shape_x_7        c    -1.000000E+20     7.460766E+00     1.000000E+20           
+          9  shape_x_8        c    -1.000000E+20     1.651216E+00     1.000000E+20           
+         10  shape_x_9        c    -1.000000E+20     2.387032E+00     1.000000E+20           
+         11  shape_y_0        c    -1.000000E+20     1.304002E+00     1.000000E+20           
+         12  shape_y_1        c    -1.000000E+20     3.424518E-01     1.000000E+20           
+         13  shape_y_2        c    -1.000000E+20    -1.035411E+00     1.000000E+20           
+         14  shape_y_3        c    -1.000000E+20    -2.495939E+00     1.000000E+20           
+         15  shape_y_4        c    -1.000000E+20    -8.193591E-01     1.000000E+20           
+         16  shape_y_5        c    -1.000000E+20    -4.654019E-01     1.000000E+20           
+         17  shape_y_6        c    -1.000000E+20    -2.542977E+00     1.000000E+20           
+         18  shape_y_7        c    -1.000000E+20    -4.192957E+00     1.000000E+20           
+         19  shape_y_8        c    -1.000000E+20     5.119545E+00     1.000000E+20           
+         20  shape_y_9        c    -1.000000E+20     6.290037E+00     1.000000E+20           
+
+   Constraints (i - inequality, e - equality)
+      Index  Name            Type          Lower           Value           Upper    Status  Lagrange Multiplier (N/A)
+          0  drag               i  -1.000000E+20    7.556434E-01    1.000000E+00              9.00000E+100
+          1  surface_x          i  -2.500000E-01    1.241810E+00    1.250000E+00              9.00000E+100
+          2  surface_x          i  -2.500000E-01    1.241746E+00    1.250000E+00              9.00000E+100
+          3  surface_x          i  -2.500000E-01    1.241552E+00    1.250000E+00              9.00000E+100
+          4  surface_x          i  -2.500000E-01    1.241228E+00    1.250000E+00              9.00000E+100
+          5  surface_x          i  -2.500000E-01    1.240773E+00    1.250000E+00              9.00000E+100
+          6  surface_x          i  -2.500000E-01    1.240184E+00    1.250000E+00              9.00000E+100
+          7  surface_x          i  -2.500000E-01    1.239458E+00    1.250000E+00              9.00000E+100
+          8  surface_x          i  -2.500000E-01    1.238592E+00    1.250000E+00              9.00000E+100
+          9  surface_x          i  -2.500000E-01    1.237582E+00    1.250000E+00              9.00000E+100
+         10  surface_x          i  -2.500000E-01    1.236424E+00    1.250000E+00              9.00000E+100
+         11  surface_x          i  -2.500000E-01    1.235112E+00    1.250000E+00              9.00000E+100
+         12  surface_x          i  -2.500000E-01    1.233641E+00    1.250000E+00              9.00000E+100
+         13  surface_x          i  -2.500000E-01    1.232004E+00    1.250000E+00              9.00000E+100
+         14  surface_x          i  -2.500000E-01    1.230194E+00    1.250000E+00              9.00000E+100
+         15  surface_x          i  -2.500000E-01    1.228205E+00    1.250000E+00              9.00000E+100
+         16  surface_x          i  -2.500000E-01    1.226027E+00    1.250000E+00              9.00000E+100
+         17  surface_x          i  -2.500000E-01    1.223653E+00    1.250000E+00              9.00000E+100
+         18  surface_x          i  -2.500000E-01    1.221073E+00    1.250000E+00              9.00000E+100
+         19  surface_x          i  -2.500000E-01    1.218277E+00    1.250000E+00              9.00000E+100
+         20  surface_x          i  -2.500000E-01    1.215256E+00    1.250000E+00              9.00000E+100
+         21  surface_x          i  -2.500000E-01    1.211998E+00    1.250000E+00              9.00000E+100
+         22  surface_x          i  -2.500000E-01    1.208493E+00    1.250000E+00              9.00000E+100
+         23  surface_x          i  -2.500000E-01    1.204728E+00    1.250000E+00              9.00000E+100
+         24  surface_x          i  -2.500000E-01    1.200692E+00    1.250000E+00              9.00000E+100
+         25  surface_x          i  -2.500000E-01    1.196371E+00    1.250000E+00              9.00000E+100
+         26  surface_x          i  -2.500000E-01    1.191753E+00    1.250000E+00              9.00000E+100
+         27  surface_x          i  -2.500000E-01    1.186825E+00    1.250000E+00              9.00000E+100
+         28  surface_x          i  -2.500000E-01    1.181571E+00    1.250000E+00              9.00000E+100
+         29  surface_x          i  -2.500000E-01    1.175978E+00    1.250000E+00              9.00000E+100
+         30  surface_x          i  -2.500000E-01    1.170031E+00    1.250000E+00              9.00000E+100
+         31  surface_x          i  -2.500000E-01    1.163714E+00    1.250000E+00              9.00000E+100
+         32  surface_x          i  -2.500000E-01    1.157013E+00    1.250000E+00              9.00000E+100
+         33  surface_x          i  -2.500000E-01    1.149912E+00    1.250000E+00              9.00000E+100
+         34  surface_x          i  -2.500000E-01    1.142394E+00    1.250000E+00              9.00000E+100
+         35  surface_x          i  -2.500000E-01    1.134444E+00    1.250000E+00              9.00000E+100
+         36  surface_x          i  -2.500000E-01    1.126045E+00    1.250000E+00              9.00000E+100
+         37  surface_x          i  -2.500000E-01    1.117181E+00    1.250000E+00              9.00000E+100
+         38  surface_x          i  -2.500000E-01    1.107836E+00    1.250000E+00              9.00000E+100
+         39  surface_x          i  -2.500000E-01    1.097992E+00    1.250000E+00              9.00000E+100
+         40  surface_x          i  -2.500000E-01    1.087635E+00    1.250000E+00              9.00000E+100
+         41  surface_x          i  -2.500000E-01    1.076748E+00    1.250000E+00              9.00000E+100
+         42  surface_x          i  -2.500000E-01    1.065316E+00    1.250000E+00              9.00000E+100
+         43  surface_x          i  -2.500000E-01    1.053324E+00    1.250000E+00              9.00000E+100
+         44  surface_x          i  -2.500000E-01    1.040758E+00    1.250000E+00              9.00000E+100
+         45  surface_x          i  -2.500000E-01    1.027605E+00    1.250000E+00              9.00000E+100
+         46  surface_x          i  -2.500000E-01    1.013853E+00    1.250000E+00              9.00000E+100
+         47  surface_x          i  -2.500000E-01    9.994927E-01    1.250000E+00              9.00000E+100
+         48  surface_x          i  -2.500000E-01    9.845147E-01    1.250000E+00              9.00000E+100
+         49  surface_x          i  -2.500000E-01    9.689128E-01    1.250000E+00              9.00000E+100
+         50  surface_x          i  -2.500000E-01    9.526835E-01    1.250000E+00              9.00000E+100
+         51  surface_x          i  -2.500000E-01    9.358258E-01    1.250000E+00              9.00000E+100
+         52  surface_x          i  -2.500000E-01    9.183425E-01    1.250000E+00              9.00000E+100
+         53  surface_x          i  -2.500000E-01    9.002403E-01    1.250000E+00              9.00000E+100
+         54  surface_x          i  -2.500000E-01    8.815303E-01    1.250000E+00              9.00000E+100
+         55  surface_x          i  -2.500000E-01    8.622288E-01    1.250000E+00              9.00000E+100
+         56  surface_x          i  -2.500000E-01    8.423576E-01    1.250000E+00              9.00000E+100
+         57  surface_x          i  -2.500000E-01    8.219447E-01    1.250000E+00              9.00000E+100
+         58  surface_x          i  -2.500000E-01    8.010248E-01    1.250000E+00              9.00000E+100
+         59  surface_x          i  -2.500000E-01    7.796396E-01    1.250000E+00              9.00000E+100
+         60  surface_x          i  -2.500000E-01    7.578382E-01    1.250000E+00              9.00000E+100
+         61  surface_x          i  -2.500000E-01    7.356772E-01    1.250000E+00              9.00000E+100
+         62  surface_x          i  -2.500000E-01    7.132206E-01    1.250000E+00              9.00000E+100
+         63  surface_x          i  -2.500000E-01    6.905395E-01    1.250000E+00              9.00000E+100
+         64  surface_x          i  -2.500000E-01    6.677118E-01    1.250000E+00              9.00000E+100
+         65  surface_x          i  -2.500000E-01    6.448209E-01    1.250000E+00              9.00000E+100
+         66  surface_x          i  -2.500000E-01    6.219549E-01    1.250000E+00              9.00000E+100
+         67  surface_x          i  -2.500000E-01    5.992053E-01    1.250000E+00              9.00000E+100
+         68  surface_x          i  -2.500000E-01    5.766649E-01    1.250000E+00              9.00000E+100
+         69  surface_x          i  -2.500000E-01    5.544267E-01    1.250000E+00              9.00000E+100
+         70  surface_x          i  -2.500000E-01    5.325665E-01    1.250000E+00              9.00000E+100
+         71  surface_x          i  -2.500000E-01    5.110967E-01    1.250000E+00              9.00000E+100
+         72  surface_x          i  -2.500000E-01    4.900114E-01    1.250000E+00              9.00000E+100
+         73  surface_x          i  -2.500000E-01    4.693016E-01    1.250000E+00              9.00000E+100
+         74  surface_x          i  -2.500000E-01    4.489558E-01    1.250000E+00              9.00000E+100
+         75  surface_x          i  -2.500000E-01    4.289605E-01    1.250000E+00              9.00000E+100
+         76  surface_x          i  -2.500000E-01    4.093013E-01    1.250000E+00              9.00000E+100
+         77  surface_x          i  -2.500000E-01    3.899627E-01    1.250000E+00              9.00000E+100
+         78  surface_x          i  -2.500000E-01    3.709292E-01    1.250000E+00              9.00000E+100
+         79  surface_x          i  -2.500000E-01    3.521856E-01    1.250000E+00              9.00000E+100
+         80  surface_x          i  -2.500000E-01    3.337172E-01    1.250000E+00              9.00000E+100
+         81  surface_x          i  -2.500000E-01    3.155106E-01    1.250000E+00              9.00000E+100
+         82  surface_x          i  -2.500000E-01    2.975536E-01    1.250000E+00              9.00000E+100
+         83  surface_x          i  -2.500000E-01    2.798353E-01    1.250000E+00              9.00000E+100
+         84  surface_x          i  -2.500000E-01    2.623467E-01    1.250000E+00              9.00000E+100
+         85  surface_x          i  -2.500000E-01    2.450803E-01    1.250000E+00              9.00000E+100
+         86  surface_x          i  -2.500000E-01    2.280300E-01    1.250000E+00              9.00000E+100
+         87  surface_x          i  -2.500000E-01    2.111918E-01    1.250000E+00              9.00000E+100
+         88  surface_x          i  -2.500000E-01    1.945630E-01    1.250000E+00              9.00000E+100
+         89  surface_x          i  -2.500000E-01    1.781423E-01    1.250000E+00              9.00000E+100
+         90  surface_x          i  -2.500000E-01    1.619300E-01    1.250000E+00              9.00000E+100
+         91  surface_x          i  -2.500000E-01    1.459276E-01    1.250000E+00              9.00000E+100
+         92  surface_x          i  -2.500000E-01    1.301377E-01    1.250000E+00              9.00000E+100
+         93  surface_x          i  -2.500000E-01    1.145641E-01    1.250000E+00              9.00000E+100
+         94  surface_x          i  -2.500000E-01    9.921153E-02    1.250000E+00              9.00000E+100
+         95  surface_x          i  -2.500000E-01    8.408538E-02    1.250000E+00              9.00000E+100
+         96  surface_x          i  -2.500000E-01    6.919194E-02    1.250000E+00              9.00000E+100
+         97  surface_x          i  -2.500000E-01    5.453803E-02    1.250000E+00              9.00000E+100
+         98  surface_x          i  -2.500000E-01    4.013104E-02    1.250000E+00              9.00000E+100
+         99  surface_x          i  -2.500000E-01    2.597876E-02    1.250000E+00              9.00000E+100
+        100  surface_x          i  -2.500000E-01    1.208935E-02    1.250000E+00              9.00000E+100
+        101  surface_x          i  -2.500000E-01   -1.528785E-03    1.250000E+00              9.00000E+100
+        102  surface_x          i  -2.500000E-01   -1.486704E-02    1.250000E+00              9.00000E+100
+        103  surface_x          i  -2.500000E-01   -2.791670E-02    1.250000E+00              9.00000E+100
+        104  surface_x          i  -2.500000E-01   -4.066897E-02    1.250000E+00              9.00000E+100
+        105  surface_x          i  -2.500000E-01   -5.311506E-02    1.250000E+00              9.00000E+100
+        106  surface_x          i  -2.500000E-01   -6.524623E-02    1.250000E+00              9.00000E+100
+        107  surface_x          i  -2.500000E-01   -7.705386E-02    1.250000E+00              9.00000E+100
+        108  surface_x          i  -2.500000E-01   -8.852944E-02    1.250000E+00              9.00000E+100
+        109  surface_x          i  -2.500000E-01   -9.966465E-02    1.250000E+00              9.00000E+100
+        110  surface_x          i  -2.500000E-01   -1.104514E-01    1.250000E+00              9.00000E+100
+        111  surface_x          i  -2.500000E-01   -1.208819E-01    1.250000E+00              9.00000E+100
+        112  surface_x          i  -2.500000E-01   -1.309484E-01    1.250000E+00              9.00000E+100
+        113  surface_x          i  -2.500000E-01   -1.406439E-01    1.250000E+00              9.00000E+100
+        114  surface_x          i  -2.500000E-01   -1.499612E-01    1.250000E+00              9.00000E+100
+        115  surface_x          i  -2.500000E-01   -1.588938E-01    1.250000E+00              9.00000E+100
+        116  surface_x          i  -2.500000E-01   -1.674354E-01    1.250000E+00              9.00000E+100
+        117  surface_x          i  -2.500000E-01   -1.755803E-01    1.250000E+00              9.00000E+100
+        118  surface_x          i  -2.500000E-01   -1.833227E-01    1.250000E+00              9.00000E+100
+        119  surface_x          i  -2.500000E-01   -1.906578E-01    1.250000E+00              9.00000E+100
+        120  surface_x          i  -2.500000E-01   -1.975806E-01    1.250000E+00              9.00000E+100
+        121  surface_x          i  -2.500000E-01   -2.040870E-01    1.250000E+00              9.00000E+100
+        122  surface_x          i  -2.500000E-01   -2.101729E-01    1.250000E+00              9.00000E+100
+        123  surface_x          i  -2.500000E-01   -2.158350E-01    1.250000E+00              9.00000E+100
+        124  surface_x          i  -2.500000E-01   -2.210700E-01    1.250000E+00              9.00000E+100
+        125  surface_x          i  -2.500000E-01   -2.258752E-01    1.250000E+00              9.00000E+100
+        126  surface_x          i  -2.500000E-01   -2.302484E-01    1.250000E+00              9.00000E+100
+        127  surface_x          i  -2.500000E-01   -2.341875E-01    1.250000E+00              9.00000E+100
+        128  surface_x          i  -2.500000E-01   -2.376911E-01    1.250000E+00              9.00000E+100
+        129  surface_x          i  -2.500000E-01   -2.407580E-01    1.250000E+00              9.00000E+100
+        130  surface_x          i  -2.500000E-01   -2.433873E-01    1.250000E+00              9.00000E+100
+        131  surface_x          i  -2.500000E-01   -2.455787E-01    1.250000E+00              9.00000E+100
+        132  surface_x          i  -2.500000E-01   -2.473320E-01    1.250000E+00              9.00000E+100
+        133  surface_x          i  -2.500000E-01   -2.486476E-01    1.250000E+00              9.00000E+100
+        134  surface_x          i  -2.500000E-01   -2.495259E-01    1.250000E+00              9.00000E+100
+        135  surface_x          i  -2.500000E-01   -2.499681E-01    1.250000E+00              9.00000E+100
+        136  surface_x          i  -2.500000E-01   -2.499751E-01    1.250000E+00              9.00000E+100
+        137  surface_x          i  -2.500000E-01   -2.495488E-01    1.250000E+00              9.00000E+100
+        138  surface_x          i  -2.500000E-01   -2.486971E-01    1.250000E+00              9.00000E+100
+        139  surface_x          i  -2.500000E-01   -2.474285E-01    1.250000E+00              9.00000E+100
+        140  surface_x          i  -2.500000E-01   -2.457455E-01    1.250000E+00              9.00000E+100
+        141  surface_x          i  -2.500000E-01   -2.436505E-01    1.250000E+00              9.00000E+100
+        142  surface_x          i  -2.500000E-01   -2.411465E-01    1.250000E+00              9.00000E+100
+        143  surface_x          i  -2.500000E-01   -2.382365E-01    1.250000E+00              9.00000E+100
+        144  surface_x          i  -2.500000E-01   -2.349237E-01    1.250000E+00              9.00000E+100
+        145  surface_x          i  -2.500000E-01   -2.312117E-01    1.250000E+00              9.00000E+100
+        146  surface_x          i  -2.500000E-01   -2.271041E-01    1.250000E+00              9.00000E+100
+        147  surface_x          i  -2.500000E-01   -2.226046E-01    1.250000E+00              9.00000E+100
+        148  surface_x          i  -2.500000E-01   -2.177173E-01    1.250000E+00              9.00000E+100
+        149  surface_x          i  -2.500000E-01   -2.124461E-01    1.250000E+00              9.00000E+100
+        150  surface_x          i  -2.500000E-01   -2.067954E-01    1.250000E+00              9.00000E+100
+        151  surface_x          i  -2.500000E-01   -2.007694E-01    1.250000E+00              9.00000E+100
+        152  surface_x          i  -2.500000E-01   -1.943725E-01    1.250000E+00              9.00000E+100
+        153  surface_x          i  -2.500000E-01   -1.876091E-01    1.250000E+00              9.00000E+100
+        154  surface_x          i  -2.500000E-01   -1.804839E-01    1.250000E+00              9.00000E+100
+        155  surface_x          i  -2.500000E-01   -1.730014E-01    1.250000E+00              9.00000E+100
+        156  surface_x          i  -2.500000E-01   -1.651662E-01    1.250000E+00              9.00000E+100
+        157  surface_x          i  -2.500000E-01   -1.569830E-01    1.250000E+00              9.00000E+100
+        158  surface_x          i  -2.500000E-01   -1.484563E-01    1.250000E+00              9.00000E+100
+        159  surface_x          i  -2.500000E-01   -1.395909E-01    1.250000E+00              9.00000E+100
+        160  surface_x          i  -2.500000E-01   -1.303913E-01    1.250000E+00              9.00000E+100
+        161  surface_x          i  -2.500000E-01   -1.208621E-01    1.250000E+00              9.00000E+100
+        162  surface_x          i  -2.500000E-01   -1.110079E-01    1.250000E+00              9.00000E+100
+        163  surface_x          i  -2.500000E-01   -1.008330E-01    1.250000E+00              9.00000E+100
+        164  surface_x          i  -2.500000E-01   -9.034194E-02    1.250000E+00              9.00000E+100
+        165  surface_x          i  -2.500000E-01   -7.953895E-02    1.250000E+00              9.00000E+100
+        166  surface_x          i  -2.500000E-01   -6.842828E-02    1.250000E+00              9.00000E+100
+        167  surface_x          i  -2.500000E-01   -5.701402E-02    1.250000E+00              9.00000E+100
+        168  surface_x          i  -2.500000E-01   -4.530018E-02    1.250000E+00              9.00000E+100
+        169  surface_x          i  -2.500000E-01   -3.329059E-02    1.250000E+00              9.00000E+100
+        170  surface_x          i  -2.500000E-01   -2.098897E-02    1.250000E+00              9.00000E+100
+        171  surface_x          i  -2.500000E-01   -8.398874E-03    1.250000E+00              9.00000E+100
+        172  surface_x          i  -2.500000E-01    4.476326E-03    1.250000E+00              9.00000E+100
+        173  surface_x          i  -2.500000E-01    1.763344E-02    1.250000E+00              9.00000E+100
+        174  surface_x          i  -2.500000E-01    3.106949E-02    1.250000E+00              9.00000E+100
+        175  surface_x          i  -2.500000E-01    4.478172E-02    1.250000E+00              9.00000E+100
+        176  surface_x          i  -2.500000E-01    5.876762E-02    1.250000E+00              9.00000E+100
+        177  surface_x          i  -2.500000E-01    7.302494E-02    1.250000E+00              9.00000E+100
+        178  surface_x          i  -2.500000E-01    8.755174E-02    1.250000E+00              9.00000E+100
+        179  surface_x          i  -2.500000E-01    1.023464E-01    1.250000E+00              9.00000E+100
+        180  surface_x          i  -2.500000E-01    1.174076E-01    1.250000E+00              9.00000E+100
+        181  surface_x          i  -2.500000E-01    1.327344E-01    1.250000E+00              9.00000E+100
+        182  surface_x          i  -2.500000E-01    1.483263E-01    1.250000E+00              9.00000E+100
+        183  surface_x          i  -2.500000E-01    1.641833E-01    1.250000E+00              9.00000E+100
+        184  surface_x          i  -2.500000E-01    1.803058E-01    1.250000E+00              9.00000E+100
+        185  surface_x          i  -2.500000E-01    1.966946E-01    1.250000E+00              9.00000E+100
+        186  surface_x          i  -2.500000E-01    2.133511E-01    1.250000E+00              9.00000E+100
+        187  surface_x          i  -2.500000E-01    2.302775E-01    1.250000E+00              9.00000E+100
+        188  surface_x          i  -2.500000E-01    2.474761E-01    1.250000E+00              9.00000E+100
+        189  surface_x          i  -2.500000E-01    2.649501E-01    1.250000E+00              9.00000E+100
+        190  surface_x          i  -2.500000E-01    2.827032E-01    1.250000E+00              9.00000E+100
+        191  surface_x          i  -2.500000E-01    3.007397E-01    1.250000E+00              9.00000E+100
+        192  surface_x          i  -2.500000E-01    3.190642E-01    1.250000E+00              9.00000E+100
+        193  surface_x          i  -2.500000E-01    3.376819E-01    1.250000E+00              9.00000E+100
+        194  surface_x          i  -2.500000E-01    3.565984E-01    1.250000E+00              9.00000E+100
+        195  surface_x          i  -2.500000E-01    3.758192E-01    1.250000E+00              9.00000E+100
+        196  surface_x          i  -2.500000E-01    3.953500E-01    1.250000E+00              9.00000E+100
+        197  surface_x          i  -2.500000E-01    4.151964E-01    1.250000E+00              9.00000E+100
+        198  surface_x          i  -2.500000E-01    4.353635E-01    1.250000E+00              9.00000E+100
+        199  surface_x          i  -2.500000E-01    4.558554E-01    1.250000E+00              9.00000E+100
+        200  surface_x          i  -2.500000E-01    4.766757E-01    1.250000E+00              9.00000E+100
+        201  surface_x          i  -2.500000E-01    4.978263E-01    1.250000E+00              9.00000E+100
+        202  surface_x          i  -2.500000E-01    5.193074E-01    1.250000E+00              9.00000E+100
+        203  surface_x          i  -2.500000E-01    5.411177E-01    1.250000E+00              9.00000E+100
+        204  surface_x          i  -2.500000E-01    5.632532E-01    1.250000E+00              9.00000E+100
+        205  surface_x          i  -2.500000E-01    5.857078E-01    1.250000E+00              9.00000E+100
+        206  surface_x          i  -2.500000E-01    6.084581E-01    1.250000E+00              9.00000E+100
+        207  surface_x          i  -2.500000E-01    6.314198E-01    1.250000E+00              9.00000E+100
+        208  surface_x          i  -2.500000E-01    6.544933E-01    1.250000E+00              9.00000E+100
+        209  surface_x          i  -2.500000E-01    6.775804E-01    1.250000E+00              9.00000E+100
+        210  surface_x          i  -2.500000E-01    7.005858E-01    1.250000E+00              9.00000E+100
+        211  surface_x          i  -2.500000E-01    7.234193E-01    1.250000E+00              9.00000E+100
+        212  surface_x          i  -2.500000E-01    7.459968E-01    1.250000E+00              9.00000E+100
+        213  surface_x          i  -2.500000E-01    7.682415E-01    1.250000E+00              9.00000E+100
+        214  surface_x          i  -2.500000E-01    7.900847E-01    1.250000E+00              9.00000E+100
+        215  surface_x          i  -2.500000E-01    8.114660E-01    1.250000E+00              9.00000E+100
+        216  surface_x          i  -2.500000E-01    8.323337E-01    1.250000E+00              9.00000E+100
+        217  surface_x          i  -2.500000E-01    8.526445E-01    1.250000E+00              9.00000E+100
+        218  surface_x          i  -2.500000E-01    8.723633E-01    1.250000E+00              9.00000E+100
+        219  surface_x          i  -2.500000E-01    8.914628E-01    1.250000E+00              9.00000E+100
+        220  surface_x          i  -2.500000E-01    9.099227E-01    1.250000E+00              9.00000E+100
+        221  surface_x          i  -2.500000E-01    9.277291E-01    1.250000E+00              9.00000E+100
+        222  surface_x          i  -2.500000E-01    9.448739E-01    1.250000E+00              9.00000E+100
+        223  surface_x          i  -2.500000E-01    9.613542E-01    1.250000E+00              9.00000E+100
+        224  surface_x          i  -2.500000E-01    9.771716E-01    1.250000E+00              9.00000E+100
+        225  surface_x          i  -2.500000E-01    9.923312E-01    1.250000E+00              9.00000E+100
+        226  surface_x          i  -2.500000E-01    1.006842E+00    1.250000E+00              9.00000E+100
+        227  surface_x          i  -2.500000E-01    1.020714E+00    1.250000E+00              9.00000E+100
+        228  surface_x          i  -2.500000E-01    1.033961E+00    1.250000E+00              9.00000E+100
+        229  surface_x          i  -2.500000E-01    1.046600E+00    1.250000E+00              9.00000E+100
+        230  surface_x          i  -2.500000E-01    1.058645E+00    1.250000E+00              9.00000E+100
+        231  surface_x          i  -2.500000E-01    1.070114E+00    1.250000E+00              9.00000E+100
+        232  surface_x          i  -2.500000E-01    1.081026E+00    1.250000E+00              9.00000E+100
+        233  surface_x          i  -2.500000E-01    1.091400E+00    1.250000E+00              9.00000E+100
+        234  surface_x          i  -2.500000E-01    1.101255E+00    1.250000E+00              9.00000E+100
+        235  surface_x          i  -2.500000E-01    1.110609E+00    1.250000E+00              9.00000E+100
+        236  surface_x          i  -2.500000E-01    1.119483E+00    1.250000E+00              9.00000E+100
+        237  surface_x          i  -2.500000E-01    1.127895E+00    1.250000E+00              9.00000E+100
+        238  surface_x          i  -2.500000E-01    1.135863E+00    1.250000E+00              9.00000E+100
+        239  surface_x          i  -2.500000E-01    1.143407E+00    1.250000E+00              9.00000E+100
+        240  surface_x          i  -2.500000E-01    1.150545E+00    1.250000E+00              9.00000E+100
+        241  surface_x          i  -2.500000E-01    1.157293E+00    1.250000E+00              9.00000E+100
+        242  surface_x          i  -2.500000E-01    1.163669E+00    1.250000E+00              9.00000E+100
+        243  surface_x          i  -2.500000E-01    1.169689E+00    1.250000E+00              9.00000E+100
+        244  surface_x          i  -2.500000E-01    1.175368E+00    1.250000E+00              9.00000E+100
+        245  surface_x          i  -2.500000E-01    1.180724E+00    1.250000E+00              9.00000E+100
+        246  surface_x          i  -2.500000E-01    1.185769E+00    1.250000E+00              9.00000E+100
+        247  surface_x          i  -2.500000E-01    1.190517E+00    1.250000E+00              9.00000E+100
+        248  surface_x          i  -2.500000E-01    1.194983E+00    1.250000E+00              9.00000E+100
+        249  surface_x          i  -2.500000E-01    1.199179E+00    1.250000E+00              9.00000E+100
+        250  surface_x          i  -2.500000E-01    1.203117E+00    1.250000E+00              9.00000E+100
+        251  surface_x          i  -2.500000E-01    1.206808E+00    1.250000E+00              9.00000E+100
+        252  surface_x          i  -2.500000E-01    1.210264E+00    1.250000E+00              9.00000E+100
+        253  surface_x          i  -2.500000E-01    1.213495E+00    1.250000E+00              9.00000E+100
+        254  surface_x          i  -2.500000E-01    1.216509E+00    1.250000E+00              9.00000E+100
+        255  surface_x          i  -2.500000E-01    1.219318E+00    1.250000E+00              9.00000E+100
+        256  surface_x          i  -2.500000E-01    1.221928E+00    1.250000E+00              9.00000E+100
+        257  surface_x          i  -2.500000E-01    1.224349E+00    1.250000E+00              9.00000E+100
+        258  surface_x          i  -2.500000E-01    1.226586E+00    1.250000E+00              9.00000E+100
+        259  surface_x          i  -2.500000E-01    1.228649E+00    1.250000E+00              9.00000E+100
+        260  surface_x          i  -2.500000E-01    1.230542E+00    1.250000E+00              9.00000E+100
+        261  surface_x          i  -2.500000E-01    1.232272E+00    1.250000E+00              9.00000E+100
+        262  surface_x          i  -2.500000E-01    1.233844E+00    1.250000E+00              9.00000E+100
+        263  surface_x          i  -2.500000E-01    1.235264E+00    1.250000E+00              9.00000E+100
+        264  surface_x          i  -2.500000E-01    1.236535E+00    1.250000E+00              9.00000E+100
+        265  surface_x          i  -2.500000E-01    1.237661E+00    1.250000E+00              9.00000E+100
+        266  surface_x          i  -2.500000E-01    1.238647E+00    1.250000E+00              9.00000E+100
+        267  surface_x          i  -2.500000E-01    1.239495E+00    1.250000E+00              9.00000E+100
+        268  surface_x          i  -2.500000E-01    1.240208E+00    1.250000E+00              9.00000E+100
+        269  surface_x          i  -2.500000E-01    1.240789E+00    1.250000E+00              9.00000E+100
+        270  surface_x          i  -2.500000E-01    1.241238E+00    1.250000E+00              9.00000E+100
+        271  surface_x          i  -2.500000E-01    1.241558E+00    1.250000E+00              9.00000E+100
+        272  surface_x          i  -2.500000E-01    1.241750E+00    1.250000E+00              9.00000E+100
+        273  surface_x          i  -2.500000E-01    1.241814E+00    1.250000E+00              9.00000E+100
+        274  surface_x          i  -2.500000E-01    1.241814E+00    1.250000E+00              9.00000E+100
+        275  surface_x          i  -2.500000E-01    1.241813E+00    1.250000E+00              9.00000E+100
+        276  surface_x          i  -2.500000E-01    1.241813E+00    1.250000E+00              9.00000E+100
+        277  surface_x          i  -2.500000E-01    1.241813E+00    1.250000E+00              9.00000E+100
+        278  surface_x          i  -2.500000E-01    1.241813E+00    1.250000E+00              9.00000E+100
+        279  surface_x          i  -2.500000E-01    1.241813E+00    1.250000E+00              9.00000E+100
+        280  surface_x          i  -2.500000E-01    1.241812E+00    1.250000E+00              9.00000E+100
+        281  surface_x          i  -2.500000E-01    1.241812E+00    1.250000E+00              9.00000E+100
+        282  surface_x          i  -2.500000E-01    1.241812E+00    1.250000E+00              9.00000E+100
+        283  surface_x          i  -2.500000E-01    1.241812E+00    1.250000E+00              9.00000E+100
+        284  surface_x          i  -2.500000E-01    1.241811E+00    1.250000E+00              9.00000E+100
+        285  surface_x          i  -2.500000E-01    1.241811E+00    1.250000E+00              9.00000E+100
+        286  surface_x          i  -2.500000E-01    1.241811E+00    1.250000E+00              9.00000E+100
+        287  surface_x          i  -2.500000E-01    1.241811E+00    1.250000E+00              9.00000E+100
+        288  surface_x          i  -2.500000E-01    1.241811E+00    1.250000E+00              9.00000E+100
+        289  surface_x          i  -2.500000E-01    1.241810E+00    1.250000E+00              9.00000E+100
+        290  surface_y          i   1.000000E-01    5.488815E-01    7.000000E-01              9.00000E+100
+        291  surface_y          i   1.000000E-01    5.486853E-01    7.000000E-01              9.00000E+100
+        292  surface_y          i   1.000000E-01    5.480969E-01    7.000000E-01              9.00000E+100
+        293  surface_y          i   1.000000E-01    5.471171E-01    7.000000E-01              9.00000E+100
+        294  surface_y          i   1.000000E-01    5.457471E-01    7.000000E-01              9.00000E+100
+        295  surface_y          i   1.000000E-01    5.439888E-01    7.000000E-01              9.00000E+100
+        296  surface_y          i   1.000000E-01    5.418444E-01    7.000000E-01              9.00000E+100
+        297  surface_y          i   1.000000E-01    5.393168E-01    7.000000E-01              9.00000E+100
+        298  surface_y          i   1.000000E-01    5.364094E-01    7.000000E-01              9.00000E+100
+        299  surface_y          i   1.000000E-01    5.331262E-01    7.000000E-01              9.00000E+100
+        300  surface_y          i   1.000000E-01    5.294717E-01    7.000000E-01              9.00000E+100
+        301  surface_y          i   1.000000E-01    5.254511E-01    7.000000E-01              9.00000E+100
+        302  surface_y          i   1.000000E-01    5.210702E-01    7.000000E-01              9.00000E+100
+        303  surface_y          i   1.000000E-01    5.163354E-01    7.000000E-01              9.00000E+100
+        304  surface_y          i   1.000000E-01    5.112540E-01    7.000000E-01              9.00000E+100
+        305  surface_y          i   1.000000E-01    5.058338E-01    7.000000E-01              9.00000E+100
+        306  surface_y          i   1.000000E-01    5.000833E-01    7.000000E-01              9.00000E+100
+        307  surface_y          i   1.000000E-01    4.940119E-01    7.000000E-01              9.00000E+100
+        308  surface_y          i   1.000000E-01    4.876298E-01    7.000000E-01              9.00000E+100
+        309  surface_y          i   1.000000E-01    4.809481E-01    7.000000E-01              9.00000E+100
+        310  surface_y          i   1.000000E-01    4.739785E-01    7.000000E-01              9.00000E+100
+        311  surface_y          i   1.000000E-01    4.667338E-01    7.000000E-01              9.00000E+100
+        312  surface_y          i   1.000000E-01    4.592277E-01    7.000000E-01              9.00000E+100
+        313  surface_y          i   1.000000E-01    4.514749E-01    7.000000E-01              9.00000E+100
+        314  surface_y          i   1.000000E-01    4.434908E-01    7.000000E-01              9.00000E+100
+        315  surface_y          i   1.000000E-01    4.352922E-01    7.000000E-01              9.00000E+100
+        316  surface_y          i   1.000000E-01    4.268967E-01    7.000000E-01              9.00000E+100
+        317  surface_y          i   1.000000E-01    4.183229E-01    7.000000E-01              9.00000E+100
+        318  surface_y          i   1.000000E-01    4.095906E-01    7.000000E-01              9.00000E+100
+        319  surface_y          i   1.000000E-01    4.007206E-01    7.000000E-01              9.00000E+100
+        320  surface_y          i   1.000000E-01    3.917347E-01    7.000000E-01              9.00000E+100
+        321  surface_y          i   1.000000E-01    3.826561E-01    7.000000E-01              9.00000E+100
+        322  surface_y          i   1.000000E-01    3.735086E-01    7.000000E-01              9.00000E+100
+        323  surface_y          i   1.000000E-01    3.643175E-01    7.000000E-01              9.00000E+100
+        324  surface_y          i   1.000000E-01    3.551089E-01    7.000000E-01              9.00000E+100
+        325  surface_y          i   1.000000E-01    3.459099E-01    7.000000E-01              9.00000E+100
+        326  surface_y          i   1.000000E-01    3.367486E-01    7.000000E-01              9.00000E+100
+        327  surface_y          i   1.000000E-01    3.276540E-01    7.000000E-01              9.00000E+100
+        328  surface_y          i   1.000000E-01    3.186559E-01    7.000000E-01              9.00000E+100
+        329  surface_y          i   1.000000E-01    3.097848E-01    7.000000E-01              9.00000E+100
+        330  surface_y          i   1.000000E-01    3.010717E-01    7.000000E-01              9.00000E+100
+        331  surface_y          i   1.000000E-01    2.925480E-01    7.000000E-01              9.00000E+100
+        332  surface_y          i   1.000000E-01    2.842456E-01    7.000000E-01              9.00000E+100
+        333  surface_y          i   1.000000E-01    2.761960E-01    7.000000E-01              9.00000E+100
+        334  surface_y          i   1.000000E-01    2.684308E-01    7.000000E-01              9.00000E+100
+        335  surface_y          i   1.000000E-01    2.609808E-01    7.000000E-01              9.00000E+100
+        336  surface_y          i   1.000000E-01    2.538760E-01    7.000000E-01              9.00000E+100
+        337  surface_y          i   1.000000E-01    2.471451E-01    7.000000E-01              9.00000E+100
+        338  surface_y          i   1.000000E-01    2.408149E-01    7.000000E-01              9.00000E+100
+        339  surface_y          i   1.000000E-01    2.349100E-01    7.000000E-01              9.00000E+100
+        340  surface_y          i   1.000000E-01    2.294519E-01    7.000000E-01              9.00000E+100
+        341  surface_y          i   1.000000E-01    2.244588E-01    7.000000E-01              9.00000E+100
+        342  surface_y          i   1.000000E-01    2.199443E-01    7.000000E-01              9.00000E+100
+        343  surface_y          i   1.000000E-01    2.159172E-01    7.000000E-01              9.00000E+100
+        344  surface_y          i   1.000000E-01    2.123804E-01    7.000000E-01              9.00000E+100
+        345  surface_y          i   1.000000E-01    2.093298E-01    7.000000E-01              9.00000E+100
+        346  surface_y          i   1.000000E-01    2.067543E-01    7.000000E-01              9.00000E+100
+        347  surface_y          i   1.000000E-01    2.046340E-01    7.000000E-01              9.00000E+100
+        348  surface_y          i   1.000000E-01    2.029404E-01    7.000000E-01              9.00000E+100
+        349  surface_y          i   1.000000E-01    2.016353E-01    7.000000E-01              9.00000E+100
+        350  surface_y          i   1.000000E-01    2.006704E-01    7.000000E-01              9.00000E+100
+        351  surface_y          i   1.000000E-01    1.999876E-01    7.000000E-01              9.00000E+100
+        352  surface_y          i   1.000000E-01    1.995187E-01    7.000000E-01              9.00000E+100
+        353  surface_y          i   1.000000E-01    1.991864E-01    7.000000E-01              9.00000E+100
+        354  surface_y          i   1.000000E-01    1.989048E-01    7.000000E-01              9.00000E+100
+        355  surface_y          i   1.000000E-01    1.985806E-01    7.000000E-01              9.00000E+100
+        356  surface_y          i   1.000000E-01    1.981155E-01    7.000000E-01              9.00000E+100
+        357  surface_y          i   1.000000E-01    1.974073E-01    7.000000E-01              9.00000E+100
+        358  surface_y          i   1.000000E-01    1.963528E-01    7.000000E-01              9.00000E+100
+        359  surface_y          i   1.000000E-01    1.948751E-01    7.000000E-01              9.00000E+100
+        360  surface_y          i   1.000000E-01    1.930023E-01    7.000000E-01              9.00000E+100
+        361  surface_y          i   1.000000E-01    1.907919E-01    7.000000E-01              9.00000E+100
+        362  surface_y          i   1.000000E-01    1.883042E-01    7.000000E-01              9.00000E+100
+        363  surface_y          i   1.000000E-01    1.856008E-01    7.000000E-01              9.00000E+100
+        364  surface_y          i   1.000000E-01    1.827432E-01    7.000000E-01              9.00000E+100
+        365  surface_y          i   1.000000E-01    1.797916E-01    7.000000E-01              9.00000E+100
+        366  surface_y          i   1.000000E-01    1.768032E-01    7.000000E-01              9.00000E+100
+        367  surface_y          i   1.000000E-01    1.738318E-01    7.000000E-01              9.00000E+100
+        368  surface_y          i   1.000000E-01    1.709265E-01    7.000000E-01              9.00000E+100
+        369  surface_y          i   1.000000E-01    1.681315E-01    7.000000E-01              9.00000E+100
+        370  surface_y          i   1.000000E-01    1.654854E-01    7.000000E-01              9.00000E+100
+        371  surface_y          i   1.000000E-01    1.630213E-01    7.000000E-01              9.00000E+100
+        372  surface_y          i   1.000000E-01    1.607667E-01    7.000000E-01              9.00000E+100
+        373  surface_y          i   1.000000E-01    1.587435E-01    7.000000E-01              9.00000E+100
+        374  surface_y          i   1.000000E-01    1.569684E-01    7.000000E-01              9.00000E+100
+        375  surface_y          i   1.000000E-01    1.554529E-01    7.000000E-01              9.00000E+100
+        376  surface_y          i   1.000000E-01    1.542040E-01    7.000000E-01              9.00000E+100
+        377  surface_y          i   1.000000E-01    1.532244E-01    7.000000E-01              9.00000E+100
+        378  surface_y          i   1.000000E-01    1.525129E-01    7.000000E-01              9.00000E+100
+        379  surface_y          i   1.000000E-01    1.520648E-01    7.000000E-01              9.00000E+100
+        380  surface_y          i   1.000000E-01    1.518723E-01    7.000000E-01              9.00000E+100
+        381  surface_y          i   1.000000E-01    1.519251E-01    7.000000E-01              9.00000E+100
+        382  surface_y          i   1.000000E-01    1.522103E-01    7.000000E-01              9.00000E+100
+        383  surface_y          i   1.000000E-01    1.527131E-01    7.000000E-01              9.00000E+100
+        384  surface_y          i   1.000000E-01    1.534172E-01    7.000000E-01              9.00000E+100
+        385  surface_y          i   1.000000E-01    1.543049E-01    7.000000E-01              9.00000E+100
+        386  surface_y          i   1.000000E-01    1.553572E-01    7.000000E-01              9.00000E+100
+        387  surface_y          i   1.000000E-01    1.565546E-01    7.000000E-01              9.00000E+100
+        388  surface_y          i   1.000000E-01    1.578769E-01    7.000000E-01              9.00000E+100
+        389  surface_y          i   1.000000E-01    1.593036E-01    7.000000E-01              9.00000E+100
+        390  surface_y          i   1.000000E-01    1.608140E-01    7.000000E-01              9.00000E+100
+        391  surface_y          i   1.000000E-01    1.623875E-01    7.000000E-01              9.00000E+100
+        392  surface_y          i   1.000000E-01    1.640036E-01    7.000000E-01              9.00000E+100
+        393  surface_y          i   1.000000E-01    1.656424E-01    7.000000E-01              9.00000E+100
+        394  surface_y          i   1.000000E-01    1.672842E-01    7.000000E-01              9.00000E+100
+        395  surface_y          i   1.000000E-01    1.689102E-01    7.000000E-01              9.00000E+100
+        396  surface_y          i   1.000000E-01    1.705021E-01    7.000000E-01              9.00000E+100
+        397  surface_y          i   1.000000E-01    1.720426E-01    7.000000E-01              9.00000E+100
+        398  surface_y          i   1.000000E-01    1.735152E-01    7.000000E-01              9.00000E+100
+        399  surface_y          i   1.000000E-01    1.749044E-01    7.000000E-01              9.00000E+100
+        400  surface_y          i   1.000000E-01    1.761957E-01    7.000000E-01              9.00000E+100
+        401  surface_y          i   1.000000E-01    1.773759E-01    7.000000E-01              9.00000E+100
+        402  surface_y          i   1.000000E-01    1.784327E-01    7.000000E-01              9.00000E+100
+        403  surface_y          i   1.000000E-01    1.793552E-01    7.000000E-01              9.00000E+100
+        404  surface_y          i   1.000000E-01    1.801334E-01    7.000000E-01              9.00000E+100
+        405  surface_y          i   1.000000E-01    1.807588E-01    7.000000E-01              9.00000E+100
+        406  surface_y          i   1.000000E-01    1.812241E-01    7.000000E-01              9.00000E+100
+        407  surface_y          i   1.000000E-01    1.815229E-01    7.000000E-01              9.00000E+100
+        408  surface_y          i   1.000000E-01    1.816504E-01    7.000000E-01              9.00000E+100
+        409  surface_y          i   1.000000E-01    1.816028E-01    7.000000E-01              9.00000E+100
+        410  surface_y          i   1.000000E-01    1.813775E-01    7.000000E-01              9.00000E+100
+        411  surface_y          i   1.000000E-01    1.809731E-01    7.000000E-01              9.00000E+100
+        412  surface_y          i   1.000000E-01    1.803892E-01    7.000000E-01              9.00000E+100
+        413  surface_y          i   1.000000E-01    1.796267E-01    7.000000E-01              9.00000E+100
+        414  surface_y          i   1.000000E-01    1.786875E-01    7.000000E-01              9.00000E+100
+        415  surface_y          i   1.000000E-01    1.775742E-01    7.000000E-01              9.00000E+100
+        416  surface_y          i   1.000000E-01    1.762908E-01    7.000000E-01              9.00000E+100
+        417  surface_y          i   1.000000E-01    1.748419E-01    7.000000E-01              9.00000E+100
+        418  surface_y          i   1.000000E-01    1.732332E-01    7.000000E-01              9.00000E+100
+        419  surface_y          i   1.000000E-01    1.714710E-01    7.000000E-01              9.00000E+100
+        420  surface_y          i   1.000000E-01    1.695625E-01    7.000000E-01              9.00000E+100
+        421  surface_y          i   1.000000E-01    1.675156E-01    7.000000E-01              9.00000E+100
+        422  surface_y          i   1.000000E-01    1.653388E-01    7.000000E-01              9.00000E+100
+        423  surface_y          i   1.000000E-01    1.630413E-01    7.000000E-01              9.00000E+100
+        424  surface_y          i   1.000000E-01    1.606328E-01    7.000000E-01              9.00000E+100
+        425  surface_y          i   1.000000E-01    1.581236E-01    7.000000E-01              9.00000E+100
+        426  surface_y          i   1.000000E-01    1.555243E-01    7.000000E-01              9.00000E+100
+        427  surface_y          i   1.000000E-01    1.528720E-01    7.000000E-01              9.00000E+100
+        428  surface_y          i   1.000000E-01    1.502038E-01    7.000000E-01              9.00000E+100
+        429  surface_y          i   1.000000E-01    1.475314E-01    7.000000E-01              9.00000E+100
+        430  surface_y          i   1.000000E-01    1.448661E-01    7.000000E-01              9.00000E+100
+        431  surface_y          i   1.000000E-01    1.422196E-01    7.000000E-01              9.00000E+100
+        432  surface_y          i   1.000000E-01    1.396034E-01    7.000000E-01              9.00000E+100
+        433  surface_y          i   1.000000E-01    1.370288E-01    7.000000E-01              9.00000E+100
+        434  surface_y          i   1.000000E-01    1.345071E-01    7.000000E-01              9.00000E+100
+        435  surface_y          i   1.000000E-01    1.320494E-01    7.000000E-01              9.00000E+100
+        436  surface_y          i   1.000000E-01    1.296664E-01    7.000000E-01              9.00000E+100
+        437  surface_y          i   1.000000E-01    1.273688E-01    7.000000E-01              9.00000E+100
+        438  surface_y          i   1.000000E-01    1.251666E-01    7.000000E-01              9.00000E+100
+        439  surface_y          i   1.000000E-01    1.230695E-01    7.000000E-01              9.00000E+100
+        440  surface_y          i   1.000000E-01    1.210868E-01    7.000000E-01              9.00000E+100
+        441  surface_y          i   1.000000E-01    1.192274E-01    7.000000E-01              9.00000E+100
+        442  surface_y          i   1.000000E-01    1.174994E-01    7.000000E-01              9.00000E+100
+        443  surface_y          i   1.000000E-01    1.159105E-01    7.000000E-01              9.00000E+100
+        444  surface_y          i   1.000000E-01    1.144676E-01    7.000000E-01              9.00000E+100
+        445  surface_y          i   1.000000E-01    1.131771E-01    7.000000E-01              9.00000E+100
+        446  surface_y          i   1.000000E-01    1.120445E-01    7.000000E-01              9.00000E+100
+        447  surface_y          i   1.000000E-01    1.110749E-01    7.000000E-01              9.00000E+100
+        448  surface_y          i   1.000000E-01    1.102722E-01    7.000000E-01              9.00000E+100
+        449  surface_y          i   1.000000E-01    1.096398E-01    7.000000E-01              9.00000E+100
+        450  surface_y          i   1.000000E-01    1.091804E-01    7.000000E-01              9.00000E+100
+        451  surface_y          i   1.000000E-01    1.088956E-01    7.000000E-01              9.00000E+100
+        452  surface_y          i   1.000000E-01    1.087864E-01    7.000000E-01              9.00000E+100
+        453  surface_y          i   1.000000E-01    1.088530E-01    7.000000E-01              9.00000E+100
+        454  surface_y          i   1.000000E-01    1.090948E-01    7.000000E-01              9.00000E+100
+        455  surface_y          i   1.000000E-01    1.095104E-01    7.000000E-01              9.00000E+100
+        456  surface_y          i   1.000000E-01    1.100976E-01    7.000000E-01              9.00000E+100
+        457  surface_y          i   1.000000E-01    1.108536E-01    7.000000E-01              9.00000E+100
+        458  surface_y          i   1.000000E-01    1.117748E-01    7.000000E-01              9.00000E+100
+        459  surface_y          i   1.000000E-01    1.128570E-01    7.000000E-01              9.00000E+100
+        460  surface_y          i   1.000000E-01    1.140954E-01    7.000000E-01              9.00000E+100
+        461  surface_y          i   1.000000E-01    1.154844E-01    7.000000E-01              9.00000E+100
+        462  surface_y          i   1.000000E-01    1.170182E-01    7.000000E-01              9.00000E+100
+        463  surface_y          i   1.000000E-01    1.186904E-01    7.000000E-01              9.00000E+100
+        464  surface_y          i   1.000000E-01    1.204941E-01    7.000000E-01              9.00000E+100
+        465  surface_y          i   1.000000E-01    1.224219E-01    7.000000E-01              9.00000E+100
+        466  surface_y          i   1.000000E-01    1.244665E-01    7.000000E-01              9.00000E+100
+        467  surface_y          i   1.000000E-01    1.266198E-01    7.000000E-01              9.00000E+100
+        468  surface_y          i   1.000000E-01    1.288739E-01    7.000000E-01              9.00000E+100
+        469  surface_y          i   1.000000E-01    1.312205E-01    7.000000E-01              9.00000E+100
+        470  surface_y          i   1.000000E-01    1.336512E-01    7.000000E-01              9.00000E+100
+        471  surface_y          i   1.000000E-01    1.361575E-01    7.000000E-01              9.00000E+100
+        472  surface_y          i   1.000000E-01    1.387307E-01    7.000000E-01              9.00000E+100
+        473  surface_y          i   1.000000E-01    1.413623E-01    7.000000E-01              9.00000E+100
+        474  surface_y          i   1.000000E-01    1.440436E-01    7.000000E-01              9.00000E+100
+        475  surface_y          i   1.000000E-01    1.467657E-01    7.000000E-01              9.00000E+100
+        476  surface_y          i   1.000000E-01    1.495198E-01    7.000000E-01              9.00000E+100
+        477  surface_y          i   1.000000E-01    1.522970E-01    7.000000E-01              9.00000E+100
+        478  surface_y          i   1.000000E-01    1.550883E-01    7.000000E-01              9.00000E+100
+        479  surface_y          i   1.000000E-01    1.578842E-01    7.000000E-01              9.00000E+100
+        480  surface_y          i   1.000000E-01    1.606754E-01    7.000000E-01              9.00000E+100
+        481  surface_y          i   1.000000E-01    1.634519E-01    7.000000E-01              9.00000E+100
+        482  surface_y          i   1.000000E-01    1.662035E-01    7.000000E-01              9.00000E+100
+        483  surface_y          i   1.000000E-01    1.689194E-01    7.000000E-01              9.00000E+100
+        484  surface_y          i   1.000000E-01    1.715881E-01    7.000000E-01              9.00000E+100
+        485  surface_y          i   1.000000E-01    1.741978E-01    7.000000E-01              9.00000E+100
+        486  surface_y          i   1.000000E-01    1.767357E-01    7.000000E-01              9.00000E+100
+        487  surface_y          i   1.000000E-01    1.791881E-01    7.000000E-01              9.00000E+100
+        488  surface_y          i   1.000000E-01    1.815409E-01    7.000000E-01              9.00000E+100
+        489  surface_y          i   1.000000E-01    1.837790E-01    7.000000E-01              9.00000E+100
+        490  surface_y          i   1.000000E-01    1.858865E-01    7.000000E-01              9.00000E+100
+        491  surface_y          i   1.000000E-01    1.878470E-01    7.000000E-01              9.00000E+100
+        492  surface_y          i   1.000000E-01    1.896439E-01    7.000000E-01              9.00000E+100
+        493  surface_y          i   1.000000E-01    1.912598E-01    7.000000E-01              9.00000E+100
+        494  surface_y          i   1.000000E-01    1.926775E-01    7.000000E-01              9.00000E+100
+        495  surface_y          i   1.000000E-01    1.938928E-01    7.000000E-01              9.00000E+100
+        496  surface_y          i   1.000000E-01    1.949527E-01    7.000000E-01              9.00000E+100
+        497  surface_y          i   1.000000E-01    1.959179E-01    7.000000E-01              9.00000E+100
+        498  surface_y          i   1.000000E-01    1.968492E-01    7.000000E-01              9.00000E+100
+        499  surface_y          i   1.000000E-01    1.978057E-01    7.000000E-01              9.00000E+100
+        500  surface_y          i   1.000000E-01    1.988441E-01    7.000000E-01              9.00000E+100
+        501  surface_y          i   1.000000E-01    2.000174E-01    7.000000E-01              9.00000E+100
+        502  surface_y          i   1.000000E-01    2.013744E-01    7.000000E-01              9.00000E+100
+        503  surface_y          i   1.000000E-01    2.029585E-01    7.000000E-01              9.00000E+100
+        504  surface_y          i   1.000000E-01    2.048081E-01    7.000000E-01              9.00000E+100
+        505  surface_y          i   1.000000E-01    2.069556E-01    7.000000E-01              9.00000E+100
+        506  surface_y          i   1.000000E-01    2.094280E-01    7.000000E-01              9.00000E+100
+        507  surface_y          i   1.000000E-01    2.122467E-01    7.000000E-01              9.00000E+100
+        508  surface_y          i   1.000000E-01    2.154275E-01    7.000000E-01              9.00000E+100
+        509  surface_y          i   1.000000E-01    2.189816E-01    7.000000E-01              9.00000E+100
+        510  surface_y          i   1.000000E-01    2.229152E-01    7.000000E-01              9.00000E+100
+        511  surface_y          i   1.000000E-01    2.272304E-01    7.000000E-01              9.00000E+100
+        512  surface_y          i   1.000000E-01    2.319255E-01    7.000000E-01              9.00000E+100
+        513  surface_y          i   1.000000E-01    2.369950E-01    7.000000E-01              9.00000E+100
+        514  surface_y          i   1.000000E-01    2.424309E-01    7.000000E-01              9.00000E+100
+        515  surface_y          i   1.000000E-01    2.482221E-01    7.000000E-01              9.00000E+100
+        516  surface_y          i   1.000000E-01    2.543553E-01    7.000000E-01              9.00000E+100
+        517  surface_y          i   1.000000E-01    2.608153E-01    7.000000E-01              9.00000E+100
+        518  surface_y          i   1.000000E-01    2.675849E-01    7.000000E-01              9.00000E+100
+        519  surface_y          i   1.000000E-01    2.746458E-01    7.000000E-01              9.00000E+100
+        520  surface_y          i   1.000000E-01    2.819782E-01    7.000000E-01              9.00000E+100
+        521  surface_y          i   1.000000E-01    2.895614E-01    7.000000E-01              9.00000E+100
+        522  surface_y          i   1.000000E-01    2.973739E-01    7.000000E-01              9.00000E+100
+        523  surface_y          i   1.000000E-01    3.053933E-01    7.000000E-01              9.00000E+100
+        524  surface_y          i   1.000000E-01    3.135968E-01    7.000000E-01              9.00000E+100
+        525  surface_y          i   1.000000E-01    3.219614E-01    7.000000E-01              9.00000E+100
+        526  surface_y          i   1.000000E-01    3.304635E-01    7.000000E-01              9.00000E+100
+        527  surface_y          i   1.000000E-01    3.390794E-01    7.000000E-01              9.00000E+100
+        528  surface_y          i   1.000000E-01    3.477853E-01    7.000000E-01              9.00000E+100
+        529  surface_y          i   1.000000E-01    3.565573E-01    7.000000E-01              9.00000E+100
+        530  surface_y          i   1.000000E-01    3.653717E-01    7.000000E-01              9.00000E+100
+        531  surface_y          i   1.000000E-01    3.742047E-01    7.000000E-01              9.00000E+100
+        532  surface_y          i   1.000000E-01    3.830327E-01    7.000000E-01              9.00000E+100
+        533  surface_y          i   1.000000E-01    3.918324E-01    7.000000E-01              9.00000E+100
+        534  surface_y          i   1.000000E-01    4.005808E-01    7.000000E-01              9.00000E+100
+        535  surface_y          i   1.000000E-01    4.092549E-01    7.000000E-01              9.00000E+100
+        536  surface_y          i   1.000000E-01    4.178325E-01    7.000000E-01              9.00000E+100
+        537  surface_y          i   1.000000E-01    4.262913E-01    7.000000E-01              9.00000E+100
+        538  surface_y          i   1.000000E-01    4.346100E-01    7.000000E-01              9.00000E+100
+        539  surface_y          i   1.000000E-01    4.427672E-01    7.000000E-01              9.00000E+100
+        540  surface_y          i   1.000000E-01    4.507424E-01    7.000000E-01              9.00000E+100
+        541  surface_y          i   1.000000E-01    4.585155E-01    7.000000E-01              9.00000E+100
+        542  surface_y          i   1.000000E-01    4.660671E-01    7.000000E-01              9.00000E+100
+        543  surface_y          i   1.000000E-01    4.733783E-01    7.000000E-01              9.00000E+100
+        544  surface_y          i   1.000000E-01    4.804308E-01    7.000000E-01              9.00000E+100
+        545  surface_y          i   1.000000E-01    4.872072E-01    7.000000E-01              9.00000E+100
+        546  surface_y          i   1.000000E-01    4.936907E-01    7.000000E-01              9.00000E+100
+        547  surface_y          i   1.000000E-01    4.998652E-01    7.000000E-01              9.00000E+100
+        548  surface_y          i   1.000000E-01    5.057156E-01    7.000000E-01              9.00000E+100
+        549  surface_y          i   1.000000E-01    5.112274E-01    7.000000E-01              9.00000E+100
+        550  surface_y          i   1.000000E-01    5.163871E-01    7.000000E-01              9.00000E+100
+        551  surface_y          i   1.000000E-01    5.211819E-01    7.000000E-01              9.00000E+100
+        552  surface_y          i   1.000000E-01    5.256001E-01    7.000000E-01              9.00000E+100
+        553  surface_y          i   1.000000E-01    5.296309E-01    7.000000E-01              9.00000E+100
+        554  surface_y          i   1.000000E-01    5.332644E-01    7.000000E-01              9.00000E+100
+        555  surface_y          i   1.000000E-01    5.364917E-01    7.000000E-01              9.00000E+100
+        556  surface_y          i   1.000000E-01    5.393048E-01    7.000000E-01              9.00000E+100
+        557  surface_y          i   1.000000E-01    5.416969E-01    7.000000E-01              9.00000E+100
+        558  surface_y          i   1.000000E-01    5.436621E-01    7.000000E-01              9.00000E+100
+        559  surface_y          i   1.000000E-01    5.451956E-01    7.000000E-01              9.00000E+100
+        560  surface_y          i   1.000000E-01    5.462936E-01    7.000000E-01              9.00000E+100
+        561  surface_y          i   1.000000E-01    5.469535E-01    7.000000E-01              9.00000E+100
+        562  surface_y          i   1.000000E-01    5.471737E-01    7.000000E-01              9.00000E+100
+        563  surface_y          i   1.000000E-01    5.472804E-01    7.000000E-01              9.00000E+100
+        564  surface_y          i   1.000000E-01    5.473872E-01    7.000000E-01              9.00000E+100
+        565  surface_y          i   1.000000E-01    5.474939E-01    7.000000E-01              9.00000E+100
+        566  surface_y          i   1.000000E-01    5.476006E-01    7.000000E-01              9.00000E+100
+        567  surface_y          i   1.000000E-01    5.477074E-01    7.000000E-01              9.00000E+100
+        568  surface_y          i   1.000000E-01    5.478141E-01    7.000000E-01              9.00000E+100
+        569  surface_y          i   1.000000E-01    5.479209E-01    7.000000E-01              9.00000E+100
+        570  surface_y          i   1.000000E-01    5.480276E-01    7.000000E-01              9.00000E+100
+        571  surface_y          i   1.000000E-01    5.481343E-01    7.000000E-01              9.00000E+100
+        572  surface_y          i   1.000000E-01    5.482411E-01    7.000000E-01              9.00000E+100
+        573  surface_y          i   1.000000E-01    5.483478E-01    7.000000E-01              9.00000E+100
+        574  surface_y          i   1.000000E-01    5.484545E-01    7.000000E-01              9.00000E+100
+        575  surface_y          i   1.000000E-01    5.485613E-01    7.000000E-01              9.00000E+100
+        576  surface_y          i   1.000000E-01    5.486680E-01    7.000000E-01              9.00000E+100
+        577  surface_y          i   1.000000E-01    5.487748E-01    7.000000E-01              9.00000E+100
+        578  surface_y          i   1.000000E-01    5.488815E-01    7.000000E-01              9.00000E+100
+        579  max_thickness      i   6.000000E-02    7.215575E-02    1.000000E+20              9.00000E+100
+        580  local_thickness    i   4.000000E-03    5.914305E-03    1.000000E+20              9.00000E+100
+        581  local_thickness    i   4.000000E-03    6.359101E-03    1.000000E+20              9.00000E+100
+        582  local_thickness    i   4.000000E-03    6.798298E-03    1.000000E+20              9.00000E+100
+        583  local_thickness    i   4.000000E-03    7.226797E-03    1.000000E+20              9.00000E+100
+        584  local_thickness    i   4.000000E-03    7.639567E-03    1.000000E+20              9.00000E+100
+        585  local_thickness    i   4.000000E-03    8.031697E-03    1.000000E+20              9.00000E+100
+        586  local_thickness    i   4.000000E-03    8.398458E-03    1.000000E+20              9.00000E+100
+        587  local_thickness    i   4.000000E-03    8.735351E-03    1.000000E+20              9.00000E+100
+        588  local_thickness    i   4.000000E-03    9.038169E-03    1.000000E+20              9.00000E+100
+        589  local_thickness    i   4.000000E-03    9.303052E-03    1.000000E+20              9.00000E+100
+        590  local_thickness    i   4.000000E-03    9.526535E-03    1.000000E+20              9.00000E+100
+        591  local_thickness    i   4.000000E-03    9.705605E-03    1.000000E+20              9.00000E+100
+        592  local_thickness    i   4.000000E-03    9.837751E-03    1.000000E+20              9.00000E+100
+        593  local_thickness    i   4.000000E-03    9.921009E-03    1.000000E+20              9.00000E+100
+        594  local_thickness    i   4.000000E-03    9.954011E-03    1.000000E+20              9.00000E+100
+        595  local_thickness    i   4.000000E-03    9.936024E-03    1.000000E+20              9.00000E+100
+        596  local_thickness    i   4.000000E-03    9.866988E-03    1.000000E+20              9.00000E+100
+        597  local_thickness    i   4.000000E-03    9.747551E-03    1.000000E+20              9.00000E+100
+        598  local_thickness    i   4.000000E-03    9.579095E-03    1.000000E+20              9.00000E+100
+        599  local_thickness    i   4.000000E-03    9.363763E-03    1.000000E+20              9.00000E+100
+        600  local_thickness    i   4.000000E-03    9.104471E-03    1.000000E+20              9.00000E+100
+        601  local_thickness    i   4.000000E-03    8.804918E-03    1.000000E+20              9.00000E+100
+        602  local_thickness    i   4.000000E-03    8.469590E-03    1.000000E+20              9.00000E+100
+        603  local_thickness    i   4.000000E-03    8.103745E-03    1.000000E+20              9.00000E+100
+        604  local_thickness    i   4.000000E-03    7.713400E-03    1.000000E+20              9.00000E+100
+        605  local_thickness    i   4.000000E-03    7.305294E-03    1.000000E+20              9.00000E+100
+        606  local_thickness    i   4.000000E-03    6.886847E-03    1.000000E+20              9.00000E+100
+        607  local_thickness    i   4.000000E-03    6.466097E-03    1.000000E+20              9.00000E+100
+        608  local_thickness    i   4.000000E-03    6.051624E-03    1.000000E+20              9.00000E+100
+        609  local_thickness    i   4.000000E-03    5.652452E-03    1.000000E+20              9.00000E+100
+        610  local_thickness    i   4.000000E-03    5.277933E-03    1.000000E+20              9.00000E+100
+        611  local_thickness    i   4.000000E-03    4.937604E-03    1.000000E+20              9.00000E+100
+        612  local_thickness    i   4.000000E-03    4.641022E-03    1.000000E+20              9.00000E+100
+        613  local_thickness    i   4.000000E-03    4.397569E-03    1.000000E+20              9.00000E+100
+        614  local_thickness    i   4.000000E-03    4.216230E-03    1.000000E+20              9.00000E+100
+        615  local_thickness    i   4.000000E-03    4.105343E-03    1.000000E+20              9.00000E+100
+        616  local_thickness    i   4.000000E-03    4.072313E-03    1.000000E+20              9.00000E+100
+        617  local_thickness    i   4.000000E-03    4.123304E-03    1.000000E+20              9.00000E+100
+        618  local_thickness    i   4.000000E-03    4.262901E-03    1.000000E+20              9.00000E+100
+        619  local_thickness    i   4.000000E-03    4.493753E-03    1.000000E+20              9.00000E+100
+        620  local_thickness    i   4.000000E-03    4.816203E-03    1.000000E+20              9.00000E+100
+        621  local_thickness    i   4.000000E-03    5.227912E-03    1.000000E+20              9.00000E+100
+        622  local_thickness    i   4.000000E-03    5.723497E-03    1.000000E+20              9.00000E+100
+        623  local_thickness    i   4.000000E-03    6.294195E-03    1.000000E+20              9.00000E+100
+        624  local_thickness    i   4.000000E-03    6.927582E-03    1.000000E+20              9.00000E+100
+        625  local_thickness    i   4.000000E-03    7.607354E-03    1.000000E+20              9.00000E+100
+        626  local_thickness    i   4.000000E-03    8.313221E-03    1.000000E+20              9.00000E+100
+        627  local_thickness    i   4.000000E-03    9.020904E-03    1.000000E+20              9.00000E+100
+        628  local_thickness    i   4.000000E-03    9.702295E-03    1.000000E+20              9.00000E+100
+        629  local_thickness    i   4.000000E-03    1.032576E-02    1.000000E+20              9.00000E+100
+        630  local_thickness    i   4.000000E-03    1.085663E-02    1.000000E+20              9.00000E+100
+        631  local_thickness    i   4.000000E-03    1.125783E-02    1.000000E+20              9.00000E+100
+        632  local_thickness    i   4.000000E-03    1.149068E-02    1.000000E+20              9.00000E+100
+        633  local_thickness    i   4.000000E-03    1.151580E-02    1.000000E+20              9.00000E+100
+        634  local_thickness    i   4.000000E-03    1.130660E-02    1.000000E+20              9.00000E+100
+        635  local_thickness    i   4.000000E-03    1.088874E-02    1.000000E+20              9.00000E+100
+        636  local_thickness    i   4.000000E-03    1.030424E-02    1.000000E+20              9.00000E+100
+        637  local_thickness    i   4.000000E-03    9.598120E-03    1.000000E+20              9.00000E+100
+        638  local_thickness    i   4.000000E-03    8.817026E-03    1.000000E+20              9.00000E+100
+        639  local_thickness    i   4.000000E-03    8.007923E-03    1.000000E+20              9.00000E+100
+        640  local_thickness    i   4.000000E-03    7.216843E-03    1.000000E+20              9.00000E+100
+        641  local_thickness    i   4.000000E-03    6.487746E-03    1.000000E+20              9.00000E+100
+        642  local_thickness    i   4.000000E-03    5.861549E-03    1.000000E+20              9.00000E+100
+        643  local_thickness    i   4.000000E-03    5.375333E-03    1.000000E+20              9.00000E+100
+        644  local_thickness    i   4.000000E-03    5.061739E-03    1.000000E+20              9.00000E+100
+        645  local_thickness    i   4.000000E-03    4.948548E-03    1.000000E+20              9.00000E+100
+        646  local_thickness    i   4.000000E-03    5.058430E-03    1.000000E+20              9.00000E+100
+        647  local_thickness    i   4.000000E-03    5.408849E-03    1.000000E+20              9.00000E+100
+        648  local_thickness    i   4.000000E-03    6.012097E-03    1.000000E+20              9.00000E+100
+        649  local_thickness    i   4.000000E-03    6.875425E-03    1.000000E+20              9.00000E+100
+        650  local_thickness    i   4.000000E-03    8.001270E-03    1.000000E+20              9.00000E+100
+        651  local_thickness    i   4.000000E-03    9.387535E-03    1.000000E+20              9.00000E+100
+        652  local_thickness    i   4.000000E-03    1.102792E-02    1.000000E+20              9.00000E+100
+        653  local_thickness    i   4.000000E-03    1.291226E-02    1.000000E+20              9.00000E+100
+        654  local_thickness    i   4.000000E-03    1.502694E-02    1.000000E+20              9.00000E+100
+        655  local_thickness    i   4.000000E-03    1.735522E-02    1.000000E+20              9.00000E+100
+        656  local_thickness    i   4.000000E-03    1.987768E-02    1.000000E+20              9.00000E+100
+        657  local_thickness    i   4.000000E-03    2.257253E-02    1.000000E+20              9.00000E+100
+        658  local_thickness    i   4.000000E-03    2.541603E-02    1.000000E+20              9.00000E+100
+        659  local_thickness    i   4.000000E-03    2.838281E-02    1.000000E+20              9.00000E+100
+        660  local_thickness    i   4.000000E-03    3.144623E-02    1.000000E+20              9.00000E+100
+        661  local_thickness    i   4.000000E-03    3.457869E-02    1.000000E+20              9.00000E+100
+        662  local_thickness    i   4.000000E-03    3.775197E-02    1.000000E+20              9.00000E+100
+        663  local_thickness    i   4.000000E-03    4.093745E-02    1.000000E+20              9.00000E+100
+        664  local_thickness    i   4.000000E-03    4.410649E-02    1.000000E+20              9.00000E+100
+        665  local_thickness    i   4.000000E-03    4.723058E-02    1.000000E+20              9.00000E+100
+        666  local_thickness    i   4.000000E-03    5.028166E-02    1.000000E+20              9.00000E+100
+        667  local_thickness    i   4.000000E-03    5.323231E-02    1.000000E+20              9.00000E+100
+        668  local_thickness    i   4.000000E-03    5.605595E-02    1.000000E+20              9.00000E+100
+        669  local_thickness    i   4.000000E-03    5.872706E-02    1.000000E+20              9.00000E+100
+        670  local_thickness    i   4.000000E-03    6.122132E-02    1.000000E+20              9.00000E+100
+        671  local_thickness    i   4.000000E-03    6.351579E-02    1.000000E+20              9.00000E+100
+        672  local_thickness    i   4.000000E-03    6.558903E-02    1.000000E+20              9.00000E+100
+        673  local_thickness    i   4.000000E-03    6.742124E-02    1.000000E+20              9.00000E+100
+        674  local_thickness    i   4.000000E-03    6.899438E-02    1.000000E+20              9.00000E+100
+        675  local_thickness    i   4.000000E-03    7.029220E-02    1.000000E+20              9.00000E+100
+        676  local_thickness    i   4.000000E-03    7.130038E-02    1.000000E+20              9.00000E+100
+        677  local_thickness    i   4.000000E-03    7.200656E-02    1.000000E+20              9.00000E+100
+        678  local_thickness    i   4.000000E-03    7.240037E-02    1.000000E+20              9.00000E+100
+        679  local_thickness    i   4.000000E-03    7.247351E-02    1.000000E+20              9.00000E+100
+        680  local_thickness    i   4.000000E-03    7.221968E-02    1.000000E+20              9.00000E+100
+        681  local_thickness    i   4.000000E-03    7.163464E-02    1.000000E+20              9.00000E+100
+        682  local_thickness    i   4.000000E-03    7.071621E-02    1.000000E+20              9.00000E+100
+        683  local_thickness    i   4.000000E-03    6.946418E-02    1.000000E+20              9.00000E+100
+        684  local_thickness    i   4.000000E-03    6.788033E-02    1.000000E+20              9.00000E+100
+        685  local_thickness    i   4.000000E-03    6.596833E-02    1.000000E+20              9.00000E+100
+        686  local_thickness    i   4.000000E-03    6.373374E-02    1.000000E+20              9.00000E+100
+        687  local_thickness    i   4.000000E-03    6.118390E-02    1.000000E+20              9.00000E+100
+        688  local_thickness    i   4.000000E-03    5.832786E-02    1.000000E+20              9.00000E+100
+        689  local_thickness    i   4.000000E-03    5.517630E-02    1.000000E+20              9.00000E+100
+
+
+   Exit Status
+      Inform  Description
+          11  Maximum number of iterations exceeded
+--------------------------------------------------------------------------------
+
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.779 sec
+| Solution Time                 :      6.090 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :      6.869 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.002 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 12, "cl": -6.552515817367425, "cd": 0.6045146992660502, "cmz": -0.04970983802895703, "downforce_N_per_m": 6193.498856716188, "drag_N_per_m": 571.39291275708, "downforce_to_drag": 10.83929940053224, "force_down_N_extruded_span": 309.6749428358094, "residual_initial": 3117604.9826108553, "residual_start": 3.238823198339843e-05, "residual_final": 3.0009056670526353e-06, "residual_ratio_initial": 9.62567638873707e-13, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 6.873458843096159, "elapsed_wall_time_s": 2973.535201185965, "incidence_variable_deg": -5.722394600560511, "minimum_clearance_m": 0.054393192292424855, "maximum_height_m": 0.2744407500642163, "minimum_x_m": -0.12498757378172456, "maximum_x_m": 0.6209069247921619, "maximum_section_thickness_m": 0.036077875923954617, "maximum_section_thickness_over_reference_chord": 0.07215575184790923, "minimum_local_thickness_m": 0.0020361564808831075, "actual_chord_m": 0.7710732963700415, "chord_incidence_deg": -14.744995697788772, "box_minimum_margin_m": 1.242621827543533e-05, "design": {"incidence": [-5.722394600560511], "shape_x": [-0.00845902447544824, -0.0005649076212421544, -0.0033383274323300544, -0.014109035886738909, 0.0240597011972985, -0.0003264039516909526, 0.1127882936714099, 0.07460765569888547, 0.016512164496240773, 0.023870322555128567], "shape_y": [0.013040016453542918, 0.0034245184879088553, -0.010354107364280631, -0.02495938642361059, -0.008193591218937516, -0.004654018973642928, -0.025429773751643504, -0.04192957475159254, 0.05119545185720061, 0.0629003705603072]}}

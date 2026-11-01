@@ -1,0 +1,1408 @@
+#
+# ADflow, multiblock structured flow solver
+#
+# This code solves the 3D RANS, laminar NS or Euler equations
+# on multiblock structured hexahedral grids.
+# This is a parallel executable running on 32 processors.
+# It has been compiled with the following options:
+# - Optimized mode.
+# - Size of standard integers: 4 bytes.
+# - Size of standard floating point types: 8 bytes.
+# - With cgns support
+# - With support for signals.
+#
++----------------------------------------+
+|          All ADFLOW Options:           |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKAMGLevels': 2,
+ 'ANKAMGNSmooth': 1,
+ 'ANKASMOverlap': 1,
+ 'ANKASMOverlapCoarse': 0,
+ 'ANKCFL0': 5.0,
+ 'ANKCFLCutback': 0.5,
+ 'ANKCFLExponent': 0.5,
+ 'ANKCFLFactor': 10.0,
+ 'ANKCFLLimit': 100000.0,
+ 'ANKCFLMin': 1.0,
+ 'ANKCFLReset': True,
+ 'ANKCharTimeStepType': 'None',
+ 'ANKConstCFLStep': 0.4,
+ 'ANKCoupledSwitchTol': 1e-16,
+ 'ANKGlobalPreconditioner': 'additive Schwarz',
+ 'ANKInnerPreconIts': 1,
+ 'ANKInnerPreconItsCoarse': 1,
+ 'ANKJacobianLag': 10,
+ 'ANKLinResMax': 0.1,
+ 'ANKLinearSolveBuffer': 0.01,
+ 'ANKLinearSolveTol': 0.05,
+ 'ANKMaxIter': 40,
+ 'ANKNSubiterTurb': 1,
+ 'ANKOuterPreconIts': 1,
+ 'ANKPCILUFill': 2,
+ 'ANKPCILUFillCoarse': 0,
+ 'ANKPCUpdateCutoff': 1e-16,
+ 'ANKPCUpdateTol': 0.5,
+ 'ANKPCUpdateTolAfterCutoff': 0.0001,
+ 'ANKPhysicalLSTol': 0.2,
+ 'ANKPhysicalLSTolTurb': 0.99,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKStepFactor': 1.0,
+ 'ANKStepMin': 0.01,
+ 'ANKSubspaceSize': -1,
+ 'ANKSwitchTol': 10.0,
+ 'ANKTurbCFLScale': 1.0,
+ 'ANKTurbKSPDebug': False,
+ 'ANKUnsteadyLSTol': 1.0,
+ 'ANKUseApproxSA': False,
+ 'ANKUseFullVisc': True,
+ 'ANKUseMatrixFree': True,
+ 'ANKUseTurbDADI': True,
+ 'ASMOverlap': 1,
+ 'ASMOverlapCoarse': 0,
+ 'CFL': 1.7,
+ 'CFLCoarse': 1.0,
+ 'CFLLimit': 1.5,
+ 'GMRESOrthogonalizationType': 'modified Gram-Schmidt',
+ 'ILUFill': 4,
+ 'ILUFillCoarse': 0,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceCoarse': 0.01,
+ 'L2ConvergenceRel': 1e-10,
+ 'MGCycle': 'sg',
+ 'MGStartLevel': -1,
+ 'NKADPC': True,
+ 'NKAMGLevels': 2,
+ 'NKAMGNSmooth': 1,
+ 'NKASMOverlap': 3,
+ 'NKASMOverlapCoarse': 0,
+ 'NKFixedStep': 0.25,
+ 'NKGlobalPreconditioner': 'additive Schwarz',
+ 'NKInnerPreconIts': 1,
+ 'NKInnerPreconItsCoarse': 1,
+ 'NKJacobianLag': 20,
+ 'NKLS': 'cubic',
+ 'NKLinearSolveTol': 0.1,
+ 'NKOuterPreconIts': 1,
+ 'NKPCILUFill': 4,
+ 'NKPCILUFillCoarse': 0,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-08,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'RKReset': False,
+ 'TSStability': False,
+ 'acousticScaleFactor': 1.0,
+ 'adjointAMGLevels': 2,
+ 'adjointAMGNSmooth': 1,
+ 'adjointDivTol': 100000.0,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointL2ConvergenceAbs': 1e-16,
+ 'adjointL2ConvergenceRel': 1e-16,
+ 'adjointMaxIter': 2000,
+ 'adjointMaxL2DeviationFactor': 1.0,
+ 'adjointMonitorStep': 10,
+ 'adjointSolver': 'GMRES',
+ 'adjointSubspaceSize': 500,
+ 'alphaFollowing': True,
+ 'alphaMode': False,
+ 'altitudeMode': False,
+ 'applyAdjointPCSubspaceSize': 20,
+ 'applyPCSubspaceSize': 10,
+ 'approxPC': True,
+ 'backgroundVolScale': 1.0,
+ 'betaMode': False,
+ 'blockSplitting': True,
+ 'cavExponent': 0,
+ 'cavSensorOffset': 0.0,
+ 'cavSensorSharpness': 10.0,
+ 'cavitationNumber': 1.4,
+ 'closedSurfaceFamilies': None,
+ 'coarseDiscretization': 'central plus scalar dissipation',
+ 'computeCavitation': False,
+ 'computeSepSensorKs': False,
+ 'coupledSolution': False,
+ 'cpMinRho': 100.0,
+ 'cutCallback': None,
+ 'debugZipper': False,
+ 'deltaT': 0.01,
+ 'designSurfaceFamily': 'airfoil',
+ 'discretization': 'central plus scalar dissipation',
+ 'dissContMagnitude': 1.0,
+ 'dissContMidpoint': 3.0,
+ 'dissContSharpness': 3.0,
+ 'dissipationLumpingParameter': 6.0,
+ 'dissipationScalingExponent': 0.67,
+ 'eddyVisInfRatio': 0.009,
+ 'equationMode': 'steady',
+ 'equationType': 'RANS',
+ 'eulerWallTreatment': 'linear pressure extrapolation',
+ 'explicitSurfaceCallback': None,
+ 'firstRun': True,
+ 'flowType': 'external',
+ 'forcesAsTractions': True,
+ 'frozenTurbulence': False,
+ 'globalPreconditioner': 'additive Schwarz',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/source/ground.cgns',
+ 'gridPrecision': 'double',
+ 'gridPrecisionSurface': 'single',
+ 'infChangeCorrection': True,
+ 'infChangeCorrectionTol': 1e-12,
+ 'infChangeCorrectionType': 'offset',
+ 'innerPreconIts': 1,
+ 'innerPreconItsCoarse': 1,
+ 'isoVariables': [],
+ 'isosurface': {},
+ 'liftIndex': 2,
+ 'limiter': 'van Albada',
+ 'loadBalanceIter': 10,
+ 'loadImbalance': 0.1,
+ 'localPreconditioner': 'ILU',
+ 'lowSpeedPreconditioner': False,
+ 'machMode': False,
+ 'matrixOrdering': 'RCM',
+ 'maxL2DeviationFactor': 1.0,
+ 'meshMaxSkewness': 1.0,
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 20000,
+ 'nCyclesCoarse': 500,
+ 'nFloodIter': -1,
+ 'nRKReset': 5,
+ 'nRefine': 10,
+ 'nSaveSurface': 1,
+ 'nSaveVolume': 1,
+ 'nSubiter': 1,
+ 'nSubiterTurb': 3,
+ 'nTimeStepsCoarse': 48,
+ 'nTimeStepsFine': 400,
+ 'nearWallDist': 0.01,
+ 'numberSolutions': True,
+ 'outerPreconIts': 3,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/evaluations',
+ 'outputSurfaceFamily': 'allSurfaces',
+ 'overlapFactor': 0.9,
+ 'oversetDebugPrint': False,
+ 'oversetLoadBalance': True,
+ 'oversetPriority': {},
+ 'oversetProjTol': 1e-12,
+ 'oversetUpdateMode': 'frozen',
+ 'pMode': False,
+ 'partitionLikeNProc': -1,
+ 'partitionOnly': False,
+ 'preconditionerSide': 'right',
+ 'printAllOptions': True,
+ 'printBadlySkewedCells': False,
+ 'printIntro': True,
+ 'printIterations': True,
+ 'printNegativeVolumes': False,
+ 'printTiming': True,
+ 'printWarnings': True,
+ 'qMode': False,
+ 'rMode': False,
+ 'recomputeOverlapMatrix': True,
+ 'resAveraging': 'alternate',
+ 'restartAdjoint': True,
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_00/baseline/flow_000_vol.cgns',
+ 'restrictionRelaxation': 0.8,
+ 'selfZipCutoff': 120.0,
+ 'sepSensorKsOffset': 0.0,
+ 'sepSensorKsPhi': 90.0,
+ 'sepSensorKsRho': 1000.0,
+ 'sepSensorKsSharpness': 25.0,
+ 'sepSensorOffset': 0.0,
+ 'sepSensorSharpness': 10.0,
+ 'setMonitor': True,
+ 'skipAfterFailedAdjoint': True,
+ 'smoothParameter': 1.5,
+ 'smoother': 'DADI',
+ 'solutionPrecision': 'single',
+ 'solutionPrecisionSurface': 'single',
+ 'storeConvHist': True,
+ 'storeRindLayer': True,
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'timeAccuracy': 2,
+ 'timeIntegrationScheme': 'BDF',
+ 'timeIntervals': 1,
+ 'timeLimit': -1.0,
+ 'turbResScale': 10000.0,
+ 'turbulenceModel': 'SA',
+ 'turbulenceOrder': 'first order',
+ 'turbulenceProduction': 'strain',
+ 'updateWallAssociations': False,
+ 'useALE': True,
+ 'useANKSolver': True,
+ 'useApproxWallDistance': True,
+ 'useBlockettes': True,
+ 'useDiagTSPC': True,
+ 'useDissContinuation': False,
+ 'useExternalDynamicMesh': False,
+ 'useGridMotion': False,
+ 'useLinResMonitor': False,
+ 'useMatrixFreedrdw': True,
+ 'useNKSolver': True,
+ 'useOversetWallScaling': False,
+ 'useQCR': False,
+ 'useRotationSA': False,
+ 'useSkewnessCheck': False,
+ 'useTSInterpolatedGridVelocity': False,
+ 'useWallFunctions': False,
+ 'useZipperMesh': False,
+ 'useft2SA': True,
+ 'verifyExtra': True,
+ 'verifySpatial': True,
+ 'verifyState': True,
+ 'vis2': 0.25,
+ 'vis2Coarse': 0.5,
+ 'vis4': 0.0156,
+ 'viscPC': True,
+ 'viscWallTreatment': 'constant pressure extrapolation',
+ 'viscousSurfaceVelocities': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'wallDistCutoff': 1e+20,
+ 'windAxis': False,
+ 'writeSolutionDigits': 3,
+ 'writeSolutionEachIter': False,
+ 'writeSurfaceSolution': True,
+ 'writeTecplotSurfaceSolution': True,
+ 'writeVolumeSolution': True,
+ 'zipperSurfaceFamily': None}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# It is assumed that the grid is given in meters.
+#
+#
+# Specified load imbalance tolerance 0.100 achieved.
+# Continuing with 0.093 load imbalance for the cells and 0.092 for the faces
+#
+#
+# Grid level: 1, Total number of cells: 88548
+#
++--------------------------------------------------+
+  CGNS Surface Families by Boundary Condition Type
++--------------------------------------------------+
+| Wall Types           : airfoil 
+| Inflow Types         : 
+| Outflow Types        : 
+| Symmetry Types       : ground sym symmetry 
+| Farfield Types       : farfield 
+| Overset Types        : overset 
++--------------------------------------------------+
+ Flood Iteration:           1 Blanked         1644 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       84781
+ | Fringe Cells            :        2022
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1536
+ | FloodSeed Cells         :         209
+ +--------------------------------+
+ Total number of orphans:           0
+ Flood Iteration:           1 Blanked         1745 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       84781
+ | Fringe Cells            :        2022
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1536
+ | FloodSeed Cells         :         209
+ +--------------------------------+
+ Total number of orphans:           0
+ +--------------------------------+
+ | Compute Cells           :       84781
+ | Fringe Cells            :        1036
+ | Blanked Cells           :         986
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1536
+ | FloodSeed Cells         :         209
+ +--------------------------------+
+ Total number of orphans:           0
++--------------------------------------------------+
+|
+| Initialization Times:
+|
+| Library Load Time             :      0.039 sec
+| Set Defaults Time             :      0.000 sec
+| Base Class Init Time          :      0.001 sec
+| Introductory Time             :      0.022 sec
+| Partitioning Time             :      0.004 sec
+| Preprocessing Time            :      0.563 sec
+| Family Setup Time             :      0.000 sec
+| Cut Callback Time             :      0.000 sec
+| Explicit Surface Cut Time     :      0.000 sec
+| Overset Preprocessing Time    :      0.031 sec
+| Initialize Flow Time          :      0.004 sec
+|
+| Total Init Time               :      0.666 sec
++--------------------------------------------------+
++----------------------------------------+
+|          All IDWarp Options:           |
++----------------------------------------+
+{'LdefFact': 1.0,
+ 'aExp': 3.0,
+ 'alpha': 0.25,
+ 'bExp': 5.0,
+ 'bucketSize': 8,
+ 'cornerAngle': 30.0,
+ 'errTol': 0.0005,
+ 'evalMode': 'fast',
+ 'fileType': 'CGNS',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/source/ground.cgns',
+ 'restartFile': None,
+ 'specifiedSurfaces': None,
+ 'symmTol': 1e-06,
+ 'symmetryPlanes': [[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                    [[0.0, 0.0, 0.05], [0.0, 0.0, 1.0]]],
+ 'symmetrySurfaces': None,
+ 'useRotations': True,
+ 'zeroCornerRotations': True}
+  -> Reading CGNS File: /home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/source/ground.cgns
+    -> Number of Zones:           2
+#------------------------------#
+ Total Volume Nodes :    178884 
+#------------------------------#
++-------------------- Symmetry Planes -------------------+
+|           Point                        Normal          |
+| (  0.000   0.000   0.000)    (  0.000   1.000   0.000) |
+| (  0.000   0.000   0.000)    (  0.000   0.000   1.000) |
+| (  0.000   0.000   0.050)    (  0.000   0.000   1.000) |
++--------------------------------------------------------+
+#--------------------------------#
+ Unique Surface Nodes :       576 
+#--------------------------------#
+ Computing Denominator Estimate...
+ Load Balancing...
+ Finished Mesh Initialization.
+
++------------------------------------------------------------------------------+
+| pyADFLOW Warning: 'zipperSurfaceFamily' option was not given. Using all wall |
+| boundary conditions for the zipper mesh.                                     |
++------------------------------------------------------------------------------+
+
++----------------------------------------------------------------------+
+|  Switching to Aero Problem: wing                                     |
++----------------------------------------------------------------------+
+-> Alpha... 0.000000 
++----------------------------------------+
+|      All Modified ADFLOW Options:      |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKSwitchTol': 10.0,
+ 'ILUFill': 4,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceRel': 1e-10,
+ 'NKADPC': True,
+ 'NKASMOverlap': 3,
+ 'NKLinearSolveTol': 0.1,
+ 'NKPCILUFill': 4,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-08,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointMaxIter': 2000,
+ 'adjointSubspaceSize': 500,
+ 'designSurfaceFamily': 'airfoil',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/source/ground.cgns',
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 20000,
+ 'nearWallDist': 0.01,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/evaluations',
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_00/baseline/flow_000_vol.cgns',
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'turbResScale': 10000.0,
+ 'useNKSolver': True,
+ 'useZipperMesh': False,
+ 'viscPC': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'writeTecplotSurfaceSolution': True}
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# 2 bad quality volumes found.
+# Computation will continue, but be aware of this.
+#
+#
+# Found restart file: /home/lingxiao77/AER588/aero588_project/optimizations/continuation_tmin2mm_xmax2.0_20261031/stage_00/baseline/flow_000_vol.cgns
+#
+#
+#                      Warning
+# 192 type mismatches occured when reading the solution of the blocks
+#
+#
+# Grid 1: Performing 20000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.06E-02
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   2.4210726063832538E-04   1.9339319115572022E-10  -3.3260170394318571E+00   9.2082966855326451E-02   3.7575864468945097E-01 
+      1       1      5    *SANK   2.34E+03  1.00  0.025   2.2755847385140167E-05   1.6659353421765395E-11  -3.3260169627250127E+00   9.2083053693562705E-02   9.7633029078330463E-03 
+      1       2     18      *NK     ----    1.00  0.099   1.9478749386276433E-06   1.3434960744522496E-11  -3.3260170263363582E+00   9.2083039098390454E-02   9.5909826540521844E-04 
+      1       3     52       NK     ----    1.00  0.097   1.0340635341730998E-07   3.0446825540870511E-12  -3.3260171034692569E+00   9.2083026108898083E-02   9.1883897536317513E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.252 sec
+| Solution Time                 :      4.275 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :      4.527 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.002 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.003 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 0, "cl": -3.326017103469257, "cd": 0.09208302610889808, "cmz": -0.11940257559553315, "downforce_N_per_m": 3143.7822817849483, "drag_N_per_m": 87.03773219696866, "downforce_to_drag": 36.11976326164481, "force_down_N_extruded_span": 157.18911408924743, "residual_initial": 2059577.6429300415, "residual_start": 0.37575864468945097, "residual_final": 9.188389753631751e-05, "residual_ratio_initial": 4.461298065247962e-11, "cfd_failed": false, "feasible": true, "evaluation_wall_time_s": 4.533079031039961, "elapsed_wall_time_s": 6.13603674992919, "incidence_variable_deg": -6.471176692492239, "minimum_clearance_m": 0.06346024850002424, "maximum_height_m": 0.1601659009292964, "minimum_x_m": -0.03768418945485542, "maximum_x_m": 0.5373608446367554, "maximum_section_thickness_m": 0.04187635028370881, "maximum_section_thickness_over_reference_chord": 0.08375270056741763, "minimum_local_thickness_m": 0.0030608621755193167, "actual_chord_m": 0.5799223491685621, "chord_incidence_deg": -7.554325628721897, "box_minimum_margin_m": 0.013460248500024238, "design": {"incidence": [-6.471176692492239], "shape_x": [-0.035839934606853634, -0.045573474167440245, -0.014168349132203082, -0.0058887758220164356, -0.012206357091332528, -0.0039630491963155105, 0.01304256172766773, 0.025476831116621572, 0.03985399635289822, 0.04296182265454134], "shape_y": [0.013442957622179272, 0.024698071155627128, 0.024266632931251437, -0.02492355343787859, 0.0786946000433805, -0.006223210889216783, 0.0426185773226111, -0.09086464137733416, 0.0589762865553552, 0.02606780327857343]}}
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/baseline/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/baseline/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/baseline/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/baseline/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/baseline/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/best_feasible/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/best_feasible/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/best_feasible/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/best_feasible/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/solver_tolerance_test_20261031/runs/L_ref/best_feasible/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# 2 bad quality volumes found.
+# Computation will continue, but be aware of this.
+#
+#
+# Grid 1: Performing 20000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.06E-02
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.2158779617068364E+01   7.7454909502769512E-06  -3.4762358675933180E+00   8.3943389651160161E-02   1.3243819315051318E+04 
+      1       1      3    *SANK   1.25E+01  1.00  0.046   9.7419696266240745E+00   4.2585668056280054E-06  -3.4692672577444323E+00   7.6469607134685397E-02   1.0624533608512611E+04 
+      1       2      7     SANK   1.25E+01  1.00  0.013   6.9931558568162107E+00   3.1634945191735549E-06  -3.4715843950144158E+00   7.2864612500798953E-02   7.6405669452237535E+03 
+      1       3     11     SANK   1.25E+01  1.00  0.019   5.1179799646814068E+00   2.7329489120674299E-06  -3.4809258231199665E+00   7.2352096627814666E-02   5.5975561873889774E+03 
+      1       4     16    *SANK   4.71E+01  1.00  0.038   2.6095823437405077E+00   2.6019739186747539E-06  -3.5548097557169589E+00   8.3942241729986405E-02   2.8508164658599876E+03 
+      1       5     22     SANK   4.71E+01  1.00  0.037   1.4191868780616648E+00   2.8754348356359903E-06  -3.6186554057317322E+00   9.2094239278893625E-02   1.5503826817445517E+03 
+      1       6     37    *SANK   2.49E+02  1.00  0.038   1.3128582493533580E+00   2.4194752930412449E-06  -3.6515570676116305E+00   1.2415148814239324E-01   1.4273298497638345E+03 
+      1       7     49     SANK   2.49E+02  1.00  0.045   6.5837473816177927E-01   2.0459762049633183E-06  -3.6487258298853300E+00   1.3221649000764663E-01   7.1505928043867630E+02 
+      1       8     65    *SANK   8.61E+02  1.00  0.046   1.5429067627048249E-01   3.3606392600874097E-06  -3.6548886754935896E+00   1.1729845807014652E-01   1.6913721938073977E+02 
+      1       9     97    *SANK   4.99E+03  1.00  0.049   1.6349535096056050E-02   5.5070999279639595E-06  -3.6743536036616145E+00   1.0980412480162495E-01   2.7122307877877034E+01 
+      1      10    139    *SANK   3.45E+04  1.00  0.247   3.5610841585311630E-03   5.0253657151241763E-06  -3.6562856098582914E+00   1.0112441161418834E-01   1.8551851890183229E+01 
+      1      11    181    *SANK   2.09E+04  1.00  0.610   4.8385812339426645E-03   4.4133073872890851E-06  -3.6141825980087274E+00   9.7549483168967208E-02   1.5956057044436886E+01 
+      1      12    223    *SANK   1.13E+04  1.00  0.512   7.6489008052657024E-03   4.7573426065917338E-06  -3.5390223813943824E+00   9.5986686523052242E-02   1.7947493449645744E+01 
+      1      13    265    *SANK   5.63E+03  1.00  0.103   3.4978753323149157E-03   4.1872749926048692E-06  -3.5289814859393616E+00   9.7742648267628865E-02   1.3999221406575495E+01 
+      1      14    307    *SANK   3.19E+03  1.00  0.122   1.7118042256215077E-03   3.6276886931075418E-06  -3.5313900767099557E+00   9.8710395238571322E-02   1.2022224821886455E+01 
+      1      15    349    *SANK   1.72E+03  1.00  0.084   3.8146511860293899E-03   3.3222554755098176E-06  -3.5404501547232328E+00   9.9509670129160246E-02   1.1910995309965722E+01 
+      1      16    391     SANK   1.72E+03  1.00  0.055   4.4599144221438240E-03   3.1017103726764662E-06  -3.5496468498366491E+00   9.9830810341487566E-02   1.1547656603541803E+01 
+      1      17    431     SANK   1.72E+03  1.00  0.042   4.4404127311210512E-03   2.9639404866984611E-06  -3.5578141917225778E+00   9.9908804499701534E-02   1.0944741359470955E+01 
+      1      18    471     SANK   1.72E+03  1.00  0.045   4.1906117746369105E-03   2.8645312313886146E-06  -3.5652739128275361E+00   9.9932994145309831E-02   1.0288274288362496E+01 
+      1      19    511     SANK   1.72E+03  1.00  0.046   3.7952596890353800E-03   2.7715518003318738E-06  -3.5717031069994931E+00   9.9915384218993611E-02   9.6089344908111425E+00 
+      1      20    551     SANK   1.72E+03  1.00  0.045   3.3741207581942032E-03   2.6721748410604046E-06  -3.5771863420614776E+00   9.9885861928868752E-02   8.9679653262062793E+00 
+      1      21    591     SANK   1.72E+03  1.00  0.049   2.8856569162784688E-03   2.5660450288678500E-06  -3.5816613333606724E+00   9.9862024435713792E-02   8.3550333563327683E+00 
+      1      22    632     SANK   1.72E+03  1.00  0.047   2.5568969528105396E-03   2.4569088045444892E-06  -3.5853631767323400E+00   9.9833588568306195E-02   7.8527426062022343E+00 
+      1      23    673     SANK   1.72E+03  1.00  0.050   2.2279330282871323E-03   2.3486153395326250E-06  -3.5884371270572566E+00   9.9819846174653920E-02   7.3933211216061272E+00 
+      1      24    715     SANK   1.72E+03  1.00  0.046   1.9462209422065786E-03   2.2447543330136287E-06  -3.5909539787569260E+00   9.9808738912884901E-02   6.9879026562711095E+00 
+      1      25    757    *SANK   4.51E+03  1.00  0.108   1.1878558541349575E-03   2.1486000884071141E-06  -3.5936316250370894E+00   9.9765407765329120E-02   6.5407206223268606E+00 
+      1      26    799    *SANK   2.33E+03  1.00  0.073   1.1668132369906570E-03   2.0520111347919779E-06  -3.5951300614146708E+00   9.9754241862846788E-02   6.2269466641124973E+00 
+      1      27    841     SANK   2.33E+03  1.00  0.070   9.7000494180472948E-04   1.9640498445896884E-06  -3.5962071166331868E+00   9.9750074188611121E-02   5.9334028212799099E+00 
+      1      28    883     SANK   2.33E+03  1.00  0.072   7.7494313310062400E-04   1.8833832342201570E-06  -3.5968444033422848E+00   9.9746755671153431E-02   5.6688237990422916E+00 
+      1      29    925     SANK   2.33E+03  1.00  0.063   6.1530064939750099E-04   1.8078781312450452E-06  -3.5971077519111989E+00   9.9739559107797082E-02   5.4281233761677061E+00 
+      1      30    967     SANK   2.33E+03  1.00  0.065   4.7035571431794794E-04   1.7372957754776725E-06  -3.5970216339755314E+00   9.9729187633886107E-02   5.2075604735912666E+00 
+      1      31   1009     SANK   2.33E+03  1.00  0.093   3.5688130921798696E-04   1.6709285192556680E-06  -3.5965970733738946E+00   9.9715299705285212E-02   5.0053057422290248E+00 
+      1      32   1051     SANK   2.33E+03  1.00  0.126   3.0106899801080322E-04   1.6083295410389081E-06  -3.5958157846193104E+00   9.9698342779952320E-02   4.8204062998580133E+00 
+      1      33   1093    *SANK   1.19E+03  1.00  0.056   4.3055678886211757E-04   1.5516524797654463E-06  -3.5950293651860363E+00   9.9688512869215914E-02   4.6816804807051779E+00 
+      1      34   1130     SANK   1.19E+03  1.00  0.047   4.4106025877440794E-04   1.4991718524777632E-06  -3.5943823307825675E+00   9.9704216811481436E-02   4.5195981464211945E+00 
+      1      35   1168     SANK   1.19E+03  1.00  0.048   4.6973044017501841E-04   1.4500459013636419E-06  -3.5936835572895145E+00   9.9717106002185335E-02   4.3765656919876044E+00 
+      1      36   1208     SANK   1.19E+03  1.00  0.047   5.1769894271627909E-04   1.4041833586324480E-06  -3.5928970657138994E+00   9.9725686160891822E-02   4.2474878566768766E+00 
+      1      37   1246     SANK   1.19E+03  1.00  0.050   5.5568514139727810E-04   1.3616740229871489E-06  -3.5920813145723747E+00   9.9735816023183779E-02   4.1255307376037020E+00 
+      1      38   1286     SANK   1.19E+03  1.00  0.045   6.0943774652148601E-04   1.3221040552718429E-06  -3.5911858023449894E+00   9.9742465362760699E-02   4.0170469009831082E+00 
+      1      39   1324     SANK   1.19E+03  1.00  0.045   6.3960314948269270E-04   1.2856610662863275E-06  -3.5902914858876853E+00   9.9753193740408322E-02   3.9118972047977469E+00 
+      1      40   1361     SANK   1.19E+03  1.00  0.048   6.5800213554312293E-04   1.2522366936148011E-06  -3.5894038474468668E+00   9.9765694068102512E-02   3.8133458939409492E+00 
+      1      41   1398     SANK   1.19E+03  1.00  0.050   6.7755656475184745E-04   1.2212386714690524E-06  -3.5885133167673411E+00   9.9778707058514826E-02   3.7229797879265871E+00 
+      1      42   1435     SANK   1.19E+03  1.00  0.050   6.8170443182616520E-04   1.1925801439160455E-06  -3.5876403576096711E+00   9.9792335065025550E-02   3.6361515756546359E+00 
+      1      43   1477    *SANK   2.09E+03  1.00  0.079   6.0525092909397634E-04   1.1653615104265290E-06  -3.5862781712693890E+00   9.9799542601616054E-02   3.5352644992380649E+00 
+      1      44   1519     SANK   2.09E+03  1.00  0.078   6.7162287266368933E-04   1.1417808321820777E-06  -3.5848145799513986E+00   9.9808710257188335E-02   3.4760978479587523E+00 
+      1      45   1561     SANK   2.09E+03  1.00  0.060   6.5445454676547280E-04   1.1205715040584153E-06  -3.5834886805783190E+00   9.9828238898553676E-02   3.4053568619822987E+00 
+      1      46   1603     SANK   2.09E+03  1.00  0.055   6.0577240195283319E-04   1.1005466027053952E-06  -3.5823542839400218E+00   9.9854775840592755E-02   3.3326763204609637E+00 
+      1      47   1645     SANK   2.09E+03  1.00  0.052   5.5519273204777465E-04   1.0814912528902883E-06  -3.5813755409986165E+00   9.9881517397766267E-02   3.2647996497468470E+00 
+      1      48   1687     SANK   2.09E+03  1.00  0.052   4.9956824568067777E-04   1.0631458598889673E-06  -3.5805546024475872E+00   9.9907285601204140E-02   3.1997676360473353E+00 
+      1      49   1729     SANK   2.09E+03  1.00  0.053   4.4867428119373657E-04   1.0453874784146017E-06  -3.5798673324142443E+00   9.9931262505145627E-02   3.1386188564116382E+00 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1      50   1771     SANK   2.09E+03  1.00  0.056   4.0480715064180353E-04   1.0280420085763651E-06  -3.5792973683819942E+00   9.9954193483705586E-02   3.0806339696376717E+00 
+      1      51   1813     SANK   2.09E+03  1.00  0.059   3.6969023379547516E-04   1.0110743055091060E-06  -3.5788112115161188E+00   9.9975421788041599E-02   3.0256375809234881E+00 
+      1      52   1855     SANK   2.09E+03  1.00  0.061   3.4006888323995699E-04   9.9443556345476193E-07  -3.5783927737697008E+00   9.9995240242836542E-02   2.9727495829487394E+00 
+      1      53   1897    *SANK   3.18E+03  1.00  0.101   2.7972888032234662E-04   9.7783651333928072E-07  -3.5779487031244979E+00   1.0001612947813426E-01   2.9184064196608741E+00 
+      1      54   1939    *SANK   1.61E+03  1.00  0.057   3.2799168168688882E-04   9.6284480506791142E-07  -3.5775956582059667E+00   1.0002638720686859E-01   2.8779548611846848E+00 
+      1      55   1979     SANK   1.61E+03  1.00  0.045   2.9693047425954217E-04   9.4730872509419029E-07  -3.5773511566101739E+00   1.0004494643929607E-01   2.8282633804720008E+00 
+      1      56   2019     SANK   1.61E+03  1.00  0.049   2.6988612549428770E-04   9.3192559226706653E-07  -3.5771677028415443E+00   1.0006408870952391E-01   2.7803171084889189E+00 
+      1      57   2060     SANK   1.61E+03  1.00  0.049   2.4809914691845982E-04   9.1670051682877781E-07  -3.5770154270415513E+00   1.0008131930185482E-01   2.7336608932940623E+00 
+      1      58   2102     SANK   1.61E+03  1.00  0.050   2.3135210503524178E-04   9.0167145566894902E-07  -3.5768813222209963E+00   1.0009662416091887E-01   2.6880688927998002E+00 
+      1      59   2144     SANK   1.61E+03  1.00  0.053   2.1811558881937830E-04   8.8692220675390147E-07  -3.5767616568420726E+00   1.0011084470294897E-01   2.6435657072078560E+00 
+      1      60   2186     SANK   1.61E+03  1.00  0.055   2.0750101934549533E-04   8.7246962605326709E-07  -3.5766499833904373E+00   1.0012404494231249E-01   2.6001349912808971E+00 
+      1      61   2228     SANK   1.61E+03  1.00  0.056   1.9876000449370267E-04   8.5830439546107641E-07  -3.5765425560902857E+00   1.0013644561943533E-01   2.5576866720161329E+00 
+      1      62   2270     SANK   1.61E+03  1.00  0.057   1.9138249323649232E-04   8.4441337732048037E-07  -3.5764374372895342E+00   1.0014825201744397E-01   2.5161404949383446E+00 
+      1      63   2312     SANK   1.61E+03  1.00  0.058   1.8469942306305594E-04   8.3079327772414416E-07  -3.5763333179523533E+00   1.0015954467819844E-01   2.4754468671844263E+00 
+      1      64   2354    *SANK   2.28E+03  1.00  0.094   1.6812598991575720E-04   8.1680869543757600E-07  -3.5762023202503417E+00   1.0017204082227257E-01   2.4332784254876243E+00 
+      1      65   2396     SANK   2.28E+03  1.00  0.108   1.6520633688520744E-04   8.0361725367758753E-07  -3.5760293496287900E+00   1.0018084864979566E-01   2.3942104970997793E+00 
+      1      66   2435    *SANK   1.15E+03  1.00  0.047   1.8869436510714202E-04   7.9203275739123660E-07  -3.5759040279906298E+00   1.0018682548481403E-01   2.3613119375768434E+00 
+      1      67   2471     SANK   1.15E+03  1.00  0.046   1.8166651261022665E-04   7.7988463148724160E-07  -3.5758238835916165E+00   1.0019838464385823E-01   2.3245202094287976E+00 
+      1      68   2507     SANK   1.15E+03  1.00  0.048   1.6824172181162459E-04   7.6764659433000806E-07  -3.5757720597342049E+00   1.0021067695007986E-01   2.2873550551791997E+00 
+      1      69   2544     SANK   1.15E+03  1.00  0.046   1.5593471890582315E-04   7.5542394995375566E-07  -3.5757371364077404E+00   1.0022216626870434E-01   2.2504523558448088E+00 
+      1      70   2582     SANK   1.15E+03  1.00  0.044   1.4645303121369946E-04   7.4321443697964950E-07  -3.5757141650718420E+00   1.0023280218646513E-01   2.2137799481223071E+00 
+      1      71   2620     SANK   1.15E+03  1.00  0.048   1.3912450126673677E-04   7.3104016948914722E-07  -3.5757003524719986E+00   1.0024286551194000E-01   2.1773284677783717E+00 
+      1      72   2658     SANK   1.15E+03  1.00  0.050   1.3259735618631084E-04   7.1894120041166443E-07  -3.5756927623562782E+00   1.0025221166132089E-01   2.1411444468208907E+00 
+      1      73   2697     SANK   1.15E+03  1.00  0.049   1.2675576321685703E-04   7.0693835821113321E-07  -3.5756887006769782E+00   1.0026079272003774E-01   2.1052774397443046E+00 
+      1      74   2737     SANK   1.15E+03  1.00  0.046   1.2200872786446658E-04   6.9503802270416060E-07  -3.5756868891635771E+00   1.0026881038578155E-01   2.0697480442226448E+00 
+      1      75   2777     SANK   1.15E+03  1.00  0.046   1.1785528327491988E-04   6.8327342879453591E-07  -3.5756867301214510E+00   1.0027642164555904E-01   2.0346379694750172E+00 
+      1      76   2819    *SANK   1.62E+03  1.00  0.066   1.0873266580414751E-04   6.7098630196393268E-07  -3.5756820339931696E+00   1.0028453646219190E-01   1.9978395997425153E+00 
+      1      77   2861     SANK   1.62E+03  1.00  0.068   1.0393420060568296E-04   6.5929700658922240E-07  -3.5756604577205064E+00   1.0029074902332140E-01   1.9629451916334613E+00 
+      1      78   2903     SANK   1.62E+03  1.00  0.069   1.0139200444533430E-04   6.4792349238063073E-07  -3.5756282103765531E+00   1.0029643121408077E-01   1.9290643985374003E+00 
+      1      79   2945     SANK   1.62E+03  1.00  0.066   9.9287408263670944E-05   6.3677408433064884E-07  -3.5755905360577462E+00   1.0030214197069785E-01   1.8958655507113447E+00 
+      1      80   2987     SANK   1.62E+03  1.00  0.062   9.6856331675177959E-05   6.2581800892524924E-07  -3.5755529997192785E+00   1.0030816892999321E-01   1.8632226392430362E+00 
+      1      81   3029     SANK   1.62E+03  1.00  0.061   9.3865598025937022E-05   6.1501512886894746E-07  -3.5755186435563449E+00   1.0031440017457921E-01   1.8310117571282851E+00 
+      1      82   3071     SANK   1.62E+03  1.00  0.058   9.0256888262203955E-05   6.0434958880656941E-07  -3.5754892949572907E+00   1.0032068104432135E-01   1.7991877433900161E+00 
+      1      83   3113     SANK   1.62E+03  1.00  0.059   8.6617638440197859E-05   5.9380951208903790E-07  -3.5754661058841331E+00   1.0032695822590575E-01   1.7677352147073191E+00 
+      1      84   3155     SANK   1.62E+03  1.00  0.059   8.2899078924347682E-05   5.8339330173608629E-07  -3.5754494372347603E+00   1.0033311955032997E-01   1.7366522126437589E+00 
+      1      85   3197     SANK   1.62E+03  1.00  0.062   7.9408708188313204E-05   5.7309938115389746E-07  -3.5754393922705274E+00   1.0033913481460757E-01   1.7059437242549500E+00 
+      1      86   3239    *SANK   2.35E+03  1.00  0.107   7.2855098643393875E-05   5.6251757782276634E-07  -3.5754325938886309E+00   1.0034590587179557E-01   1.6743324361473131E+00 
+      1      87   3279    *SANK   1.19E+03  1.00  0.048   7.3753235442733977E-05   5.5313472705353219E-07  -3.5754236908135506E+00   1.0034948183972454E-01   1.6464416627883718E+00 
+      1      88   3321     SANK   1.19E+03  1.00  0.049   7.3749948158692092E-05   5.4348578488439066E-07  -3.5754302018650232E+00   1.0035461681047725E-01   1.6177207022090603E+00 
+      1      89   3363     SANK   1.19E+03  1.00  0.059   7.2760800032157670E-05   5.3382523362761460E-07  -3.5754492402897764E+00   1.0036020621757177E-01   1.5889833850288297E+00 
+      1      90   3405     SANK   1.19E+03  1.00  0.062   7.2063929594842676E-05   5.2422267481175972E-07  -3.5754777708066730E+00   1.0036582734998331E-01   1.5604442924219060E+00 
+      1      91   3447     SANK   1.19E+03  1.00  0.063   7.1411945782489012E-05   5.1472155550825807E-07  -3.5755137000061401E+00   1.0037115282665031E-01   1.5322267705915109E+00 
+      1      92   3489     SANK   1.19E+03  1.00  0.060   7.0724029310056887E-05   5.0534846387668026E-07  -3.5755542122772446E+00   1.0037599484808497E-01   1.5043861588176941E+00 
+      1      93   3531     SANK   1.19E+03  1.00  0.058   7.0000604924823131E-05   4.9612343135813578E-07  -3.5755974485439825E+00   1.0038040004793475E-01   1.4769721006205123E+00 
+      1      94   3573     SANK   1.19E+03  1.00  0.055   6.9387157541187715E-05   4.8705708715185272E-07  -3.5756424780942808E+00   1.0038438349848852E-01   1.4500267654092609E+00 
+      1      95   3615     SANK   1.19E+03  1.00  0.054   6.8645948136073347E-05   4.7815933606570690E-07  -3.5756883643400008E+00   1.0038809948870037E-01   1.4235631710923899E+00 
+      1      96   3657     SANK   1.19E+03  1.00  0.054   6.7812873824897241E-05   4.6943742742051881E-07  -3.5757345240758647E+00   1.0039155228588863E-01   1.3976160067876715E+00 
+      1      97   3699    *SANK   1.74E+03  1.00  0.086   6.2984882358708565E-05   4.6043141104097939E-07  -3.5757897429207901E+00   1.0039534353075509E-01   1.3706622120365246E+00 
+      1      98   3741     SANK   1.74E+03  1.00  0.092   5.9124745308711996E-05   4.5190327423488873E-07  -3.5758357260632212E+00   1.0039798744353734E-01   1.3451893277464029E+00 
+      1      99   3783     SANK   1.74E+03  1.00  0.090   5.6316367153178995E-05   4.4367371079962479E-07  -3.5758745330174597E+00   1.0040024277612659E-01   1.3206239607013934E+00 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     100   3825     SANK   1.74E+03  1.00  0.093   5.4245542633191852E-05   4.3568255639597806E-07  -3.5759092680966287E+00   1.0040253331118051E-01   1.2967945799980183E+00 
+      1     101   3867     SANK   1.74E+03  1.00  0.094   5.2608067189091579E-05   4.2789557210496124E-07  -3.5759420517570080E+00   1.0040486457744802E-01   1.2735927393413784E+00 
+      1     102   3909     SANK   1.74E+03  1.00  0.097   5.1382996390320990E-05   4.2029339236060271E-07  -3.5759744625771313E+00   1.0040727651474106E-01   1.2509548058655757E+00 
+      1     103   3951     SANK   1.74E+03  1.00  0.101   5.0365979076607795E-05   4.1287642538004016E-07  -3.5760073201640408E+00   1.0040971193302692E-01   1.2288766249553726E+00 
+      1     104   3991    *SANK   8.76E+02  1.00  0.047   5.3881445460364743E-05   4.0621906975067443E-07  -3.5760302444559895E+00   1.0041143172848846E-01   1.2091886948155282E+00 
+      1     105   4031     SANK   8.76E+02  1.00  0.049   5.7064261630016257E-05   3.9943485681659726E-07  -3.5760595033659786E+00   1.0041390605108880E-01   1.1891084691967730E+00 
+      1     106   4071     SANK   8.76E+02  1.00  0.047   6.0046647884598605E-05   3.9268752638168668E-07  -3.5760946799076532E+00   1.0041669212129514E-01   1.1691870488761964E+00 
+      1     107   4111     SANK   8.76E+02  1.00  0.040   6.2444025234408151E-05   3.8604517235305885E-07  -3.5761339121986526E+00   1.0041938959607814E-01   1.1495803244149851E+00 
+      1     108   4149     SANK   8.76E+02  1.00  0.049   6.3581123457287267E-05   3.7950367592152142E-07  -3.5761749390906283E+00   1.0042213684245818E-01   1.1301928004792299E+00 
+      1     109   4179     SANK   8.76E+02  1.00  0.049   6.4409664384296235E-05   3.7313399508854723E-07  -3.5762170976989145E+00   1.0042449470580452E-01   1.1113363848971243E+00 
+      1     110   4208     SANK   8.76E+02  1.00  0.047   6.4882784537996640E-05   3.6692920415671961E-07  -3.5762597460325223E+00   1.0042653254649569E-01   1.0929442369319968E+00 
+      1     111   4237     SANK   8.76E+02  1.00  0.047   6.5367381602816945E-05   3.6088332048594980E-07  -3.5763032303528917E+00   1.0042843118392747E-01   1.0750198943217468E+00 
+      1     112   4265     SANK   8.76E+02  1.00  0.050   6.5010009846799445E-05   3.5500082485667241E-07  -3.5763459041631984E+00   1.0043009724419495E-01   1.0575217979021472E+00 
+      1     113   4294     SANK   8.76E+02  1.00  0.044   6.5087252908464172E-05   3.4929456803145782E-07  -3.5763890056499177E+00   1.0043167631771908E-01   1.0405903417914990E+00 
+      1     114   4334    *SANK   1.25E+03  1.00  0.048   6.2157789855445895E-05   3.4339899133450454E-07  -3.5764445491008905E+00   1.0043324966788815E-01   1.0229237750400944E+00 
+      1     115   4373     SANK   1.25E+03  1.00  0.050   5.8622010815968152E-05   3.3784882032109286E-07  -3.5764926465482367E+00   1.0043419464399710E-01   1.0062422192649305E+00 
+      1     116   4411     SANK   1.25E+03  1.00  0.050   5.5537064371331033E-05   3.3255269494890018E-07  -3.5765359201334910E+00   1.0043496268605988E-01   9.9035497518822213E-01 
+      1     117   4449     SANK   1.25E+03  1.00  0.049   5.3166739902946311E-05   3.2745699790372646E-07  -3.5765754420647848E+00   1.0043565943653625E-01   9.7509630564246208E-01 
+      1     118   4489     SANK   1.25E+03  1.00  0.046   5.1837490792741556E-05   3.2253752251695833E-07  -3.5766132117365532E+00   1.0043630553927479E-01   9.6041783943830483E-01 
+      1     119   4529     SANK   1.25E+03  1.00  0.048   5.0074698979267487E-05   3.1777679187929335E-07  -3.5766487372273739E+00   1.0043706149307020E-01   9.4618611336691516E-01 
+      1     120   4570     SANK   1.25E+03  1.00  0.048   4.9139549197237653E-05   3.1316914365951431E-07  -3.5766833540336593E+00   1.0043781887928827E-01   9.3245461696950493E-01 
+      1     121   4612     SANK   1.25E+03  1.00  0.048   4.8076885166212854E-05   3.0870647202136194E-07  -3.5767167491436078E+00   1.0043857226422222E-01   9.1914476303507231E-01 
+      1     122   4654     SANK   1.25E+03  1.00  0.050   4.7281892928219880E-05   3.0438027892768910E-07  -3.5767496716117080E+00   1.0043939125225081E-01   9.0625372950759164E-01 
+      1     123   4696     SANK   1.25E+03  1.00  0.050   4.6507143405638771E-05   3.0018976168317418E-07  -3.5767819126869593E+00   1.0044019985545814E-01   8.9376893261129342E-01 
+      1     124   4738    *SANK   1.73E+03  1.00  0.078   4.3148681783525721E-05   2.9592656471926777E-07  -3.5768192148540372E+00   1.0044115617770190E-01   8.8097494430776890E-01 
+      1     125   4780     SANK   1.73E+03  1.00  0.083   4.2433580798889504E-05   2.9188749518275987E-07  -3.5768555548386054E+00   1.0044184953358268E-01   8.6895194035036016E-01 
+      1     126   4822     SANK   1.73E+03  1.00  0.073   4.0942849080492183E-05   2.8803287787430468E-07  -3.5768897530454113E+00   1.0044236130478765E-01   8.5744966413884671E-01 
+      1     127   4864     SANK   1.73E+03  1.00  0.076   4.0041488267900109E-05   2.8431923762759364E-07  -3.5769231576310876E+00   1.0044290586910147E-01   8.4638338125631729E-01 
+      1     128   4906     SANK   1.73E+03  1.00  0.076   3.9072424848379128E-05   2.8073339855240454E-07  -3.5769556692412170E+00   1.0044346266091229E-01   8.3569580796598220E-01 
+      1     129   4948     SANK   1.73E+03  1.00  0.075   3.8479081662022016E-05   2.7726497928701843E-07  -3.5769881177605432E+00   1.0044399990022562E-01   8.2537191426367340E-01 
+      1     130   4990     SANK   1.73E+03  1.00  0.073   3.7710553423660797E-05   2.7391181391355204E-07  -3.5770201062235469E+00   1.0044451459760999E-01   8.1538534396019158E-01 
+      1     131   5032     SANK   1.73E+03  1.00  0.072   3.7175441473474289E-05   2.7066567765053223E-07  -3.5770521472616688E+00   1.0044499596315265E-01   8.0572541956991184E-01 
+      1     132   5074     SANK   1.73E+03  1.00  0.071   3.6478757259056932E-05   2.6752331217520569E-07  -3.5770838428526917E+00   1.0044546418857674E-01   7.9636797042730012E-01 
+      1     133   5116     SANK   1.73E+03  1.00  0.071   3.6038439760766582E-05   2.6447707838516884E-07  -3.5771156822682131E+00   1.0044589827941285E-01   7.8730505757376046E-01 
+      1     134   5158    *SANK   2.27E+03  1.00  0.098   3.3012360036350920E-05   2.6142030512555841E-07  -3.5771490865910760E+00   1.0044635506848924E-01   7.7813114362685387E-01 
+      1     135   5200     SANK   2.27E+03  1.00  0.103   3.3365562063946604E-05   2.5849553776917977E-07  -3.5771853194591445E+00   1.0044672849166585E-01   7.6945541308165344E-01 
+      1     136   5231    *SANK   1.14E+03  1.00  0.047   3.3870646877393982E-05   2.5597816825886387E-07  -3.5772053840830029E+00   1.0044680699333537E-01   7.6199957556110698E-01 
+      1     137   5263     SANK   1.14E+03  1.00  0.049   3.4881873979976058E-05   2.5342600738729928E-07  -3.5772283137162075E+00   1.0044732825795592E-01   7.5443904830114406E-01 
+      1     138   5293     SANK   1.14E+03  1.00  0.049   3.4242907492921814E-05   2.5090592835280295E-07  -3.5772504478570868E+00   1.0044772566205369E-01   7.4693014116362211E-01 
+      1     139   5324     SANK   1.14E+03  1.00  0.049   3.4646637281958785E-05   2.4842821944273688E-07  -3.5772737755778445E+00   1.0044816861734447E-01   7.3958456865123501E-01 
+      1     140   5354     SANK   1.14E+03  1.00  0.049   3.3964660402551819E-05   2.4601085026431523E-07  -3.5772962167547147E+00   1.0044852238694442E-01   7.3237698953195240E-01 
+      1     141   5385     SANK   1.14E+03  1.00  0.049   3.4103162368998206E-05   2.4364972528650550E-07  -3.5773192597546153E+00   1.0044886928849388E-01   7.2536852518979500E-01 
+      1     142   5415     SANK   1.14E+03  1.00  0.049   3.3255012419112260E-05   2.4135356172666123E-07  -3.5773411325762661E+00   1.0044913860183911E-01   7.1851406351902325E-01 
+      1     143   5446     SANK   1.14E+03  1.00  0.048   3.3193753129884736E-05   2.3911621045315771E-07  -3.5773632362213674E+00   1.0044940182703584E-01   7.1186551682217047E-01 
+      1     144   5476     SANK   1.14E+03  1.00  0.049   3.2226606059801533E-05   2.3694111048043066E-07  -3.5773839940979428E+00   1.0044959250067700E-01   7.0536589341457556E-01 
+      1     145   5507     SANK   1.14E+03  1.00  0.050   3.2060436972108564E-05   2.3482305779570318E-07  -3.5774047666437823E+00   1.0044979263283084E-01   6.9906779024992538E-01 
+      1     146   5547    *SANK   1.41E+03  1.00  0.047   3.2353108846937011E-05   2.3266587345523618E-07  -3.5774312447271983E+00   1.0044997632061343E-01   6.9267077516026687E-01 
+      1     147   5587     SANK   1.41E+03  1.00  0.048   3.0317512879898800E-05   2.3060675821129874E-07  -3.5774542118799264E+00   1.0045001313026788E-01   6.8648260952305007E-01 
+      1     148   5627     SANK   1.41E+03  1.00  0.050   2.9561173871763901E-05   2.2862210836440129E-07  -3.5774759698180523E+00   1.0045002528939415E-01   6.8056039315744732E-01 
+      1     149   5668     SANK   1.41E+03  1.00  0.048   2.8734653360966329E-05   2.2670282844970864E-07  -3.5774966983982273E+00   1.0045003624650009E-01   6.7483126209916933E-01 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     150   5710     SANK   1.41E+03  1.00  0.049   2.7971343467981104E-05   2.2484037179142562E-07  -3.5775164269161195E+00   1.0045005195274168E-01   6.6927278601940476E-01 
+      1     151   5752     SANK   1.41E+03  1.00  0.049   2.7212599551500077E-05   2.2302952427709722E-07  -3.5775352707387178E+00   1.0045008960593628E-01   6.6386840881478471E-01 
+      1     152   5794     SANK   1.41E+03  1.00  0.050   2.6563015754833154E-05   2.2126621002443045E-07  -3.5775533856591872E+00   1.0045014097676912E-01   6.5860901655491133E-01 
+      1     153   5836     SANK   1.41E+03  1.00  0.051   2.5998586218265161E-05   2.1954773500587221E-07  -3.5775709630737715E+00   1.0045019127938407E-01   6.5348613194045302E-01 
+      1     154   5878     SANK   1.41E+03  1.00  0.053   2.5445983946163626E-05   2.1786996353759681E-07  -3.5775879320985262E+00   1.0045026275352924E-01   6.4848337119571198E-01 
+      1     155   5920     SANK   1.41E+03  1.00  0.051   2.4858953559148659E-05   2.1623314863851242E-07  -3.5776042344085273E+00   1.0045031047562895E-01   6.4360308828397583E-01 
+      1     156   5962    *SANK   1.69E+03  1.00  0.066   2.3531646907254499E-05   2.1458211018188387E-07  -3.5776211351019098E+00   1.0045036617829119E-01   6.3866215491461531E-01 
+      1     157   6004     SANK   1.69E+03  1.00  0.069   2.3441229694610772E-05   2.1298725200618640E-07  -3.5776386416477224E+00   1.0045041307338252E-01   6.3392075719597618E-01 
+      1     158   6046     SANK   1.69E+03  1.00  0.065   2.2732409930372096E-05   2.1144525648383345E-07  -3.5776551591713961E+00   1.0045044594084064E-01   6.2932097170689061E-01 
+      1     159   6088     SANK   1.69E+03  1.00  0.064   2.2431724996755605E-05   2.0994296057479587E-07  -3.5776716689096095E+00   1.0045045943574125E-01   6.2484943015478200E-01 
+      1     160   6130     SANK   1.69E+03  1.00  0.062   2.1785858176995035E-05   2.0848154741169306E-07  -3.5776872704858698E+00   1.0045045974603053E-01   6.2049130942162911E-01 
+      1     161   6172     SANK   1.69E+03  1.00  0.062   2.1437355419924359E-05   2.0705293635215135E-07  -3.5777027746304100E+00   1.0045045468910432E-01   6.1623803825705603E-01 
+      1     162   6214     SANK   1.69E+03  1.00  0.062   2.0844883435569052E-05   2.0565794132306024E-07  -3.5777175674068462E+00   1.0045044822308097E-01   6.1207910464243376E-01 
+      1     163   6256     SANK   1.69E+03  1.00  0.063   2.0477216329119281E-05   2.0429093466920681E-07  -3.5777320724586703E+00   1.0045043923175333E-01   6.0800796044190197E-01 
+      1     164   6298     SANK   1.69E+03  1.00  0.061   1.9876117646448245E-05   2.0295466368127268E-07  -3.5777457354572491E+00   1.0045042203194472E-01   6.0402339398980354E-01 
+      1     165   6340     SANK   1.69E+03  1.00  0.061   1.9543687730700902E-05   2.0164466783406753E-07  -3.5777592381083294E+00   1.0045039627260359E-01   6.0012316236416974E-01 
+      1     166   6382    *SANK   1.98E+03  1.00  0.077   1.8411431260469631E-05   2.0032896228856638E-07  -3.5777723824616974E+00   1.0045037788496880E-01   5.9618964203305280E-01 
+      1     167   6424     SANK   1.98E+03  1.00  0.082   1.8363027208973529E-05   1.9904624087495525E-07  -3.5777862330433123E+00   1.0045036506071960E-01   5.9237603957894558E-01 
+      1     168   6466     SANK   1.98E+03  1.00  0.076   1.7725093513883581E-05   1.9780177307819245E-07  -3.5777990255126104E+00   1.0045034549545974E-01   5.8866513080030669E-01 
+      1     169   6508     SANK   1.98E+03  1.00  0.072   1.7480825800227318E-05   1.9658295623411666E-07  -3.5778119980143854E+00   1.0045030246394783E-01   5.8503853022937069E-01 
+      1     170   6550     SANK   1.98E+03  1.00  0.073   1.6950626162449120E-05   1.9539194107156219E-07  -3.5778242488626555E+00   1.0045026746313185E-01   5.8148911715046725E-01 
+      1     171   6592     SANK   1.98E+03  1.00  0.073   1.6522343074509545E-05   1.9422255615799219E-07  -3.5778360326378733E+00   1.0045022404188973E-01   5.7800558256174395E-01 
+      1     172   6634     SANK   1.98E+03  1.00  0.070   1.6144881037779035E-05   1.9307541951882363E-07  -3.5778474259722808E+00   1.0045016847637098E-01   5.7458937070502647E-01 
+      1     173   6676     SANK   1.98E+03  1.00  0.072   1.5625864271928812E-05   1.9195015350009158E-07  -3.5778580206968034E+00   1.0045012375880137E-01   5.7123554757219042E-01 
+      1     174   6718     SANK   1.98E+03  1.00  0.071   1.5318426220546793E-05   1.9084250401447572E-07  -3.5778684934559122E+00   1.0045007231564571E-01   5.6793814774540008E-01 
+      1     175   6760     SANK   1.98E+03  1.00  0.072   1.4820902358853332E-05   1.8975541104833340E-07  -3.5778781189355504E+00   1.0045002650180622E-01   5.6469822468100273E-01 
+      1     176   6802    *SANK   2.26E+03  1.00  0.085   1.4151040667714353E-05   1.8866355891721324E-07  -3.5778873689129633E+00   1.0044997342027780E-01   5.6144187414934488E-01 
+      1     177   6844     SANK   2.26E+03  1.00  0.086   1.3928987396093005E-05   1.8759646422625020E-07  -3.5778969216048155E+00   1.0044993249042541E-01   5.5826651088265800E-01 
+      1     178   6886     SANK   2.26E+03  1.00  0.082   1.3443385357731534E-05   1.8655669724352441E-07  -3.5779055951446828E+00   1.0044989439213749E-01   5.5516851913322030E-01 
+      1     179   6928     SANK   2.26E+03  1.00  0.076   1.3191068561055978E-05   1.8553299004500311E-07  -3.5779144415612030E+00   1.0044983850618520E-01   5.5212190632388691E-01 
+      1     180   6970     SANK   2.26E+03  1.00  0.079   1.2802244355721338E-05   1.8452852392417699E-07  -3.5779226514638687E+00   1.0044979091485502E-01   5.4913029807447256E-01 
+      1     181   7012     SANK   2.26E+03  1.00  0.079   1.2403614064467133E-05   1.8353993459460880E-07  -3.5779303027842255E+00   1.0044974151842287E-01   5.4618592867321947E-01 
+      1     182   7054     SANK   2.26E+03  1.00  0.074   1.2109021340576586E-05   1.8256646559876602E-07  -3.5779377632341598E+00   1.0044968431082202E-01   5.4328806214789194E-01 
+      1     183   7096     SANK   2.26E+03  1.00  0.078   1.1706146570387601E-05   1.8160950438560288E-07  -3.5779445216523498E+00   1.0044964165580103E-01   5.4043766022081408E-01 
+      1     184   7138     SANK   2.26E+03  1.00  0.075   1.1444385643680759E-05   1.8066418712641133E-07  -3.5779510684506937E+00   1.0044958814876198E-01   5.3762366409358120E-01 
+      1     185   7180     SANK   2.26E+03  1.00  0.074   1.1086866898113777E-05   1.7973433963426483E-07  -3.5779570939867340E+00   1.0044954261522913E-01   5.3485467662039032E-01 
+      1     186   7222    *SANK   2.56E+03  1.00  0.086   1.0645538110639312E-05   1.7880262479833253E-07  -3.5779627102707656E+00   1.0044949852839219E-01   5.3207934826618764E-01 
+      1     187   7264     SANK   2.56E+03  1.00  0.079   1.0401538747067988E-05   1.7788856697765882E-07  -3.5779684737256470E+00   1.0044945371748581E-01   5.2935890797159491E-01 
+      1     188   7306     SANK   2.56E+03  1.00  0.082   1.0109525679398632E-05   1.7699217712924284E-07  -3.5779738554147649E+00   1.0044942630713222E-01   5.2669031987372161E-01 
+      1     189   7348     SANK   2.56E+03  1.00  0.080   9.8001999550677107E-06   1.7611029486169338E-07  -3.5779788274372066E+00   1.0044938090802434E-01   5.2406490197670741E-01 
+      1     190   7390     SANK   2.56E+03  1.00  0.075   9.5915908869116759E-06   1.7523888596414968E-07  -3.5779839103374060E+00   1.0044933747363687E-01   5.2147157677510203E-01 
+      1     191   7432     SANK   2.56E+03  1.00  0.079   9.2369252968053944E-06   1.7438388127370165E-07  -3.5779882364004227E+00   1.0044930592756594E-01   5.1892564982587308E-01 
+      1     192   7474     SANK   2.56E+03  1.00  0.073   9.0384865966314733E-06   1.7353634280590494E-07  -3.5779926801190900E+00   1.0044926271091567E-01   5.1640339752987174E-01 
+      1     193   7516     SANK   2.56E+03  1.00  0.077   8.7656036438207522E-06   1.7270206043000849E-07  -3.5779966029628536E+00   1.0044923137616114E-01   5.1391973862235740E-01 
+      1     194   7558     SANK   2.56E+03  1.00  0.072   8.5136078299117010E-06   1.7187788459641361E-07  -3.5780002847407051E+00   1.0044919207521656E-01   5.1146651094435658E-01 
+      1     195   7600     SANK   2.56E+03  1.00  0.075   8.3165020763106191E-06   1.7106321323994766E-07  -3.5780038480906451E+00   1.0044916264158725E-01   5.0904185558770743E-01 
+      1     196   7642    *SANK   2.86E+03  1.00  0.073   7.9671608136825965E-06   1.7025008783302975E-07  -3.5780069779305128E+00   1.0044912927269332E-01   5.0662094135456026E-01 
+      1     197   7684     SANK   2.86E+03  1.00  0.082   7.8239204486017638E-06   1.6944669014364089E-07  -3.5780103503534382E+00   1.0044909790169913E-01   5.0423025273963651E-01 
+      1     198   7726     SANK   2.86E+03  1.00  0.077   7.5477326225944178E-06   1.6866059741786120E-07  -3.5780132725674525E+00   1.0044908037783282E-01   5.0189027289373112E-01 
+      1     199   7768     SANK   2.86E+03  1.00  0.079   7.3343517950915628E-06   1.6788341589177076E-07  -3.5780160602669313E+00   1.0044904748583987E-01   4.9957723146017313E-01 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     200   7810     SANK   2.86E+03  1.00  0.069   7.1660252243378642E-06   1.6711432835846786E-07  -3.5780190155146974E+00   1.0044902128194498E-01   4.9728849820453536E-01 
+      1     201   7852     SANK   2.86E+03  1.00  0.081   6.8810868372024177E-06   1.6636038516183743E-07  -3.5780212586996498E+00   1.0044900353620671E-01   4.9504415976032395E-01 
+      1     202   7894     SANK   2.86E+03  1.00  0.064   6.7586862363804294E-06   1.6560801263375421E-07  -3.5780238478372399E+00   1.0044896903003718E-01   4.9280536280498605E-01 
+      1     203   7936     SANK   2.86E+03  1.00  0.078   6.5189205793640621E-06   1.6487031790930136E-07  -3.5780259666804928E+00   1.0044895853920245E-01   4.9060961860561697E-01 
+      1     204   7978     SANK   2.86E+03  1.00  0.067   6.3478622089104003E-06   1.6413750679271571E-07  -3.5780279477421288E+00   1.0044892938143676E-01   4.8842870868732124E-01 
+      1     205   8020     SANK   2.86E+03  1.00  0.069   6.1850386127434933E-06   1.6341286260867974E-07  -3.5780299220818872E+00   1.0044891284568599E-01   4.8627217959653490E-01 
+      1     206   8062    *SANK   3.17E+03  1.00  0.071   5.9419465875773185E-06   1.6268974589794808E-07  -3.5780315378003422E+00   1.0044889616346539E-01   4.8411988257902094E-01 
+      1     207   8104     SANK   3.17E+03  1.00  0.065   5.7974182368002312E-06   1.6197465394906556E-07  -3.5780333751082596E+00   1.0044887366360564E-01   4.8199189968011769E-01 
+      1     208   8146     SANK   3.17E+03  1.00  0.072   5.6247175426629710E-06   1.6127137082531741E-07  -3.5780350500222911E+00   1.0044886642753272E-01   4.7989888807928061E-01 
+      1     209   8188     SANK   3.17E+03  1.00  0.069   5.4262867437555533E-06   1.6057793960461679E-07  -3.5780364511640426E+00   1.0044884705636350E-01   4.7783514464804860E-01 
+      1     210   8230     SANK   3.17E+03  1.00  0.059   5.3090321978832700E-06   1.5988832023399595E-07  -3.5780380960653235E+00   1.0044883135025393E-01   4.7578299328394796E-01 
+      1     211   8272     SANK   3.17E+03  1.00  0.074   5.1033989403532662E-06   1.5921204736543428E-07  -3.5780393091381115E+00   1.0044882679760075E-01   4.7377027459297044E-01 
+      1     212   8314     SANK   3.17E+03  1.00  0.055   4.9862890113015607E-06   1.5853694200314409E-07  -3.5780406506104692E+00   1.0044880200640652E-01   4.7176128635829512E-01 
+      1     213   8356     SANK   3.17E+03  1.00  0.068   4.8285098140052184E-06   1.5787230601306741E-07  -3.5780418702110275E+00   1.0044879960868523E-01   4.6978334280743311E-01 
+      1     214   8398     SANK   3.17E+03  1.00  0.062   4.6677246723256240E-06   1.5721479726678541E-07  -3.5780427975902382E+00   1.0044878286787035E-01   4.6782657993260229E-01 
+      1     215   8440     SANK   3.17E+03  1.00  0.052   4.5662932165135668E-06   1.5655952576103204E-07  -3.5780439741719059E+00   1.0044877174877648E-01   4.6587665118347321E-01 
+      1     216   8482    *SANK   3.49E+03  1.00  0.068   4.3813472280881690E-06   1.5590799286948892E-07  -3.5780448994213034E+00   1.0044877080285293E-01   4.6393765056363084E-01 
+      1     217   8524     SANK   3.49E+03  1.00  0.054   4.2599539146266140E-06   1.5526255865658322E-07  -3.5780458242779778E+00   1.0044875192507347E-01   4.6201693371768227E-01 
+      1     218   8566     SANK   3.49E+03  1.00  0.060   4.1276082258561459E-06   1.5462678625540814E-07  -3.5780467658117301E+00   1.0044875356298223E-01   4.6012495602985648E-01 
+      1     219   8608     SANK   3.49E+03  1.00  0.060   3.9712378621217869E-06   1.5399970973703670E-07  -3.5780474424508730E+00   1.0044874008930653E-01   4.5825880435793220E-01 
+      1     220   8648     SANK   3.49E+03  1.00  0.049   3.8728292928042760E-06   1.5337513277003960E-07  -3.5780483082890844E+00   1.0044873219238508E-01   4.5640019899233086E-01 
+      1     221   8690     SANK   3.49E+03  1.00  0.066   3.7392203605972352E-06   1.5275954166093251E-07  -3.5780490503086568E+00   1.0044873272170987E-01   4.5456826959879493E-01 
+      1     222   8732     SANK   3.49E+03  1.00  0.053   3.6354170218434387E-06   1.5214742843154768E-07  -3.5780497325810456E+00   1.0044872247850137E-01   4.5274672353824724E-01 
+      1     223   8774     SANK   3.49E+03  1.00  0.057   3.5200437847767158E-06   1.5154199518202270E-07  -3.5780504146807939E+00   1.0044872094286300E-01   4.5094505369362586E-01 
+      1     224   8816     SANK   3.49E+03  1.00  0.052   3.4034262080663198E-06   1.5094267540097321E-07  -3.5780509557772153E+00   1.0044871302048280E-01   4.4916156201210361E-01 
+      1     225   8852     SANK   3.49E+03  1.00  0.049   3.3008157529837222E-06   1.5034762451205005E-07  -3.5780515351312063E+00   1.0044870841109477E-01   4.4739080399015019E-01 
+      1     226   8894    *SANK   3.82E+03  1.00  0.054   3.1885223775451498E-06   1.4975131867214028E-07  -3.5780520927822739E+00   1.0044870625196456E-01   4.4561629866274860E-01 
+      1     227   8936     SANK   3.82E+03  1.00  0.054   3.0778776550278574E-06   1.4916366541754632E-07  -3.5780526152752814E+00   1.0044870229270685E-01   4.4386754794850752E-01 
+      1     228   8978     SANK   3.82E+03  1.00  0.051   2.9867948347416358E-06   1.4858155309721804E-07  -3.5780531596823537E+00   1.0044870003492125E-01   4.4213530311358012E-01 
+      1     229   9020     SANK   3.82E+03  1.00  0.061   2.8719447810823076E-06   1.4800758732218983E-07  -3.5780535915090450E+00   1.0044869841782088E-01   4.4042727906916640E-01 
+      1     230   9053     SANK   3.82E+03  1.00  0.049   2.7627437651275933E-06   1.4743809379711612E-07  -3.5780539730812460E+00   1.0044868936874024E-01   4.3873256956597506E-01 
+      1     231   9093     SANK   3.82E+03  1.00  0.049   2.6954713305109077E-06   1.4687085808546208E-07  -3.5780544682792805E+00   1.0044869238245349E-01   4.3704461694006502E-01 
+      1     232   9135     SANK   3.82E+03  1.00  0.057   2.5885505569183174E-06   1.4631170158662050E-07  -3.5780548222554849E+00   1.0044869094015546E-01   4.3538067040190742E-01 
+      1     233   9168     SANK   3.82E+03  1.00  0.047   2.5011744635072665E-06   1.4575514819418270E-07  -3.5780551597660120E+00   1.0044868298084265E-01   4.3372448786031415E-01 
+      1     234   9210     SANK   3.82E+03  1.00  0.056   2.4370172345905634E-06   1.4520215271966892E-07  -3.5780555803966156E+00   1.0044868975977138E-01   4.3207891301130813E-01 
+      1     235   9252     SANK   3.82E+03  1.00  0.051   2.3371683320761412E-06   1.4465603685728866E-07  -3.5780558520912700E+00   1.0044868514628776E-01   4.3045377845687011E-01 
+      1     236   9286    *SANK   4.17E+03  1.00  0.048   2.2487931064750040E-06   1.4410705410289782E-07  -3.5780561598145697E+00   1.0044868089124921E-01   4.2882012875983122E-01 
+      1     237   9328     SANK   4.17E+03  1.00  0.059   2.1815048821676019E-06   1.4356441321861845E-07  -3.5780565203963186E+00   1.0044868565679238E-01   4.2720536507515516E-01 
+      1     238   9370     SANK   4.17E+03  1.00  0.054   2.0973237919490608E-06   1.4302856643793341E-07  -3.5780568016492933E+00   1.0044868486353450E-01   4.2561080525623185E-01 
+      1     239   9405     SANK   4.17E+03  1.00  0.048   2.0188231642454318E-06   1.4249687672762699E-07  -3.5780570667107989E+00   1.0044868086582133E-01   4.2402862128230534E-01 
+      1     240   9447     SANK   4.17E+03  1.00  0.052   1.9560947563471304E-06   1.4196884040947624E-07  -3.5780573699642284E+00   1.0044868480259898E-01   4.2245731956410781E-01 
+      1     241   9489     SANK   4.17E+03  1.00  0.051   1.8786545084193521E-06   1.4144588608636948E-07  -3.5780576066749781E+00   1.0044868323369475E-01   4.2090113074541780E-01 
+      1     242   9524     SANK   4.17E+03  1.00  0.048   1.8098862063843778E-06   1.4092630797163626E-07  -3.5780578323123078E+00   1.0044868132186008E-01   4.1935499460603759E-01 
+      1     243   9566     SANK   4.17E+03  1.00  0.052   1.7535973151792850E-06   1.4040956171287407E-07  -3.5780580981582863E+00   1.0044868323349201E-01   4.1781729327853312E-01 
+      1     244   9608     SANK   4.17E+03  1.00  0.058   1.6892865968856589E-06   1.3989764661272843E-07  -3.5780583227880047E+00   1.0044868543573346E-01   4.1629396326704332E-01 
+      1     245   9641     SANK   4.17E+03  1.00  0.049   1.6185715143348894E-06   1.3938925657842787E-07  -3.5780585037082355E+00   1.0044868133061270E-01   4.1478111975914100E-01 
+      1     246   9683    *SANK   4.54E+03  1.00  0.050   1.5685282187801482E-06   1.3887817028342341E-07  -3.5780587515676698E+00   1.0044868505555080E-01   4.1326026462452731E-01 
+      1     247   9725     SANK   4.54E+03  1.00  0.061   1.4980427191593129E-06   1.3837495596980986E-07  -3.5780589403252043E+00   1.0044868652649558E-01   4.1176282553593613E-01 
+      1     248   9758     SANK   4.54E+03  1.00  0.049   1.4292977901636832E-06   1.3787570573339085E-07  -3.5780591024324040E+00   1.0044868172474103E-01   4.1027718300175969E-01 
+      1     249   9800     SANK   4.54E+03  1.00  0.054   1.3965028030442990E-06   1.3737869719822507E-07  -3.5780593577446198E+00   1.0044868604768457E-01   4.0879822760254025E-01 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     250   9842     SANK   4.54E+03  1.00  0.065   1.3307370721215308E-06   1.3688755983074717E-07  -3.5780595414390790E+00   1.0044868821045234E-01   4.0733672899418349E-01 
+      1     251   9881     SANK   4.54E+03  1.00  0.050   1.2803285839119960E-06   1.3639766262479831E-07  -3.5780597086012582E+00   1.0044868550149051E-01   4.0587892564781630E-01 
+      1     252   9923     SANK   4.54E+03  1.00  0.073   1.2333747268808858E-06   1.3591200460621949E-07  -3.5780598788776943E+00   1.0044869132777655E-01   4.0443374144973110E-01 
+      1     253   9958     SANK   4.54E+03  1.00  0.050   1.1767420683489691E-06   1.3542907741225642E-07  -3.5780599970830522E+00   1.0044868767368022E-01   4.0299667730292654E-01 
+      1     254  10000     SANK   4.54E+03  1.00  0.051   1.1461857820763323E-06   1.3494768888259767E-07  -3.5780601925998514E+00   1.0044869077752211E-01   4.0156420299435008E-01 
+      1     255  10042     SANK   4.54E+03  1.00  0.072   1.0935962919103914E-06   1.3447159626561307E-07  -3.5780603394036552E+00   1.0044869436206018E-01   4.0014748062787076E-01 
+      1     256  10076    *SANK   4.92E+03  1.00  0.048   1.0357900540156515E-06   1.3399303012748479E-07  -3.5780604585217195E+00   1.0044868884966064E-01   3.9872339541087004E-01 
+      1     257  10118     SANK   4.92E+03  1.00  0.077   1.0085025802946580E-06   1.3351928956316225E-07  -3.5780606533529173E+00   1.0044869573791210E-01   3.9731368130325156E-01 
+      1     258  10160     SANK   4.92E+03  1.00  0.071   9.5417473334080460E-07   1.3305038365908314E-07  -3.5780607622307281E+00   1.0044869684039415E-01   3.9591834391073993E-01 
+      1     259  10195     SANK   4.92E+03  1.00  0.046   9.1243882290197960E-07   1.3258309882691369E-07  -3.5780608911791525E+00   1.0044869204381607E-01   3.9452783476301800E-01 
+      1     260  10237     SANK   4.92E+03  1.00  0.090   8.8059195029133476E-07   1.3211977765814500E-07  -3.5780610633373002E+00   1.0044870069768599E-01   3.9314912473523433E-01 
+      1     261  10279     SANK   4.92E+03  1.00  0.057   8.4180960718371726E-07   1.3165765419139264E-07  -3.5780611693096249E+00   1.0044869881027821E-01   3.9177397414154819E-01 
+      1     262  10321     SANK   4.92E+03  1.00  0.071   8.1309974351462706E-07   1.3119849739615531E-07  -3.5780613075164025E+00   1.0044870192037057E-01   3.9040765631207736E-01 
+      1     263  10363     SANK   4.92E+03  1.00  0.061   7.7759877905340944E-07   1.3074182714429545E-07  -3.5780614304941225E+00   1.0044870169682515E-01   3.8904873511342408E-01 
+      1     264  10405     SANK   4.92E+03  1.00  0.065   7.4575182886000915E-07   1.3028781133978606E-07  -3.5780615611062250E+00   1.0044870393509887E-01   3.8769771424733812E-01 
+      1     265  10447     SANK   4.92E+03  1.00  0.066   7.1578487218548980E-07   1.2983570761985384E-07  -3.5780616803219272E+00   1.0044870395421999E-01   3.8635238352421108E-01 
+      1     266  10489    *SANK   5.33E+03  1.00  0.077   6.7999898113727372E-07   1.2938313609331691E-07  -3.5780617979730769E+00   1.0044870658254852E-01   3.8500566008637044E-01 
+      1     267  10531     SANK   5.33E+03  1.00  0.052   6.5269168501677424E-07   1.2893388417566604E-07  -3.5780619193011276E+00   1.0044870527175377E-01   3.8366881608618691E-01 
+      1     268  10573     SANK   5.33E+03  1.00  0.098   6.2032404197263648E-07   1.2848934879027623E-07  -3.5780620458630148E+00   1.0044870983873329E-01   3.8234600754760606E-01 
+      1     269  10612     SANK   5.33E+03  1.00  0.048   5.8984128241152734E-07   1.2804530619319236E-07  -3.5780621401985657E+00   1.0044870618976368E-01   3.8102466389737100E-01 
+      1     270  10654     SANK   5.33E+03  1.00  0.124   5.6521691614286837E-07   1.2760572139289198E-07  -3.5780622659158112E+00   1.0044871317027480E-01   3.7971658892760241E-01 
+      1     271  10685    *SANK   2.67E+03  1.00  0.050   5.5096132102832476E-07   1.2719196180105685E-07  -3.5780623175897470E+00   1.0044870914531230E-01   3.7848536112995823E-01 
+      1     272  10727     SANK   2.67E+03  1.00  0.059   5.4951598774096554E-07   1.2676737087549252E-07  -3.5780624175956337E+00   1.0044871159633573E-01   3.7722190649793330E-01 
+      1     273  10769     SANK   2.67E+03  1.00  0.064   5.3839838388868702E-07   1.2634102516846590E-07  -3.5780624808223749E+00   1.0044871293535264E-01   3.7595322716135393E-01 
+      1     274  10802     SANK   2.67E+03  1.00  0.045   5.2163893878501840E-07   1.2591104080805073E-07  -3.5780625483779245E+00   1.0044871108994376E-01   3.7467371924276299E-01 
+      1     275  10844     SANK   2.67E+03  1.00  0.079   5.1477596354092337E-07   1.2548302881135823E-07  -3.5780626120213048E+00   1.0044871515768347E-01   3.7340008328194851E-01 
+      1     276  10883     SANK   2.67E+03  1.00  0.049   5.0466710288624274E-07   1.2505096055594546E-07  -3.5780627054126088E+00   1.0044871417651859E-01   3.7211437628323979E-01 
+      1     277  10925     SANK   2.67E+03  1.00  0.077   5.0119089349223262E-07   1.2462344124915993E-07  -3.5780627792533295E+00   1.0044871892843849E-01   3.7084220729331258E-01 
+      1     278  10959     SANK   2.67E+03  1.00  0.048   4.8036058711671516E-07   1.2419578522600064E-07  -3.5780628510490855E+00   1.0044871727389711E-01   3.6956962617161065E-01 
+      1     279  11001     SANK   2.67E+03  1.00  0.080   4.7277634680637416E-07   1.2377163057087129E-07  -3.5780629125587962E+00   1.0044872082406529E-01   3.6830746797153674E-01 
+      1     280  11040     SANK   2.67E+03  1.00  0.048   4.6473291858604691E-07   1.2334473538930541E-07  -3.5780630017901727E+00   1.0044872019994816E-01   3.6703715495357653E-01 
+      1     281  11082    *SANK   2.88E+03  1.00  0.086   4.5273297049827802E-07   1.2292100674840092E-07  -3.5780630728836202E+00   1.0044872384849722E-01   3.6577626392279738E-01 
+      1     282  11122     SANK   2.88E+03  1.00  0.047   4.3794067924312206E-07   1.2249631244461885E-07  -3.5780631602407214E+00   1.0044872183322792E-01   3.6451249810150549E-01 
+      1     283  11164     SANK   2.88E+03  1.00  0.092   4.3306098603471476E-07   1.2207716721170285E-07  -3.5780632282751039E+00   1.0044872657444545E-01   3.6326524740348615E-01 
+      1     284  11202     SANK   2.88E+03  1.00  0.049   4.1321525015419707E-07   1.2165711404067778E-07  -3.5780633061670684E+00   1.0044872333537454E-01   3.6201529137646571E-01 
+      1     285  11244     SANK   2.88E+03  1.00  0.088   4.0975511280475996E-07   1.2124176564809272E-07  -3.5780633681165526E+00   1.0044872671083678E-01   3.6077933905132581E-01 
+      1     286  11286     SANK   2.88E+03  1.00  0.048   3.9663909935337860E-07   1.2082432623691653E-07  -3.5780634456868086E+00   1.0044872693620975E-01   3.5953716183618484E-01 
+      1     287  11328     SANK   2.88E+03  1.00  0.094   3.8878720499079593E-07   1.2040983905371746E-07  -3.5780635261130138E+00   1.0044873107250379E-01   3.5830377147681136E-01 
+      1     288  11370     SANK   2.88E+03  1.00  0.086   3.7850240560374332E-07   1.1999599467089196E-07  -3.5780635882588672E+00   1.0044873185330748E-01   3.5707229277727848E-01 
+      1     289  11412     SANK   2.88E+03  1.00  0.071   3.7014118935200013E-07   1.1958273857352095E-07  -3.5780636596436586E+00   1.0044873306904024E-01   3.5584256522782998E-01 
+      1     290  11454     SANK   2.88E+03  1.00  0.084   3.6302135719337908E-07   1.1917082297179126E-07  -3.5780637434675260E+00   1.0044873445388522E-01   3.5461682720715754E-01 
+      1     291  11496    *SANK   3.11E+03  1.00  0.085   3.4950666505337015E-07   1.1875894037577556E-07  -3.5780638021931344E+00   1.0044873550441343E-01   3.5339118557846105E-01 
+      1     292  11536     SANK   3.11E+03  1.00  0.050   3.4100097115025673E-07   1.1834681246060483E-07  -3.5780638829351026E+00   1.0044873489565165E-01   3.5216481521715270E-01 
+      1     293  11578     SANK   3.11E+03  1.00  0.113   3.3263165416113997E-07   1.1794030553887235E-07  -3.5780639525238689E+00   1.0044873837349229E-01   3.5095517188427799E-01 
+      1     294  11613    *SANK   1.56E+03  1.00  0.048   3.2352246067465021E-07   1.1755445166395033E-07  -3.5780640086793740E+00   1.0044873677282246E-01   3.4980698556374784E-01 
+      1     295  11655     SANK   1.56E+03  1.00  0.048   3.2699665121075496E-07   1.1716342845328756E-07  -3.5780640523285214E+00   1.0044873792926255E-01   3.4864341732717752E-01 
+      1     296  11692     SANK   1.56E+03  1.00  0.049   3.1880670699984198E-07   1.1676750926783531E-07  -3.5780641097840271E+00   1.0044873799364901E-01   3.4746527954085715E-01 
+      1     297  11734     SANK   1.56E+03  1.00  0.051   3.2092646422693970E-07   1.1637001676133248E-07  -3.5780641470616965E+00   1.0044873920184284E-01   3.4628246086016212E-01 
+      1     298  11770     SANK   1.56E+03  1.00  0.047   3.0967968831453598E-07   1.1597016389431997E-07  -3.5780642019785991E+00   1.0044873922555614E-01   3.4509261681432868E-01 
+      1     299  11812     SANK   1.56E+03  1.00  0.057   3.1388633250677568E-07   1.1556995976330973E-07  -3.5780642403517726E+00   1.0044874086462860E-01   3.4390172970165611E-01 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     300  11848     SANK   1.56E+03  1.00  0.050   3.0375357673416915E-07   1.1516838420041532E-07  -3.5780642982139361E+00   1.0044874140963424E-01   3.4270675968090591E-01 
+      1     301  11890     SANK   1.56E+03  1.00  0.062   3.0730804051456855E-07   1.1476747605491724E-07  -3.5780643378824308E+00   1.0044874313814345E-01   3.4151377760920654E-01 
+      1     302  11926     SANK   1.56E+03  1.00  0.046   2.9690612860030539E-07   1.1436559063309527E-07  -3.5780643979247566E+00   1.0044874362143208E-01   3.4031788537354252E-01 
+      1     303  11968     SANK   1.56E+03  1.00  0.065   2.9972546464354774E-07   1.1396513405148843E-07  -3.5780644389600615E+00   1.0044874538107550E-01   3.3912624681010356E-01 
+      1     304  12004    *SANK   1.69E+03  1.00  0.050   2.8873661671435004E-07   1.1356061039551409E-07  -3.5780645013479497E+00   1.0044874569724820E-01   3.3792250367993565E-01 
+      1     305  12046     SANK   1.69E+03  1.00  0.072   2.9067586607145754E-07   1.1315914316940543E-07  -3.5780645423249253E+00   1.0044874748527791E-01   3.3672785757684787E-01 
+      1     306  12083     SANK   1.69E+03  1.00  0.048   2.7980562680718325E-07   1.1275711647637480E-07  -3.5780646059416146E+00   1.0044874739030998E-01   3.3553154496286752E-01 
+      1     307  12125     SANK   1.69E+03  1.00  0.073   2.8261026396361672E-07   1.1235766518529560E-07  -3.5780646478147968E+00   1.0044874927175887E-01   3.3434289773161813E-01 
+      1     308  12164     SANK   1.69E+03  1.00  0.048   2.7073130525504719E-07   1.1195730459940394E-07  -3.5780647106117538E+00   1.0044874896923389E-01   3.3315154270309294E-01 
+      1     309  12206     SANK   1.69E+03  1.00  0.070   2.7479026692988664E-07   1.1155902129039628E-07  -3.5780647521338587E+00   1.0044875086311404E-01   3.3196637130762707E-01 
+      1     310  12245     SANK   1.69E+03  1.00  0.048   2.6203876584747468E-07   1.1115983010693430E-07  -3.5780648125395444E+00   1.0044875072086305E-01   3.3077849575132945E-01 
+      1     311  12287     SANK   1.69E+03  1.00  0.074   2.6677228250418828E-07   1.1076219477153409E-07  -3.5780648524432364E+00   1.0044875295010139E-01   3.2959525265274575E-01 
+      1     312  12324     SANK   1.69E+03  1.00  0.044   2.5347905476545650E-07   1.1036373092711681E-07  -3.5780649099036221E+00   1.0044875238396325E-01   3.2840954149025914E-01 
+      1     313  12366     SANK   1.69E+03  1.00  0.071   2.5766210685411812E-07   1.0996682605990992E-07  -3.5780649494920347E+00   1.0044875414170740E-01   3.2722847177321607E-01 
+      1     314  12408    *SANK   1.83E+03  1.00  0.051   2.4691241965205159E-07   1.0956579833615378E-07  -3.5780650079654039E+00   1.0044875401908462E-01   3.2603513164622716E-01 
+      1     315  12450     SANK   1.83E+03  1.00  0.072   2.5098754939357566E-07   1.0916674499373689E-07  -3.5780650545742718E+00   1.0044875626217407E-01   3.2484766913038005E-01 
+      1     316  12488     SANK   1.83E+03  1.00  0.049   2.3812209514536297E-07   1.0876757082203337E-07  -3.5780651125924767E+00   1.0044875586562016E-01   3.2365984412232834E-01 
+      1     317  12530     SANK   1.83E+03  1.00  0.083   2.4262400281099302E-07   1.0837060821198067E-07  -3.5780651526593492E+00   1.0044875804792466E-01   3.2247860285689189E-01 
+      1     318  12567     SANK   1.83E+03  1.00  0.049   2.2891147902615230E-07   1.0797264794173552E-07  -3.5780652067262824E+00   1.0044875702543452E-01   3.2129439012953814E-01 
+      1     319  12609     SANK   1.83E+03  1.00  0.077   2.3340188850510804E-07   1.0757618784531096E-07  -3.5780652451701513E+00   1.0044875871517059E-01   3.2011464397300782E-01 
+      1     320  12651     SANK   1.83E+03  1.00  0.051   2.2348544262820350E-07   1.0717837632656009E-07  -3.5780652991027440E+00   1.0044875861650483E-01   3.1893087450565893E-01 
+      1     321  12693     SANK   1.83E+03  1.00  0.070   2.2665705851137260E-07   1.0678106439661429E-07  -3.5780653443027313E+00   1.0044876067716256E-01   3.1774859358714591E-01 
+      1     322  12731     SANK   1.83E+03  1.00  0.047   2.1623277887615356E-07   1.0638284814741637E-07  -3.5780653975276451E+00   1.0044876039963749E-01   3.1656361957730500E-01 
+      1     323  12773     SANK   1.83E+03  1.00  0.084   2.1860949210596536E-07   1.0598657850247767E-07  -3.5780654325267731E+00   1.0044876191561961E-01   3.1538443993327991E-01 
+      1     324  12813    *SANK   1.99E+03  1.00  0.048   2.0624566346789841E-07   1.0558631937430281E-07  -3.5780654833473045E+00   1.0044876083403925E-01   3.1419338675135311E-01 
+      1     325  12855     SANK   1.99E+03  1.00  0.076   2.1134677186509646E-07   1.0518755851136278E-07  -3.5780655241808166E+00   1.0044876266624087E-01   3.1300679441508261E-01 
+      1     326  12897     SANK   1.99E+03  1.00  0.054   2.0108804434449392E-07   1.0478814814399145E-07  -3.5780655763281710E+00   1.0044876263951091E-01   3.1181826712019467E-01 
+      1     327  12939     SANK   1.99E+03  1.00  0.085   2.0322039704595302E-07   1.0438987809411935E-07  -3.5780656185457351E+00   1.0044876472414327E-01   3.1063313497118739E-01 
+      1     328  12979     SANK   1.99E+03  1.00  0.048   1.9375122589723828E-07   1.0399010444641803E-07  -3.5780656704049907E+00   1.0044876405161783E-01   3.0944352687964344E-01 
+      1     329  13021     SANK   1.99E+03  1.00  0.073   1.9831357138953348E-07   1.0359137707530027E-07  -3.5780657139429288E+00   1.0044876577546723E-01   3.0825703416482148E-01 
+      1     330  13057     SANK   1.99E+03  1.00  0.050   1.8503657546819416E-07   1.0319205131315762E-07  -3.5780657571372547E+00   1.0044876487075381E-01   3.0706875805061273E-01 
+      1     331  13099     SANK   1.99E+03  1.00  0.089   1.8709023234900390E-07   1.0279390826594036E-07  -3.5780657912320919E+00   1.0044876639016988E-01   3.0588400355415563E-01 
+      1     332  13141     SANK   1.99E+03  1.00  0.050   1.7941689113430028E-07   1.0239383671170425E-07  -3.5780658355772061E+00   1.0044876566617572E-01   3.0469350942424545E-01 
+      1     333  13183     SANK   1.99E+03  1.00  0.070   1.8264028484854800E-07   1.0199390640354882E-07  -3.5780658754261458E+00   1.0044876708931670E-01   3.0350343692807585E-01 
+      1     334  13225    *SANK   2.17E+03  1.00  0.065   1.7297921175361101E-07   1.0159075974892416E-07  -3.5780659221245319E+00   1.0044876699646715E-01   3.0230379160683729E-01 
+      1     335  13267     SANK   2.17E+03  1.00  0.100   1.7397009477136576E-07   1.0118926213614143E-07  -3.5780659571076519E+00   1.0044876880199369E-01   3.0110905491982765E-01 
+      1     336  13306     SANK   2.17E+03  1.00  0.049   1.6512458977290008E-07   1.0078616883525555E-07  -3.5780660030639133E+00   1.0044876765396987E-01   2.9990956877123659E-01 
+      1     337  13348     SANK   2.17E+03  1.00  0.089   1.7098373180497061E-07   1.0038384796289692E-07  -3.5780660444294452E+00   1.0044876967100118E-01   2.9871238302562958E-01 
+      1     338  13386     SANK   2.17E+03  1.00  0.046   1.5778120606388363E-07   9.9980797964360396E-08  -3.5780660858834197E+00   1.0044876863669311E-01   2.9751302486262071E-01 
+      1     339  13428     SANK   2.17E+03  1.00  0.095   1.6225911634220218E-07   9.9578208288449930E-08  -3.5780661198252655E+00   1.0044877045071354E-01   2.9631503884908605E-01 
+      1     340  13465     SANK   2.17E+03  1.00  0.048   1.5121763215129579E-07   9.9174366222658640E-08  -3.5780661579033346E+00   1.0044876923500642E-01   2.9511332429226084E-01 
+      1     341  13507     SANK   2.17E+03  1.00  0.098   1.5427522218538103E-07   9.8770953396569741E-08  -3.5780661902010573E+00   1.0044877088321930E-01   2.9391288857066339E-01 
+      1     342  13549     SANK   2.17E+03  1.00  0.056   1.4702592505973171E-07   9.8365599519735853E-08  -3.5780662289925482E+00   1.0044877027730276E-01   2.9270667579603937E-01 
+      1     343  13591     SANK   2.17E+03  1.00  0.089   1.4969020761461880E-07   9.7960152486833014E-08  -3.5780662659413438E+00   1.0044877188629084E-01   2.9150018702463659E-01 
+      1     344  13633    *SANK   2.37E+03  1.00  0.068   1.4070518681948683E-07   9.7551563509026887E-08  -3.5780663059889770E+00   1.0044877124898760E-01   2.9028434721421981E-01 
+      1     345  13675     SANK   2.37E+03  1.00  0.101   1.4259850039979439E-07   9.7144159191776009E-08  -3.5780663378488882E+00   1.0044877270616999E-01   2.8907203393179615E-01 
+      1     346  13708    *SANK   1.19E+03  1.00  0.049   1.3678317303934580E-07   9.6748613140768512E-08  -3.5780663649667437E+00   1.0044877238755952E-01   2.8789500678095487E-01 
+      1     347  13744     SANK   1.19E+03  1.00  0.045   1.3755938929990475E-07   9.6349424058017721E-08  -3.5780663850408088E+00   1.0044877259058073E-01   2.8670713897403155E-01 
+      1     348  13781     SANK   1.19E+03  1.00  0.046   1.3560293510576549E-07   9.5946764010841065E-08  -3.5780664109239910E+00   1.0044877259064190E-01   2.8550894301730767E-01 
+      1     349  13821     SANK   1.19E+03  1.00  0.049   1.3680559473103041E-07   9.5541732003042162E-08  -3.5780664295782239E+00   1.0044877295986086E-01   2.8430368871679562E-01 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     350  13856     SANK   1.19E+03  1.00  0.050   1.3262858935870811E-07   9.5134415327332633E-08  -3.5780664524016936E+00   1.0044877308385639E-01   2.8309163553535133E-01 
+      1     351  13896     SANK   1.19E+03  1.00  0.046   1.3372157122737511E-07   9.4725172049596940E-08  -3.5780664729864857E+00   1.0044877349987885E-01   2.8187384985594793E-01 
+      1     352  13935     SANK   1.19E+03  1.00  0.050   1.3248085975690530E-07   9.4314333191852920E-08  -3.5780664968662963E+00   1.0044877391881524E-01   2.8065131614609562E-01 
+      1     353  13975     SANK   1.19E+03  1.00  0.049   1.3222341550155505E-07   9.3902133917848007E-08  -3.5780665170122852E+00   1.0044877431556190E-01   2.7942473414267061E-01 
+      1     354  14011     SANK   1.19E+03  1.00  0.045   1.2890835116636898E-07   9.3488752524299840E-08  -3.5780665406371162E+00   1.0044877457484494E-01   2.7819463421319007E-01 
+      1     355  14052     SANK   1.19E+03  1.00  0.049   1.3037563010376975E-07   9.3074254070862404E-08  -3.5780665611881171E+00   1.0044877501247794E-01   2.7696121082157688E-01 
+      1     356  14088    *SANK   1.31E+03  1.00  0.049   1.2571270540167184E-07   9.2656526190228745E-08  -3.5780665859363721E+00   1.0044877526253471E-01   2.7571817676214833E-01 
+      1     357  14130     SANK   1.31E+03  1.00  0.052   1.2740849808627780E-07   9.2238451699680439E-08  -3.5780666069919507E+00   1.0044877574411316E-01   2.7447411217408713E-01 
+      1     358  14166     SANK   1.31E+03  1.00  0.049   1.2282474641020151E-07   9.1819907130713374E-08  -3.5780666323212857E+00   1.0044877596874907E-01   2.7322864798652469E-01 
+      1     359  14208     SANK   1.31E+03  1.00  0.052   1.2428566015870869E-07   9.1400840099353061E-08  -3.5780666526565961E+00   1.0044877641980016E-01   2.7198162979917201E-01 
+      1     360  14244     SANK   1.31E+03  1.00  0.048   1.1935250674030767E-07   9.0981143786304445E-08  -3.5780666774667584E+00   1.0044877656800058E-01   2.7073273834459571E-01 
+      1     361  14286     SANK   1.31E+03  1.00  0.049   1.2084318254412231E-07   9.0560754848298541E-08  -3.5780666969554451E+00   1.0044877699294232E-01   2.6948178650730564E-01 
+      1     362  14322     SANK   1.31E+03  1.00  0.049   1.1612212937872265E-07   9.0139605418052087E-08  -3.5780667210944035E+00   1.0044877716845906E-01   2.6822857107728165E-01 
+      1     363  14364     SANK   1.31E+03  1.00  0.050   1.1792103290513635E-07   8.9717642983603545E-08  -3.5780667399253172E+00   1.0044877761449904E-01   2.6697293702262181E-01 
+      1     364  14400     SANK   1.31E+03  1.00  0.049   1.1324357093091624E-07   8.9294814424374816E-08  -3.5780667636756966E+00   1.0044877778907055E-01   2.6571472503094529E-01 
+      1     365  14442     SANK   1.31E+03  1.00  0.050   1.1504146529961384E-07   8.8871143422601630E-08  -3.5780667820418381E+00   1.0044877823704090E-01   2.6445400677948494E-01 
+      1     366  14480    *SANK   1.45E+03  1.00  0.050   1.1004848722031695E-07   8.8444514837263619E-08  -3.5780668069936978E+00   1.0044877837130535E-01   2.6318448699230251E-01 
+      1     367  14522     SANK   1.45E+03  1.00  0.065   1.1245157973931816E-07   8.8017875037732046E-08  -3.5780668245980771E+00   1.0044877893096979E-01   2.6191493458086040E-01 
+      1     368  14559     SANK   1.45E+03  1.00  0.046   1.0639631432872868E-07   8.7590607078287295E-08  -3.5780668493570098E+00   1.0044877887427690E-01   2.6064351214269582E-01 
+      1     369  14601     SANK   1.45E+03  1.00  0.061   1.0934931944750712E-07   8.7162864626772479E-08  -3.5780668673165241E+00   1.0044877947996947E-01   2.5937067856700574E-01 
+      1     370  14639     SANK   1.45E+03  1.00  0.049   1.0392387928782278E-07   8.6734276861291076E-08  -3.5780668915542146E+00   1.0044877949201271E-01   2.5809532885966963E-01 
+      1     371  14681     SANK   1.45E+03  1.00  0.059   1.0634533826603384E-07   8.6305045381907100E-08  -3.5780669087916346E+00   1.0044878006182506E-01   2.5681806431876364E-01 
+      1     372  14718     SANK   1.45E+03  1.00  0.046   1.0070670734485307E-07   8.5874931752066466E-08  -3.5780669319782525E+00   1.0044877997543046E-01   2.5553817408796065E-01 
+      1     373  14760     SANK   1.45E+03  1.00  0.057   1.0351215183195850E-07   8.5444050876263528E-08  -3.5780669490562449E+00   1.0044878049540580E-01   2.5425600146882177E-01 
+      1     374  14797     SANK   1.45E+03  1.00  0.049   9.8177938726815143E-08   8.5012233432974753E-08  -3.5780669713139046E+00   1.0044878047462044E-01   2.5297104121020336E-01 
+      1     375  14839     SANK   1.45E+03  1.00  0.058   1.0047773901288544E-07   8.4579651232349619E-08  -3.5780669874798710E+00   1.0044878096647140E-01   2.5168380590079614E-01 
+      1     376  14880    *SANK   1.62E+03  1.00  0.049   9.5161200737229325E-08   8.4144304180419665E-08  -3.5780670094823135E+00   1.0044878084614776E-01   2.5038834257110032E-01 
+      1     377  14922     SANK   1.62E+03  1.00  0.062   9.7337917586484896E-08   8.3708799673117056E-08  -3.5780670271505794E+00   1.0044878137722472E-01   2.4909241137499818E-01 
+      1     378  14963     SANK   1.62E+03  1.00  0.049   9.2776941304006658E-08   8.3272743273592014E-08  -3.5780670493052193E+00   1.0044878141795179E-01   2.4779483731552734E-01 
+      1     379  15005     SANK   1.62E+03  1.00  0.066   9.4539993124963418E-08   8.2836156683322136E-08  -3.5780670673800881E+00   1.0044878208575224E-01   2.4649568612971612E-01 
+      1     380  15042     SANK   1.62E+03  1.00  0.050   8.9660321423114460E-08   8.2398736533372310E-08  -3.5780670892942337E+00   1.0044878196323601E-01   2.4519405395189697E-01 
+      1     381  15084     SANK   1.62E+03  1.00  0.066   9.1922607501045822E-08   8.1960867886254023E-08  -3.5780671059024591E+00   1.0044878249040970E-01   2.4389108776264509E-01 
+      1     382  15122     SANK   1.62E+03  1.00  0.050   8.6413358634109586E-08   8.1522100761220568E-08  -3.5780671262750117E+00   1.0044878222425208E-01   2.4258544733379883E-01 
+      1     383  15164     SANK   1.62E+03  1.00  0.065   8.8967621000178798E-08   8.1082666825191678E-08  -3.5780671415210343E+00   1.0044878275842237E-01   2.4127782330633249E-01 
+      1     384  15201     SANK   1.62E+03  1.00  0.052   8.3828933260408061E-08   8.0642326675871815E-08  -3.5780671614388457E+00   1.0044878256535730E-01   2.3996750209193418E-01 
+      1     385  15243     SANK   1.62E+03  1.00  0.065   8.6267016468934876E-08   8.0201244459849783E-08  -3.5780671764452094E+00   1.0044878307271513E-01   2.3865497326552626E-01 
+      1     386  15285    *SANK   1.83E+03  1.00  0.051   8.1325645071546655E-08   7.9757721799249634E-08  -3.5780671956276975E+00   1.0044878288091129E-01   2.3733518181826854E-01 
+      1     387  15327     SANK   1.83E+03  1.00  0.064   8.2852329811408484E-08   7.9313991935579983E-08  -3.5780672127442745E+00   1.0044878337091510E-01   2.3601477434469795E-01 
+      1     388  15369     SANK   1.83E+03  1.00  0.052   7.8972856798801087E-08   7.8869883176816675E-08  -3.5780672320647828E+00   1.0044878333076863E-01   2.3469323894874697E-01 
+      1     389  15411     SANK   1.83E+03  1.00  0.065   8.0018924304068575E-08   7.8425197185511970E-08  -3.5780672490762342E+00   1.0044878381360915E-01   2.3336998627592884E-01 
+      1     390  15452     SANK   1.83E+03  1.00  0.056   7.6080946231286033E-08   7.7979908329381968E-08  -3.5780672681084367E+00   1.0044878367733470E-01   2.3204493927941114E-01 
+      1     391  15494     SANK   1.83E+03  1.00  0.070   7.7770465605715464E-08   7.7534093670388466E-08  -3.5780672837120533E+00   1.0044878420194274E-01   2.3071832806904990E-01 
+      1     392  15531     SANK   1.83E+03  1.00  0.057   7.2977563830746393E-08   7.7087542392735351E-08  -3.5780673019159819E+00   1.0044878394610199E-01   2.2938952442319102E-01 
+      1     393  15573     SANK   1.83E+03  1.00  0.078   7.5164354953381677E-08   7.6640521644555757E-08  -3.5780673156858325E+00   1.0044878450455176E-01   2.2805932426638637E-01 
+      1     394  15610     SANK   1.83E+03  1.00  0.060   7.0318217598124495E-08   7.6192674943057348E-08  -3.5780673329852286E+00   1.0044878416669253E-01   2.2672666584586068E-01 
+      1     395  15652     SANK   1.83E+03  1.00  0.072   7.2707664251105886E-08   7.5744181556173309E-08  -3.5780673463327566E+00   1.0044878466556688E-01   2.2539208355512041E-01 
+      1     396  15693    *SANK   2.08E+03  1.00  0.061   6.7813394942169160E-08   7.5293675533027787E-08  -3.5780673634020261E+00   1.0044878439791841E-01   2.2405151175643481E-01 
+      1     397  15735     SANK   2.08E+03  1.00  0.075   6.9707823938732150E-08   7.4842989691983226E-08  -3.5780673787743580E+00   1.0044878496108633E-01   2.2271040536706560E-01 
+      1     398  15776     SANK   2.08E+03  1.00  0.064   6.5493439386251438E-08   7.4392081938047721E-08  -3.5780673961265466E+00   1.0044878476237344E-01   2.2136863820470334E-01 
+      1     399  15818     SANK   2.08E+03  1.00  0.070   6.6887834420218753E-08   7.3940792075612672E-08  -3.5780674106886230E+00   1.0044878521080289E-01   2.2002573436848802E-01 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     400  15857     SANK   2.08E+03  1.00  0.069   6.2810534840387599E-08   7.3489085294000207E-08  -3.5780674269332002E+00   1.0044878504408122E-01   2.1868158955701891E-01 
+      1     401  15899     SANK   2.08E+03  1.00  0.092   6.4102180408420578E-08   7.3037051272282467E-08  -3.5780674387472802E+00   1.0044878549716121E-01   2.1733647131184664E-01 
+      1     402  15934     SANK   2.08E+03  1.00  0.073   6.0136989564553393E-08   7.2584306319337623E-08  -3.5780674541760944E+00   1.0044878517095640E-01   2.1598923724734437E-01 
+      1     403  15976     SANK   2.08E+03  1.00  0.092   6.1578865652159199E-08   7.2131359520367165E-08  -3.5780674657163107E+00   1.0044878571209249E-01   2.1464140284534694E-01 
+      1     404  16014     SANK   2.08E+03  1.00  0.074   5.7950200327553362E-08   7.1677674709567332E-08  -3.5780674805335866E+00   1.0044878538672447E-01   2.1329137206866103E-01 
+      1     405  16056     SANK   2.08E+03  1.00  0.083   5.9570807239144366E-08   7.1223554765743830E-08  -3.5780674925559866E+00   1.0044878590741484E-01   2.1194004675724346E-01 
+      1     406  16095    *SANK   2.39E+03  1.00  0.079   5.5187663578967195E-08   7.0767871428996324E-08  -3.5780675072457742E+00   1.0044878559385612E-01   2.1058406889829259E-01 
+      1     407  16137     SANK   2.39E+03  1.00  0.094   5.6793761816104775E-08   7.0312213932399104E-08  -3.5780675188410207E+00   1.0044878611000067E-01   2.0922816827668433E-01 
+      1     408  16174     SANK   2.39E+03  1.00  0.079   5.3112190139355231E-08   6.9856467798175108E-08  -3.5780675341690240E+00   1.0044878585983198E-01   2.0787200361663966E-01 
+      1     409  16216     SANK   2.39E+03  1.00  0.104   5.3984809915852580E-08   6.9400808853977974E-08  -3.5780675451531021E+00   1.0044878639418550E-01   2.0651609864699066E-01 
+      1     410  16246    *SANK   1.20E+03  1.00  0.078   5.2157705533469296E-08   6.8949425056006014E-08  -3.5780675550458994E+00   1.0044878636772164E-01   2.0517291515469127E-01 
+      1     411  16268     SANK   1.20E+03  1.00  0.080   5.1257867654137130E-08   6.8496737710405190E-08  -3.5780675586698418E+00   1.0044878602063723E-01   2.0382585257031438E-01 
+      1     412  16296     SANK   1.20E+03  1.00  0.087   4.9851686110730018E-08   6.8042430980944627E-08  -3.5780675674523166E+00   1.0044878614330607E-01   2.0247397132191888E-01 
+      1     413  16323     SANK   1.20E+03  1.00  0.096   5.1254632855131356E-08   6.7587423728598823E-08  -3.5780675716804229E+00   1.0044878628033661E-01   2.0112000556225806E-01 
+      1     414  16351     SANK   1.20E+03  1.00  0.084   5.0983334958523336E-08   6.7131082531843504E-08  -3.5780675807037357E+00   1.0044878652643117E-01   1.9976207041558622E-01 
+      1     415  16379     SANK   1.20E+03  1.00  0.084   5.1112156837320641E-08   6.6674356286913604E-08  -3.5780675868635470E+00   1.0044878667142325E-01   1.9840298941559734E-01 
+      1     416  16408     SANK   1.20E+03  1.00  0.075   5.1153902975267387E-08   6.6217043848411997E-08  -3.5780675957669636E+00   1.0044878694660568E-01   1.9704216415574072E-01 
+      1     417  16436     SANK   1.20E+03  1.00  0.074   5.0216180209641219E-08   6.5759436354419265E-08  -3.5780676035409931E+00   1.0044878700147172E-01   1.9568046074132497E-01 
+      1     418  16464     SANK   1.20E+03  1.00  0.088   4.9355769934468629E-08   6.5301719863415092E-08  -3.5780676109720382E+00   1.0044878707691922E-01   1.9431843300164192E-01 
+      1     419  16492     SANK   1.20E+03  1.00  0.090   4.8934320799038998E-08   6.4843829235648387E-08  -3.5780676192056169E+00   1.0044878723925861E-01   1.9295588714305831E-01 
+      1     420  16520    *SANK   1.39E+03  1.00  0.088   4.7609910121780175E-08   6.4384528446398644E-08  -3.5780676266785378E+00   1.0044878723718319E-01   1.9158914493918883E-01 
+      1     421  16549     SANK   1.39E+03  1.00  0.071   4.7072392275441825E-08   6.3925594034418769E-08  -3.5780676340386406E+00   1.0044878730893320E-01   1.9022349305292005E-01 
+      1     422  16578     SANK   1.39E+03  1.00  0.086   4.6780409746390174E-08   6.3466940712188177E-08  -3.5780676419521136E+00   1.0044878748655710E-01   1.8885867764157929E-01 
+      1     423  16606     SANK   1.39E+03  1.00  0.086   4.5916522685573830E-08   6.3008523980710769E-08  -3.5780676492230441E+00   1.0044878749516012E-01   1.8749456620442442E-01 
+      1     424  16635     SANK   1.39E+03  1.00  0.084   4.5282064230181232E-08   6.2550387596500919E-08  -3.5780676564865530E+00   1.0044878764149714E-01   1.8613128901526987E-01 
+      1     425  16664     SANK   1.39E+03  1.00  0.094   4.4387027163067320E-08   6.2092417806159030E-08  -3.5780676648392618E+00   1.0044878778179916E-01   1.8476850755850197E-01 
+      1     426  16691     SANK   1.39E+03  1.00  0.103   4.3628127618279202E-08   6.1634780428044889E-08  -3.5780676698640601E+00   1.0044878768933199E-01   1.8340671522345639E-01 
+      1     427  16709    *SANK   6.98E+02  1.00  0.105   4.2961331662365987E-08   6.1181625690501048E-08  -3.5780676736689982E+00   1.0044878781886164E-01   1.8205826196224975E-01 
+      1     428  16722    *SANK   3.51E+02  1.00  0.110   4.7295546433653879E-08   6.0730781744752001E-08  -3.5780676759718362E+00   1.0044878789159442E-01   1.8071668536922872E-01 
+      1     429  16730    *SANK   1.76E+02  1.00  0.077   4.4272213516810078E-08   6.0281643474379239E-08  -3.5780676776267328E+00   1.0044878796056696E-01   1.7938018373877951E-01 
+      1     430  16739     SANK   1.76E+02  1.00  0.092   4.0931648533908232E-08   5.9832203361035232E-08  -3.5780676797436053E+00   1.0044878800096675E-01   1.7804278415970659E-01 
+      1     431  16748     SANK   1.76E+02  1.00  0.085   3.9556541347446579E-08   5.9382525803020209E-08  -3.5780676819141939E+00   1.0044878797374403E-01   1.7670467809128459E-01 
+      1     432  16758     SANK   1.76E+02  1.00  0.081   3.9880339977791080E-08   5.8932644583214115E-08  -3.5780676841607182E+00   1.0044878786015267E-01   1.7536596623090228E-01 
+      1     433  16770     SANK   1.76E+02  1.00  0.068   4.0373683336540606E-08   5.8482654295695103E-08  -3.5780676858683789E+00   1.0044878759149541E-01   1.7402693023103105E-01 
+      1     434  16781     SANK   1.76E+02  1.00  0.053   3.9555673793520554E-08   5.8032601983573874E-08  -3.5780676861696179E+00   1.0044878723628618E-01   1.7268770877120487E-01 
+      1     435  16791     SANK   1.76E+02  1.00  0.052   3.9234985042523567E-08   5.7582572471390878E-08  -3.5780676854371891E+00   1.0044878690694761E-01   1.7134855467991261E-01 
+      1     436  16799     SANK   1.76E+02  1.00  0.069   3.9729494473065681E-08   5.7132651627994010E-08  -3.5780676845587802E+00   1.0044878668534095E-01   1.7000972406893372E-01 
+      1     437  16807     SANK   1.76E+02  1.00  0.068   4.0593313821554377E-08   5.6682886910439851E-08  -3.5780676836153136E+00   1.0044878654223113E-01   1.6867135833307931E-01 
+      1     438  16815     SANK   1.76E+02  1.00  0.080   4.2131025097889096E-08   5.6233318647146519E-08  -3.5780676831098917E+00   1.0044878654603798E-01   1.6733357729540793E-01 
+      1     439  16824    *SANK   2.09E+02  1.00  0.090   4.4082849383655652E-08   5.5782996096229603E-08  -3.5780676833952478E+00   1.0044878674771501E-01   1.6599355186516690E-01 
+      1     440  16833     SANK   2.09E+02  1.00  0.082   4.4709905264489142E-08   5.5332933905762061E-08  -3.5780676846566988E+00   1.0044878707567480E-01   1.6465430119029886E-01 
+      1     441  16842     SANK   2.09E+02  1.00  0.075   4.4192154770854846E-08   5.4883195908456053E-08  -3.5780676868628820E+00   1.0044878744959941E-01   1.6331601517964611E-01 
+      1     442  16851     SANK   2.09E+02  1.00  0.071   4.3292374801732197E-08   5.4433830890637365E-08  -3.5780676895742527E+00   1.0044878776408907E-01   1.6197883903406526E-01 
+      1     443  16862     SANK   2.09E+02  1.00  0.055   4.4385093800346572E-08   5.3984929525627954E-08  -3.5780676926884434E+00   1.0044878798114146E-01   1.6064304278740760E-01 
+      1     444  16873     SANK   2.09E+02  1.00  0.063   4.5700620401426329E-08   5.3536533395590854E-08  -3.5780676943734431E+00   1.0044878797121153E-01   1.5930874982192325E-01 
+      1     445  16885     SANK   2.09E+02  1.00  0.047   4.6151447561440835E-08   5.3088662051914078E-08  -3.5780676945078929E+00   1.0044878782169307E-01   1.5797601837582925E-01 
+      1     446  16897     SANK   2.09E+02  1.00  0.050   4.7234368020628418E-08   5.2641362391328961E-08  -3.5780676946519998E+00   1.0044878777087801E-01   1.5664498825970738E-01 
+      1     447  16909     SANK   2.09E+02  1.00  0.057   4.8534181613057444E-08   5.2194711245102293E-08  -3.5780676954401152E+00   1.0044878786861786E-01   1.5531588801462601E-01 
+      1     448  16921     SANK   2.09E+02  1.00  0.059   5.0267841833741944E-08   5.1748747317645440E-08  -3.5780676971505332E+00   1.0044878809476136E-01   1.5398883286447498E-01 
+      1     449  16935    *SANK   2.51E+02  1.00  0.051   5.2117350290604658E-08   5.1302174400955448E-08  -3.5780677003388828E+00   1.0044878844858904E-01   1.5265996565137932E-01 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     450  16947     SANK   2.51E+02  1.00  0.053   5.1601032095784872E-08   5.0856455099808690E-08  -3.5780677033901429E+00   1.0044878874283185E-01   1.5133363797814869E-01 
+      1     451  16961     SANK   2.51E+02  1.00  0.050   5.3238962161916336E-08   5.0411658879930746E-08  -3.5780677067312294E+00   1.0044878894906062E-01   1.5001005773639614E-01 
+      1     452  16974     SANK   2.51E+02  1.00  0.049   5.2435479877131062E-08   4.9967803939783725E-08  -3.5780677093473021E+00   1.0044878906742194E-01   1.4868927768192269E-01 
+      1     453  16988     SANK   2.51E+02  1.00  0.047   5.3758504527124762E-08   4.9524979016413955E-08  -3.5780677121386724E+00   1.0044878916582395E-01   1.4737156328339021E-01 
+      1     454  17001     SANK   2.51E+02  1.00  0.050   5.3150163530606073E-08   4.9083191311680650E-08  -3.5780677146130206E+00   1.0044878927191805E-01   1.4605693471905132E-01 
+      1     455  17015     SANK   2.51E+02  1.00  0.048   5.4751789410894500E-08   4.8642505543955564E-08  -3.5780677176626616E+00   1.0044878941706299E-01   1.4474558590834954E-01 
+      1     456  17029     SANK   2.51E+02  1.00  0.043   5.4774506984769465E-08   4.8202951847554944E-08  -3.5780677207880442E+00   1.0044878957214398E-01   1.4343760534087305E-01 
+      1     457  17043     SANK   2.51E+02  1.00  0.044   5.4495392796026150E-08   4.7764575876729775E-08  -3.5780677241543608E+00   1.0044878972515646E-01   1.4213312927624366E-01 
+      1     458  17056     SANK   2.51E+02  1.00  0.049   5.3032611015230699E-08   4.7327396864060465E-08  -3.5780677272687837E+00   1.0044878983770281E-01   1.4083221459520778E-01 
+      1     459  17073    *SANK   3.05E+02  1.00  0.048   5.5378943238721520E-08   4.6890054347557579E-08  -3.5780677315556102E+00   1.0044878994220269E-01   1.3953081453414543E-01 
+      1     460  17085     SANK   3.05E+02  1.00  0.049   4.9430958193310409E-08   4.6454097586288652E-08  -3.5780677340851361E+00   1.0044878996620638E-01   1.3823353557171203E-01 
+      1     461  17102     SANK   3.05E+02  1.00  0.052   5.6836186805679429E-08   4.6019706772177380E-08  -3.5780677384447976E+00   1.0044879011472327E-01   1.3694092029600344E-01 
+      1     462  17116     SANK   3.05E+02  1.00  0.050   4.9250768131750252E-08   4.5586669149379257E-08  -3.5780677411249533E+00   1.0044879016311292E-01   1.3565232743666161E-01 
+      1     463  17133     SANK   3.05E+02  1.00  0.048   5.5910220722034707E-08   4.5155270779033046E-08  -3.5780677461066892E+00   1.0044879034197386E-01   1.3436861658561658E-01 
+      1     464  17145     SANK   3.05E+02  1.00  0.046   4.7282238238011145E-08   4.4725310979680303E-08  -3.5780677486098358E+00   1.0044879032758089E-01   1.3308918211699700E-01 
+      1     465  17161     SANK   3.05E+02  1.00  0.061   5.1366632003888842E-08   4.4296974948026970E-08  -3.5780677527754845E+00   1.0044879038274472E-01   1.3181458293093451E-01 
+      1     466  17173     SANK   3.05E+02  1.00  0.051   4.7282446724050496E-08   4.3870159841399982E-08  -3.5780677552138833E+00   1.0044879034708111E-01   1.3054450747214782E-01 
+      1     467  17188     SANK   3.05E+02  1.00  0.054   4.9387672973020416E-08   4.3444983513375652E-08  -3.5780677588542287E+00   1.0044879041242555E-01   1.2927931011973984E-01 
+      1     468  17200     SANK   3.05E+02  1.00  0.055   4.6797445794826725E-08   4.3021416884191401E-08  -3.5780677615064009E+00   1.0044879042419953E-01   1.2801890157064855E-01 
+      1     469  17217    *SANK   3.76E+02  1.00  0.062   4.8804252875088583E-08   4.2598198435395699E-08  -3.5780677661221678E+00   1.0044879054295854E-01   1.2675953025593151E-01 
+      1     470  17229     SANK   3.76E+02  1.00  0.060   4.4139434796257202E-08   4.2176854939111921E-08  -3.5780677685796665E+00   1.0044879050360334E-01   1.2550573665945439E-01 
+      1     471  17245     SANK   3.76E+02  1.00  0.076   4.7652765228249715E-08   4.1757333549624286E-08  -3.5780677727768326E+00   1.0044879062566107E-01   1.2425736690685155E-01 
+      1     472  17257     SANK   3.76E+02  1.00  0.062   4.3961285132480652E-08   4.1339712080216620E-08  -3.5780677756411587E+00   1.0044879064728107E-01   1.2301464928748557E-01 
+      1     473  17272     SANK   3.76E+02  1.00  0.065   4.4967808737994384E-08   4.0923940401636372E-08  -3.5780677799007865E+00   1.0044879075391258E-01   1.2177743705682953E-01 
+      1     474  17284     SANK   3.76E+02  1.00  0.061   4.2404204786512886E-08   4.0510094161200468E-08  -3.5780677827035099E+00   1.0044879070553793E-01   1.2054595360754776E-01 
+      1     475  17298     SANK   3.76E+02  1.00  0.070   4.2894695033199688E-08   4.0098128336856626E-08  -3.5780677859488379E+00   1.0044879072246841E-01   1.1932006628640224E-01 
+      1     476  17310     SANK   3.76E+02  1.00  0.070   4.1460147693022286E-08   3.9688112338697248E-08  -3.5780677885103729E+00   1.0044879071717218E-01   1.1809998076493525E-01 
+      1     477  17323     SANK   3.76E+02  1.00  0.085   4.1315674737352378E-08   3.9280015273993413E-08  -3.5780677915309820E+00   1.0044879078296023E-01   1.1688560565593881E-01 
+      1     478  17335     SANK   3.76E+02  1.00  0.074   4.0813602702650937E-08   3.8873865716712588E-08  -3.5780677945032915E+00   1.0044879085111809E-01   1.1567702568868833E-01 
+      1     479  17347    *SANK   4.70E+02  1.00  0.092   3.9466742807938164E-08   3.8468641336679185E-08  -3.5780677977561579E+00   1.0044879091257408E-01   1.1447119864335178E-01 
+      1     480  17359     SANK   4.70E+02  1.00  0.091   3.8928167137836685E-08   3.8065508858950311E-08  -3.5780678012065108E+00   1.0044879098171899E-01   1.1327159660982231E-01 
+      1     481  17371     SANK   4.70E+02  1.00  0.084   3.7828018427142316E-08   3.7664500499396649E-08  -3.5780678046533740E+00   1.0044879102382717E-01   1.1207831529956062E-01 
+      1     482  17383     SANK   4.70E+02  1.00  0.093   3.7448351090543416E-08   3.7265673044061485E-08  -3.5780678073789778E+00   1.0044879098586568E-01   1.1089152373292337E-01 
+      1     483  17395     SANK   4.70E+02  1.00  0.098   3.8095094368749707E-08   3.6868940480437258E-08  -3.5780678096409346E+00   1.0044879099209787E-01   1.0971096602463359E-01 
+      1     484  17407     SANK   4.70E+02  1.00  0.097   3.8417428934775578E-08   3.6474299141502815E-08  -3.5780678125369687E+00   1.0044879117240911E-01   1.0853663121623111E-01 
+      1     485  17419     SANK   4.70E+02  1.00  0.108   3.8350746837463820E-08   3.6081784574235930E-08  -3.5780678162530206E+00   1.0044879142510094E-01   1.0736862504789908E-01 
+      1     486  17430    *SANK   2.36E+02  1.00  0.071   3.9712317525599492E-08   3.5693362526844815E-08  -3.5780678192612987E+00   1.0044879162126280E-01   1.0621279729208896E-01 
+      1     487  17438     SANK   2.36E+02  1.00  0.092   3.8017468806726262E-08   3.5306922673791623E-08  -3.5780678210046313E+00   1.0044879165509932E-01   1.0506286731372054E-01 
+      1     488  17446     SANK   2.36E+02  1.00  0.095   3.7665278176162520E-08   3.4922380786534078E-08  -3.5780678226973857E+00   1.0044879167611223E-01   1.0391858543471691E-01 
+      1     489  17454     SANK   2.36E+02  1.00  0.093   3.7233263499171287E-08   3.4539833799723795E-08  -3.5780678245033082E+00   1.0044879168520605E-01   1.0278023971651613E-01 
+      1     490  17462     SANK   2.36E+02  1.00  0.097   3.7071171744407242E-08   3.4159290190372331E-08  -3.5780678264818473E+00   1.0044879172151089E-01   1.0164785547973289E-01 
+      1     491  17470     SANK   2.36E+02  1.00  0.103   3.6330792603236817E-08   3.3780790935315501E-08  -3.5780678284499872E+00   1.0044879174885195E-01   1.0052155460801565E-01 
+      1     492  17476    *SANK   1.19E+02  1.00  0.084   3.5757730637643585E-08   3.3405678151217581E-08  -3.5780678295499309E+00   1.0044879175619380E-01   9.9405330955600030E-02 
+      1     493  17482     SANK   1.19E+02  1.00  0.085   3.5411302082695028E-08   3.3032628575924524E-08  -3.5780678306078419E+00   1.0044879175399253E-01   9.8295246750201959E-02 
+      1     494  17488     SANK   1.19E+02  1.00  0.081   3.5328544656629283E-08   3.2661661977865636E-08  -3.5780678315648418E+00   1.0044879174717171E-01   9.7191360838845650E-02 
+      1     495  17494     SANK   1.19E+02  1.00  0.080   3.5490508746088589E-08   3.2292801169684366E-08  -3.5780678324090394E+00   1.0044879173488161E-01   9.6093741139380046E-02 
+      1     496  17500     SANK   1.19E+02  1.00  0.081   3.5809983808071264E-08   3.1926067149627903E-08  -3.5780678331508109E+00   1.0044879171798707E-01   9.5002450140392727E-02 
+      1     497  17506     SANK   1.19E+02  1.00  0.082   3.6186878525891409E-08   3.1561480757528162E-08  -3.5780678338324221E+00   1.0044879170321939E-01   9.3917549851640719E-02 
+      1     498  17512     SANK   1.19E+02  1.00  0.083   3.6429936122526944E-08   3.1199063626648445E-08  -3.5780678345306720E+00   1.0044879170061678E-01   9.2839104639321698E-02 
+      1     499  17518     SANK   1.19E+02  1.00  0.086   3.6294085770135595E-08   3.0838840102062432E-08  -3.5780678353348132E+00   1.0044879171788340E-01   9.1767186936281997E-02 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     500  17524     SANK   1.19E+02  1.00  0.102   3.5716091869574982E-08   3.0480831053832004E-08  -3.5780678363105798E+00   1.0044879175566587E-01   9.0701858872180727E-02 
+      1     501  17529    *SANK   5.97E+01  1.00  0.083   3.5464843828145661E-08   3.0126000892752055E-08  -3.5780678369709022E+00   1.0044879179264772E-01   8.9645990338221918E-02 
+      1     502  17534     SANK   5.97E+01  1.00  0.087   3.4829546170860193E-08   2.9773426726990093E-08  -3.5780678377606647E+00   1.0044879183828151E-01   8.8596835027479476E-02 
+      1     503  17539     SANK   5.97E+01  1.00  0.088   3.4210840003053107E-08   2.9423118472616127E-08  -3.5780678386268479E+00   1.0044879188569450E-01   8.7554422416166414E-02 
+      1     504  17544     SANK   5.97E+01  1.00  0.087   3.3725960700043185E-08   2.9075092100684434E-08  -3.5780678395195178E+00   1.0044879193030007E-01   8.6518799993430179E-02 
+      1     505  17549     SANK   5.97E+01  1.00  0.083   3.3378238693776913E-08   2.8729364582290112E-08  -3.5780678404009949E+00   1.0044879196920638E-01   8.5490018228528572E-02 
+      1     506  17554     SANK   5.97E+01  1.00  0.078   3.3193242567975947E-08   2.8385952974301379E-08  -3.5780678412431035E+00   1.0044879199967763E-01   8.4468127861611536E-02 
+      1     507  17559     SANK   5.97E+01  1.00  0.074   3.3197713030898341E-08   2.8044873418912135E-08  -3.5780678420225458E+00   1.0044879201877048E-01   8.3453176927395803E-02 
+      1     508  17564     SANK   5.97E+01  1.00  0.071   3.3395145140926475E-08   2.7706140813570717E-08  -3.5780678427212713E+00   1.0044879202421941E-01   8.2445209770501349E-02 
+      1     509  17569     SANK   5.97E+01  1.00  0.069   3.3762275097723375E-08   2.7369768972203772E-08  -3.5780678433299102E+00   1.0044879201535209E-01   8.1444267519589122E-02 
+      1     510  17574     SANK   5.97E+01  1.00  0.069   3.4240872318355918E-08   2.7035770840099236E-08  -3.5780678438494951E+00   1.0044879199326846E-01   8.0450388715658794E-02 
+      1     511  17580    *SANK   7.75E+01  1.00  0.050   3.4703706157976915E-08   2.6703754210967273E-08  -3.5780678443833387E+00   1.0044879194175381E-01   7.9462406280263423E-02 
+      1     512  17586     SANK   7.75E+01  1.00  0.050   3.5294901028352811E-08   2.6374137022118855E-08  -3.5780678448485479E+00   1.0044879188062353E-01   7.8481563888499126E-02 
+      1     513  17592     SANK   7.75E+01  1.00  0.052   3.5514641780850338E-08   2.6046934414436019E-08  -3.5780678452664034E+00   1.0044879181829591E-01   7.7507906506723276E-02 
+      1     514  17598     SANK   7.75E+01  1.00  0.054   3.5346786442053509E-08   2.5722157109187355E-08  -3.5780678456465678E+00   1.0044879176124343E-01   7.6541466078360598E-02 
+      1     515  17604     SANK   7.75E+01  1.00  0.058   3.4883711318345052E-08   2.5399815357152656E-08  -3.5780678460041151E+00   1.0044879171461091E-01   7.5582273143801226E-02 
+      1     516  17610     SANK   7.75E+01  1.00  0.062   3.4256682229370856E-08   2.5079918504422639E-08  -3.5780678463524840E+00   1.0044879168179360E-01   7.4630355530067957E-02 
+      1     517  17616     SANK   7.75E+01  1.00  0.064   3.3634581386688022E-08   2.4762475646118985E-08  -3.5780678466997857E+00   1.0044879166448425E-01   7.3685740299336291E-02 
+      1     518  17622     SANK   7.75E+01  1.00  0.064   3.3180515907155960E-08   2.4447497010783302E-08  -3.5780678470499012E+00   1.0044879166257221E-01   7.2748457862013172E-02 
+      1     519  17628     SANK   7.75E+01  1.00  0.060   3.3034100721487976E-08   2.4134994141734426E-08  -3.5780678474048386E+00   1.0044879167418373E-01   7.1818542538355734E-02 
+      1     520  17634     SANK   7.75E+01  1.00  0.056   3.3306019897037474E-08   2.3824978119402813E-08  -3.5780678477670285E+00   1.0044879169627643E-01   7.0896027303890885E-02 
+      1     521  17640    *SANK   1.02E+02  1.00  0.083   3.4151235190448428E-08   2.3516940781388220E-08  -3.5780678482099342E+00   1.0044879172655979E-01   6.9979400016129845E-02 
+      1     522  17646     SANK   1.02E+02  1.00  0.098   3.5581569376801368E-08   2.3211411673859811E-08  -3.5780678486432178E+00   1.0044879176167612E-01   6.9070236638633140E-02 
+      1     523  17653     SANK   1.02E+02  1.00  0.112   3.8383371067621455E-08   2.2908373038721905E-08  -3.5780678491798565E+00   1.0044879181899835E-01   6.8168484568075796E-02 
+      1     524  17658    *SANK   5.13E+01  1.00  0.092   4.0980612400125973E-08   2.2608958997284685E-08  -3.5780678495200338E+00   1.0044879186356559E-01   6.7277518450011273E-02 
+      1     525  17663     SANK   5.13E+01  1.00  0.087   4.3242344617600178E-08   2.2312055039290741E-08  -3.5780678498878604E+00   1.0044879191183460E-01   6.6394021774089887E-02 
+      1     526  17669     SANK   5.13E+01  1.00  0.043   4.6520614948007354E-08   2.2017649929365549E-08  -3.5780678502574030E+00   1.0044879196396862E-01   6.5517961579538667E-02 
+      1     527  17675     SANK   5.13E+01  1.00  0.043   5.0516364001067491E-08   2.1725762879298473E-08  -3.5780678506587442E+00   1.0044879203092008E-01   6.4649395024997655E-02 
+      1     528  17681     SANK   5.13E+01  1.00  0.037   5.3539812141740271E-08   2.1436396587166542E-08  -3.5780678510659043E+00   1.0044879210818088E-01   6.3788329360267390E-02 
+      1     529  17687     SANK   5.13E+01  1.00  0.032   5.5348246264628775E-08   2.1149552776409805E-08  -3.5780678514565238E+00   1.0044879219203395E-01   6.2934769338689425E-02 
+      1     530  17693     SANK   5.13E+01  1.00  0.030   5.6359572758685292E-08   2.0865233482009356E-08  -3.5780678518499127E+00   1.0044879228517012E-01   6.2088721108585432E-02 
+      1     531  17698     SANK   5.13E+01  1.00  0.048   5.5106937507290575E-08   2.0583456301990181E-08  -3.5780678522292946E+00   1.0044879238147435E-01   6.1250235695152144E-02 
+      1     532  17703     SANK   5.13E+01  1.00  0.047   5.3074449370751566E-08   2.0304200846169472E-08  -3.5780678526211371E+00   1.0044879247543134E-01   6.0419253949289466E-02 
+      1     533  17708     SANK   5.13E+01  1.00  0.048   5.2296143316205039E-08   2.0027471679797514E-08  -3.5780678530965195E+00   1.0044879258152628E-01   5.9595790450308161E-02 
+      1     534  17714    *SANK   6.85E+01  1.00  0.046   5.2898828896835408E-08   1.9752841477625941E-08  -3.5780678540185740E+00   1.0044879276375139E-01   5.8778573955293373E-02 
+      1     535  17720     SANK   6.85E+01  1.00  0.044   5.3228930479446632E-08   1.9480747955511490E-08  -3.5780678552676930E+00   1.0044879298144259E-01   5.7968905529788409E-02 
+      1     536  17726     SANK   6.85E+01  1.00  0.040   5.2261849193324050E-08   1.9211193945844503E-08  -3.5780678567787936E+00   1.0044879320811410E-01   5.7166793035017746E-02 
+      1     537  17732     SANK   6.85E+01  1.00  0.038   5.0636115664584086E-08   1.8944178856279249E-08  -3.5780678584953636E+00   1.0044879342558825E-01   5.6372235117397876E-02 
+      1     538  17738     SANK   6.85E+01  1.00  0.037   4.9209567702492717E-08   1.8679700970387966E-08  -3.5780678604156977E+00   1.0044879362864972E-01   5.5585227322180887E-02 
+      1     539  17744     SANK   6.85E+01  1.00  0.036   4.8067064124343692E-08   1.8417758245888992E-08  -3.5780678625224156E+00   1.0044879381204436E-01   5.4805763647487751E-02 
+      1     540  17750     SANK   6.85E+01  1.00  0.035   4.6936079783053657E-08   1.8158348469998113E-08  -3.5780678647435340E+00   1.0044879396531486E-01   5.4033837299422342E-02 
+      1     541  17756     SANK   6.85E+01  1.00  0.034   4.5675733547431176E-08   1.7901469030817024E-08  -3.5780678669671526E+00   1.0044879407656332E-01   5.3269440354927734E-02 
+      1     542  17762     SANK   6.85E+01  1.00  0.034   4.4333885394211461E-08   1.7647116996547997E-08  -3.5780678690711056E+00   1.0044879413694828E-01   5.2512564050145011E-02 
+      1     543  17768     SANK   6.85E+01  1.00  0.033   4.3024750698038379E-08   1.7395289165542085E-08  -3.5780678709421405E+00   1.0044879414202551E-01   5.1763198877917797E-02 
+      1     544  17774    *SANK   9.27E+01  1.00  0.052   4.0691029414493809E-08   1.7145466701666412E-08  -3.5780678727459234E+00   1.0044879405963429E-01   5.1019799916879424E-02 
+      1     545  17780     SANK   9.27E+01  1.00  0.060   3.9553903520541057E-08   1.6898170734558961E-08  -3.5780678738533918E+00   1.0044879389784830E-01   5.0283919907916752E-02 
+      1     546  17786     SANK   9.27E+01  1.00  0.066   3.9419160213651232E-08   1.6653402141402766E-08  -3.5780678743935193E+00   1.0044879367706017E-01   4.9555561246968444E-02 
+      1     547  17792     SANK   9.27E+01  1.00  0.070   3.9583811987772707E-08   1.6411158488124201E-08  -3.5780678743914605E+00   1.0044879341533730E-01   4.8834716132482234E-02 
+      1     548  17799     SANK   9.27E+01  1.00  0.066   4.0998415575055165E-08   1.6171420346730688E-08  -3.5780678738368845E+00   1.0044879312733403E-01   4.8121327277146908E-02 
+      1     549  17807     SANK   9.27E+01  1.00  0.056   4.3946744273515741E-08   1.5934192433520817E-08  -3.5780678728315216E+00   1.0044879287012501E-01   4.7415408932513919E-02 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     550  17815     SANK   9.27E+01  1.00  0.048   4.6290586210576938E-08   1.5699462989009528E-08  -3.5780678717271082E+00   1.0044879268436861E-01   4.6716925453445704E-02 
+      1     551  17823     SANK   9.27E+01  1.00  0.043   4.8057289188207982E-08   1.5467229685116087E-08  -3.5780678708693525E+00   1.0044879260844848E-01   4.6025869707791787E-02 
+      1     552  17831     SANK   9.27E+01  1.00  0.036   4.9186947424844584E-08   1.5237489461906783E-08  -3.5780678705472506E+00   1.0044879265365593E-01   4.5342232514799859E-02 
+      1     553  17838     SANK   9.27E+01  1.00  0.054   4.7993224958806472E-08   1.5010236236048957E-08  -3.5780678708439724E+00   1.0044879277293485E-01   4.4665994371860251E-02 
+      1     554  17847    *SANK   1.27E+02  1.00  0.057   4.9057724429674469E-08   1.4784826565116276E-08  -3.5780678726463719E+00   1.0044879313058132E-01   4.3995243526359792E-02 
+      1     555  17856     SANK   1.27E+02  1.00  0.051   5.2546271818583000E-08   1.4561907418087754E-08  -3.5780678758953988E+00   1.0044879361764859E-01   4.3331906562060506E-02 
+      1     556  17866     SANK   1.27E+02  1.00  0.041   5.9097751679029958E-08   1.4341477483840849E-08  -3.5780678805106172E+00   1.0044879415948130E-01   4.2675981120903317E-02 
+      1     557  17875     SANK   1.27E+02  1.00  0.047   5.6531024540203983E-08   1.4123541665106388E-08  -3.5780678841759275E+00   1.0044879447075412E-01   4.2027466377542899E-02 
+      1     558  17885     SANK   1.27E+02  1.00  0.035   5.9842265411948302E-08   1.3908092801076358E-08  -3.5780678879257577E+00   1.0044879471417401E-01   4.1386359881410276E-02 
+      1     559  17893     SANK   1.27E+02  1.00  0.045   5.1364084210638085E-08   1.3695142875150297E-08  -3.5780678900397183E+00   1.0044879473872978E-01   4.0752674576434243E-02 
+      1     560  17903     SANK   1.27E+02  1.00  0.037   5.5039820833750085E-08   1.3484620518613421E-08  -3.5780678922644364E+00   1.0044879474413537E-01   4.0126227708515975E-02 
+      1     561  17910     SANK   1.27E+02  1.00  0.046   4.7100266612824847E-08   1.3276581531606413E-08  -3.5780678936219745E+00   1.0044879465328940E-01   3.9507157427688240E-02 
+      1     562  17918     SANK   1.27E+02  1.00  0.050   4.5455123059743413E-08   1.3070938241005628E-08  -3.5780678947732896E+00   1.0044879455602868E-01   3.8895222655499981E-02 
+      1     563  17925     SANK   1.27E+02  1.00  0.054   4.3396257929884608E-08   1.2867731050322409E-08  -3.5780678960455163E+00   1.0044879445759707E-01   3.8290537321480834E-02 
+      1     564  17933    *SANK   1.77E+02  1.00  0.060   4.0151010378777811E-08   1.2666327225365077E-08  -3.5780678975520237E+00   1.0044879431694317E-01   3.7691216828173675E-02 
+      1     565  17941     SANK   1.77E+02  1.00  0.065   3.9051974939862937E-08   1.2467365959309926E-08  -3.5780678992560260E+00   1.0044879420899144E-01   3.7099166650726524E-02 
+      1     566  17949     SANK   1.77E+02  1.00  0.069   3.8238613406230710E-08   1.2270842933252852E-08  -3.5780679009250851E+00   1.0044879411770789E-01   3.6514371991844249E-02 
+      1     567  17957     SANK   1.77E+02  1.00  0.081   3.7962443481888173E-08   1.2076733041144892E-08  -3.5780679024340012E+00   1.0044879404533973E-01   3.5936758380862972E-02 
+      1     568  17966     SANK   1.77E+02  1.00  0.092   3.8586033881786814E-08   1.1884995935435508E-08  -3.5780679037927738E+00   1.0044879398573094E-01   3.5366206138694123E-02 
+      1     569  17977     SANK   1.77E+02  1.00  0.090   4.1122029855630340E-08   1.1695625276155841E-08  -3.5780679052912898E+00   1.0044879398650343E-01   3.4802697266054741E-02 
+      1     570  17988     SANK   1.77E+02  1.00  0.079   4.1428079392853491E-08   1.1508611494565598E-08  -3.5780679065614516E+00   1.0044879400074112E-01   3.4246200337993825E-02 
+      1     571  17999     SANK   1.77E+02  1.00  0.078   4.2207856291681033E-08   1.1323930590645848E-08  -3.5780679080327271E+00   1.0044879406264602E-01   3.3696646037646723E-02 
+      1     572  18010     SANK   1.77E+02  1.00  0.069   4.2729283342243867E-08   1.1141567580968302E-08  -3.5780679099310904E+00   1.0044879416714797E-01   3.3153989043071957E-02 
+      1     573  18019     SANK   1.77E+02  1.00  0.071   4.1202328340468241E-08   1.0961518061178481E-08  -3.5780679118290788E+00   1.0044879424794574E-01   3.2618214238510274E-02 
+      1     574  18031    *SANK   2.48E+02  1.00  0.072   4.4270318366898708E-08   1.0783247674348660E-08  -3.5780679158767619E+00   1.0044879443127390E-01   3.2087738408775962E-02 
+      1     575  18042     SANK   2.48E+02  1.00  0.055   3.9675711945085747E-08   1.0607363402386933E-08  -3.5780679186877942E+00   1.0044879445154700E-01   3.1564354996996356E-02 
+      1     576  18052     SANK   2.48E+02  1.00  0.081   3.6945036039867554E-08   1.0433810543737731E-08  -3.5780679205975101E+00   1.0044879435990950E-01   3.1047911467149369E-02 
+      1     577  18061     SANK   2.48E+02  1.00  0.094   3.5952386098737089E-08   1.0262548280948172E-08  -3.5780679223195486E+00   1.0044879425080863E-01   3.0538285457583404E-02 
+      1     578  18069     SANK   2.48E+02  1.00  0.094   3.5166118276197224E-08   1.0093580259966699E-08  -3.5780679239658602E+00   1.0044879415044072E-01   3.0035486483522937E-02 
+      1     579  18077     SANK   2.48E+02  1.00  0.088   3.4649665408273280E-08   9.9268507651416699E-09  -3.5780679254995325E+00   1.0044879404822316E-01   2.9539348938008258E-02 
+      1     580  18084     SANK   2.48E+02  1.00  0.112   3.3504617575355800E-08   9.7623906955279362E-09  -3.5780679266494460E+00   1.0044879395156656E-01   2.9049964310536167E-02 
+      1     581  18089    *SANK   1.25E+02  1.00  0.105   3.3331342752196967E-08   9.6006203737343231E-09  -3.5780679272067317E+00   1.0044879390619721E-01   2.8568584032122521E-02 
+      1     582  18093    *SANK   6.31E+01  1.00  0.091   3.3303383046417971E-08   9.4412424783985699E-09  -3.5780679275706433E+00   1.0044879389323264E-01   2.8094323126681694E-02 
+      1     583  18097     SANK   6.31E+01  1.00  0.089   3.3233463123015358E-08   9.2839684050821303E-09  -3.5780679279472611E+00   1.0044879388299244E-01   2.7626322440270964E-02 
+      1     584  18101     SANK   6.31E+01  1.00  0.089   3.3027337790531423E-08   9.1287777905230617E-09  -3.5780679282959280E+00   1.0044879386905954E-01   2.7164521449690310E-02 
+      1     585  18105     SANK   6.31E+01  1.00  0.090   3.2849478727227534E-08   8.9756538663485516E-09  -3.5780679286288648E+00   1.0044879385342169E-01   2.6708870324245029E-02 
+      1     586  18109     SANK   6.31E+01  1.00  0.091   3.2754814472921680E-08   8.8245801669916122E-09  -3.5780679289528443E+00   1.0044879383798322E-01   2.6259320062475028E-02 
+      1     587  18113     SANK   6.31E+01  1.00  0.092   3.2746343270204649E-08   8.6755401644795824E-09  -3.5780679292753912E+00   1.0044879382394015E-01   2.5815821502600582E-02 
+      1     588  18117     SANK   6.31E+01  1.00  0.092   3.2806619882222387E-08   8.5285175218634356E-09  -3.5780679296081779E+00   1.0044879381269914E-01   2.5378326034272678E-02 
+      1     589  18121     SANK   6.31E+01  1.00  0.092   3.2895278364611665E-08   8.3834960203690536E-09  -3.5780679299532694E+00   1.0044879380420906E-01   2.4946785379483111E-02 
+      1     590  18125     SANK   6.31E+01  1.00  0.092   3.2963665686420716E-08   8.2404593260719476E-09  -3.5780679303015193E+00   1.0044879379665764E-01   2.4521150917556616E-02 
+      1     591  18129     SANK   6.31E+01  1.00  0.092   3.2977168391080815E-08   8.0993909638205287E-09  -3.5780679306429835E+00   1.0044879378810721E-01   2.4101373613102862E-02 
+      1     592  18133    *SANK   9.05E+01  1.00  0.130   3.2870862362379991E-08   7.9601522603516521E-09  -3.5780679310866388E+00   1.0044879377821310E-01   2.3687040739131478E-02 
+      1     593  18137    *SANK   4.56E+01  1.00  0.070   3.2668634709907441E-08   7.8230578931458874E-09  -3.5780679312968888E+00   1.0044879376502408E-01   2.3279088860347387E-02 
+      1     594  18141     SANK   4.56E+01  1.00  0.069   3.2658322223023071E-08   7.6878807481380081E-09  -3.5780679315284174E+00   1.0044879375244405E-01   2.2876842125845179E-02 
+      1     595  18145     SANK   4.56E+01  1.00  0.070   3.2735565005197698E-08   7.5546054290982192E-09  -3.5780679317997510E+00   1.0044879374429136E-01   2.2480254675908466E-02 
+      1     596  18149     SANK   4.56E+01  1.00  0.071   3.2684871684952359E-08   7.4232143206973586E-09  -3.5780679321017872E+00   1.0044879373894909E-01   2.2089274053046976E-02 
+      1     597  18153     SANK   4.56E+01  1.00  0.073   3.2491245731280553E-08   7.2936899167837902E-09  -3.5780679324221945E+00   1.0044879373479489E-01   2.1703848153366442E-02 
+      1     598  18157     SANK   4.56E+01  1.00  0.077   3.2250020508852026E-08   7.1660148192477691E-09  -3.5780679327525604E+00   1.0044879373154965E-01   2.1323925224091787E-02 
+      1     599  18161     SANK   4.56E+01  1.00  0.082   3.2020174205267391E-08   7.0401716136018236E-09  -3.5780679330898262E+00   1.0044879372968742E-01   2.0949453481210956E-02 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1     600  18165     SANK   4.56E+01  1.00  0.087   3.1795965758768449E-08   6.9161428305347789E-09  -3.5780679334364947E+00   1.0044879372977346E-01   2.0580380977116480E-02 
+      1     601  18171      *NK     ----    1.00  0.091   3.6551052282988014E-08   6.2636638605168560E-10  -3.5780679373331505E+00   1.0044879346100381E-01   1.8642480593767689E-03 
+      1     602  18178       NK     ----    1.00  0.076   8.1033748146988164E-08   3.6216404986050915E-11  -3.5780679498014520E+00   1.0044879507824017E-01   1.3711311658208330E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.116 sec
+| Solution Time                 :    240.973 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :    241.089 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.002 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.002 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 1, "cl": -3.578067949801452, "cd": 0.10044879507824017, "cmz": -0.09478191054292101, "downforce_N_per_m": 3382.023084570219, "drag_N_per_m": 94.94513478725936, "downforce_to_drag": 35.620815033315964, "force_down_N_extruded_span": 169.10115422851095, "residual_initial": 2059577.6429300415, "residual_start": 13243.819315051318, "residual_final": 0.0001371131165820833, "residual_ratio_initial": 6.65734147254679e-11, "cfd_failed": false, "feasible": false, "evaluation_wall_time_s": 241.09244158200454, "elapsed_wall_time_s": 247.6345419479767, "incidence_variable_deg": -6.811707675823851, "minimum_clearance_m": 0.0652292620734464, "maximum_height_m": 0.16691302474985112, "minimum_x_m": -0.05004523030064076, "maximum_x_m": 0.5459884780668556, "maximum_section_thickness_m": 0.03934641211888433, "maximum_section_thickness_over_reference_chord": 0.07869282423776866, "minimum_local_thickness_m": 0.002076150368819192, "actual_chord_m": 0.6013017891911828, "chord_incidence_deg": -7.705731238493273, "box_minimum_margin_m": 0.015229262073446395, "design": {"incidence": [-6.811707675823851], "shape_x": [-0.04837666187499839, -0.059392142684036794, -0.018725055164743393, -0.008288266524533398, -0.010852129575511956, -0.0038135562782927812, 0.01931776003807438, 0.03288034098212652, 0.048153606931788766, 0.052791375985690545], "shape_y": [0.016598461896358538, 0.028500133870572625, 0.030330815949161906, -0.03284309760896585, 0.06738122078302097, -0.012524880618355255, 0.05442238021619685, -0.08976292112955679, 0.06673975034875645, 0.027168443853122812]}}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# 2 bad quality volumes found.
+# Computation will continue, but be aware of this.
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving ADjoint Transpose with PETSc...
+   0 KSP Residual norm 3.4711717369E+00
+  10 KSP Residual norm 3.4681066501E+00
+  20 KSP Residual norm 3.4638065640E+00
+  30 KSP Residual norm 3.4593460495E+00
+  40 KSP Residual norm 3.4509149168E+00
+  50 KSP Residual norm 3.4378648779E+00
+  60 KSP Residual norm 3.4225591553E+00
+  70 KSP Residual norm 3.3957201605E+00
+  80 KSP Residual norm 3.3099738332E+00
+  90 KSP Residual norm 2.9703451837E+00
+ 100 KSP Residual norm 2.1488190800E+00
+ 110 KSP Residual norm 1.1562421843E+00
+ 120 KSP Residual norm 6.3289745972E-01
+ 130 KSP Residual norm 3.8266861407E-01
+ 140 KSP Residual norm 2.3527004964E-01
+ 150 KSP Residual norm 1.4232791933E-01
+ 160 KSP Residual norm 8.0205125845E-02
+ 170 KSP Residual norm 4.4928037908E-02
+ 180 KSP Residual norm 2.4698970672E-02
+ 190 KSP Residual norm 1.2742297927E-02
+ 200 KSP Residual norm 6.8808595109E-03
+ 210 KSP Residual norm 3.5279429107E-03
+ 220 KSP Residual norm 1.7838167751E-03
+ 230 KSP Residual norm 9.0686964389E-04
+ 240 KSP Residual norm 4.6327207791E-04
+ 250 KSP Residual norm 2.7059380029E-04
+ 260 KSP Residual norm 1.7054296484E-04
+ 270 KSP Residual norm 1.0235135008E-04
+ 280 KSP Residual norm 6.4704996256E-05
+ 290 KSP Residual norm 4.7585182853E-05
+ 300 KSP Residual norm 3.4164769397E-05
+ 310 KSP Residual norm 2.0495767820E-05
+ 320 KSP Residual norm 1.0829740960E-05
+ 330 KSP Residual norm 5.4782707399E-06
+ 340 KSP Residual norm 2.6868380202E-06
+ 350 KSP Residual norm 1.4538606837E-06
+ 360 KSP Residual norm 7.9843367128E-07
+ 370 KSP Residual norm 4.8099442195E-07
+Solving ADjoint Transpose with PETSc time (s) =    21.51
+ Norm of error = 3.4618E-07    Iterations =  379
+ ------------------------------------------------
+ PETSc solver converged after   379 iterations.
+ ------------------------------------------------
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
+Solving ADjoint Transpose with PETSc...
+   0 KSP Residual norm 7.9086605204E-01
+  10 KSP Residual norm 7.8888961720E-01
+  20 KSP Residual norm 7.7943164686E-01
+  30 KSP Residual norm 7.4558416163E-01
+  40 KSP Residual norm 7.3285794388E-01
+  50 KSP Residual norm 7.2175951955E-01
+  60 KSP Residual norm 6.3494323171E-01
+  70 KSP Residual norm 4.9134593479E-01
+  80 KSP Residual norm 3.7047078571E-01
+  90 KSP Residual norm 2.7549798227E-01
+ 100 KSP Residual norm 1.7644971934E-01
+ 110 KSP Residual norm 1.1058126084E-01
+ 120 KSP Residual norm 6.2470256244E-02
+ 130 KSP Residual norm 3.6805200315E-02
+ 140 KSP Residual norm 1.9412929673E-02
+ 150 KSP Residual norm 1.1896437976E-02
+ 160 KSP Residual norm 6.4049475383E-03
+ 170 KSP Residual norm 3.3927146597E-03
+ 180 KSP Residual norm 1.8468319512E-03
+ 190 KSP Residual norm 9.3131382265E-04
+ 200 KSP Residual norm 4.7382083741E-04
+ 210 KSP Residual norm 2.4196794946E-04
+ 220 KSP Residual norm 1.2707361694E-04
+ 230 KSP Residual norm 6.7900176443E-05
+ 240 KSP Residual norm 3.4091486907E-05
+ 250 KSP Residual norm 1.6290563114E-05
+ 260 KSP Residual norm 8.6057928970E-06
+ 270 KSP Residual norm 4.7763690737E-06
+ 280 KSP Residual norm 2.5510243942E-06
+ 290 KSP Residual norm 1.3771660862E-06
+ 300 KSP Residual norm 8.7510953116E-07
+ 310 KSP Residual norm 6.1330524842E-07
+ 320 KSP Residual norm 4.3942063100E-07
+ 330 KSP Residual norm 2.7883544141E-07
+ 340 KSP Residual norm 1.6452216748E-07
+ 350 KSP Residual norm 1.0037879449E-07
+Solving ADjoint Transpose with PETSc time (s) =    19.81
+ Norm of error = 7.5775E-08    Iterations =  355
+ ------------------------------------------------
+ PETSc solver converged after   355 iterations.
+ ------------------------------------------------
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     24.222 sec
+| Total Sensitivity Time - cl_wing:      0.166 sec
+| Adjoint Solve Time - cd_wing  :     19.888 sec
+| Total Sensitivity Time - cd_wing:      0.164 sec
+|
+| Complete Sensitivity Time     :     44.539 sec
++--------------------------------------------------+
+OPT_GRADIENT 2 failed False
+STEP_TEST {"settings": {"NKSwitchTol": 1e-08, "L2Convergence": 1e-10, "L2ConvergenceRel": 1e-10, "adjointL2Convergence": 1e-07}, "solver": "ank_deep", "ranks": 32, "start_failed": false, "step_failed": false, "flow_time_s": 241.19327404990327, "cl": -3.578067949801452, "cd": 0.10044879507824017, "residual_ratio_initial": 6.65734147254679e-11, "residual_start": 13243.819315051318, "residual_final": 0.0001371131165820833, "adjoint_time_s": 44.62785420799628, "adjoint_failed": false}
