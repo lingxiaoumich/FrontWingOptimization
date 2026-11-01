@@ -33,15 +33,32 @@ p.add_argument('--optimizer',choices=['SLSQP','PSQP'],default='PSQP')
 p.add_argument('--ffd-stations',type=int,default=5)
 p.add_argument('--shape-directions',choices=['y','xy'],default='xy')
 p.add_argument('--drag-cap',type=float,default=.05)
+p.add_argument('--save-iterate-flows',action='store_true',
+               help='write the flow, design and surface of every PSQP major iterate to iterates/eval_NNN')
+p.add_argument('--min-local-thickness',type=float,default=0.,
+               help='m; lower bound on chord-normal thickness at every paired surface vertex '
+                    'away from the leading and trailing edges (0 disables)')
 p.add_argument('--xmax',type=float,default=.05,help='PSQP maximum step length in scaled variables')
 p.add_argument('--ncycles',type=int,default=4000,help='ADflow nCycles: caps total (incl. linear) iterations')
 p.add_argument('--restart-flow',type=Path,help='converged volume solution at --restart-design; '
                'the first evaluation is then the restart design instead of the NACA baseline')
 p.add_argument('--solver',choices=['main','ank_uncoupled','ank_deep'],default='main',
                help='flow-solver variant from the solver study (study/solver-mesh-adjoint)')
+p.add_argument('--nk-switch-tol',type=float,help='override NKSwitchTol of the solver variant')
+p.add_argument('--l2-convergence',type=float,help='override L2Convergence (default 1e-10)')
+p.add_argument('--adjoint-l2-convergence',type=float,help='override adjointL2Convergence (default 1e-7)')
+p.add_argument('--baseline',type=Path,
+               help='JSON from remesh_design.py: start from a remeshed design, with its FFD lattice '
+                    '(ffd.xyz beside the JSON) and the original incidence pivot; design variables restart at zero')
+p.add_argument('--warp-err-tol',type=float,
+               help="IDWarp errTol (default 5e-4); its far-field approximation can invert large far-field cells")
+p.add_argument('--nk-fallback-tol',type=float,
+               help='if a flow solve stalls, re-solve the design once from the last converged state with this NKSwitchTol')
 a = p.parse_args()
 if a.restart_flow and not (a.restart_design and a.reuse_checks):
     p.error('--restart-flow needs --restart-design and --reuse-checks (the checks solve the NACA baseline)')
+if a.reuse_checks and not a.restart_flow and not a.baseline:
+    p.error('--reuse-checks without --restart-flow is only for a remeshed --baseline (checked off its zero point)')
 if a.ffd_stations < 2:
     p.error('--ffd-stations must be at least 2')
 if not np.isfinite(a.drag_cap) or a.drag_cap <= 0:
@@ -80,6 +97,8 @@ ylocal = .6*(.2969*np.sqrt(xlocal/c0)-.126*xlocal/c0-.3516*(xlocal/c0)**2
 ylocal = np.where(np.arange(273)<=136, ylocal, -ylocal)
 offset = float(xy0[136,1]+.25*c0*np.sin(angle0))
 pivot = np.array([.25*c0, offset, 0.])
+baseline = json.loads(a.baseline.read_text()) if a.baseline else None
+if baseline:pivot = np.array(baseline['pivot_m']+[0.])
 
 # Five upper/lower pairs by default, extruded across two tied span planes.
 # Each projected point has independent global x/y motion. The enclosure is
@@ -92,10 +111,14 @@ for i,x in enumerate(np.linspace(-.01,c0+.01,nstation)):
             ffd[i,j,k] = [np.cos(angle0)*(x-.25*c0)-np.sin(angle0)*y+.25*c0,
                           np.sin(angle0)*(x-.25*c0)+np.cos(angle0)*y+offset,z]
 if comm.rank == 0:
-    with (root/'source/ffd.xyz').open('w') as f:
-        f.write(f'1\n{nstation} 2 2\n')
-        for axis in range(3):
-            np.savetxt(f, ffd[...,axis].ravel(order='F'), fmt='%.16e')
+    if baseline:
+        # The remeshed design's lattice is the deformed one; its x/y moves restart at zero.
+        (root/'source/ffd.xyz').write_text((a.baseline.parent/'ffd.xyz').read_text())
+    else:
+        with (root/'source/ffd.xyz').open('w') as f:
+            f.write(f'1\n{nstation} 2 2\n')
+            for axis in range(3):
+                np.savetxt(f, ffd[...,axis].ravel(order='F'), fmt='%.16e')
 comm.Barrier()
 geo = DVGeometry(str(root/'source/ffd.xyz'))
 geo.addRefAxis('incidence_axis', curve=Curve(k=2,t=[0.,0.,1.,1.],coef=np.array([
@@ -127,10 +150,21 @@ def load_design(path):
 # Geometry functions are evaluated directly on the actual CFD boundary, not FFD.
 # Thickness uses actual intersections at a common chordwise coordinate, so
 # independent horizontal movement of upper/lower material points is supported.
+# Local thickness pairs vertex k with its mirror 272-k (same initial chordwise
+# station) and measures their separation normal to the current chord; it turns
+# negative where the surfaces cross. Pairs 15..124 skip the leading edge and the
+# last 2-3 % of chord, where the section is thin by design.
+local_pairs=np.arange(15,125)
+def local_thickness(pts):
+    xy=pts[:,:2]; ch=(xy[0]+xy[272])/2-xy[136]; ch=ch/np.sqrt(ch@ch)
+    return -(xy[272-local_pairs]-xy[local_pairs])@np.array([-ch[1],ch[0]])
+
 def geometry_values(pts):
     xy=pts[:,:2]
-    return {'surface_x':xy[:,0]/c0, 'surface_y':xy[:,1]/c0,
-            'max_thickness':np.array([maximum_chord_normal_thickness(pts)/c0])}
+    vals={'surface_x':xy[:,0]/c0, 'surface_y':xy[:,1]/c0,
+          'max_thickness':np.array([maximum_chord_normal_thickness(pts)/c0])}
+    if a.min_local_thickness>0:vals['local_thickness']=local_thickness(pts)/c0
+    return vals
 
 def metrics(pts):
     vals=geometry_values(pts)
@@ -140,6 +174,7 @@ def metrics(pts):
             'minimum_x_m':float(np.min(xy[:,0])), 'maximum_x_m':float(np.max(xy[:,0])),
             'maximum_section_thickness_m':float(vals['max_thickness'][0]*c0),
             'maximum_section_thickness_over_reference_chord':float(vals['max_thickness'][0]),
+            'minimum_local_thickness_m':float(local_thickness(pts).min()),
             'actual_chord_m':float(np.linalg.norm(chord)),
             'chord_incidence_deg':float(-np.rad2deg(np.arctan2(chord[1],chord[0]))),
             'box_minimum_margin_m':float(min(xy[:,0].min()+.125,.625-xy[:,0].max(),
@@ -156,6 +191,13 @@ def geometry_sens(pts):
         out[name]=geo.totalSensitivity(jac,'surface_check')
     _,dp=maximum_chord_normal_thickness(pts,return_gradient=True)
     out['max_thickness']=geo.totalSensitivity(dp/c0,'surface_check')
+    if a.min_local_thickness>0:
+        dl=np.zeros((len(local_pairs),len(pts),3))
+        for i in range(len(pts)):
+            for axis in range(2):
+                pc=pts.astype(complex);pc[i,axis]+=1e-30j
+                dl[:,i,axis]=local_thickness(pc).imag/1e-30/c0
+        out['local_thickness']=geo.totalSensitivity(dl,'surface_check')
     return out
 
 # Verify geometry derivatives independently at a small nonzero perturbation.
@@ -225,9 +267,13 @@ if a.restart_flow:
 options.update({'main':{},'ank_uncoupled':{'ANKCoupledSwitchTol':1e-16},
     'ank_deep':{'ANKCoupledSwitchTol':1e-16,'NKSwitchTol':1e-8,'NKSubspaceSize':400,
                 'NKPCILUFill':4,'NKASMOverlap':3}}[a.solver])
+for flag,key in [('nk_switch_tol','NKSwitchTol'),('l2_convergence','L2Convergence'),
+                 ('adjoint_l2_convergence','adjointL2Convergence')]:
+    if getattr(a,flag) is not None:options[key]=getattr(a,flag)
 meshoptions={'gridFile':options['gridFile'],
     'symmetryPlanes':[[[0.,0.,0.],[0.,1.,0.]],[[0.,0.,0.],[0.,0.,1.]],
                       [[0.,0.,span],[0.,0.,1.]]]}
+if a.warp_err_tol is not None:meshoptions['errTol']=a.warp_err_tol
 optimizeroptions=({'ACC':1e-5,'MAXIT':a.maxit,'IPRINT':2,'IFILE':str(root/'SLSQP.out')}
  if a.optimizer=='SLSQP' else {'XMAX':a.xmax,'TOLX':1e-6,'TOLC':1e-6,'TOLG':1e-4,
  'MIT':a.maxit,'MFV':150,'MET':1,'MEC':2,'IPRINT':2,'IFILE':str(root/'PSQP.out')})
@@ -237,6 +283,7 @@ settings={'description':'Minimize upward-positive CL with prescribed CD cap; sli
  'incidence_explicit_bounds':None,'shape_explicit_bounds':None,
  'box_m':{'xmin':-.125,'xmax':.625,'ymin':.05,'ymax':.35},
  'max_section_thickness_min_over_initial_chord':.06,
+ 'min_local_thickness_m':a.min_local_thickness,'local_thickness_vertex_pairs':'k and 272-k, k=15..124',
  'nearfield_normal_nodes':81,'nearfield_march_distance_m':.025,'first_wall_spacing_m':2e-6,
  **geometry_setup,
  'ffd_span_planes_tied':True,'endpoint_equalities':False,
@@ -297,9 +344,23 @@ def objfun(x, force=False):
     if invalid:
         vals={'surface_x':xy[:,0]/c0,'surface_y':xy[:,1]/c0,
               'max_thickness':np.array([-1.]),'objective':10.,'drag':10.}
+        if a.min_local_thickness>0:vals['local_thickness']=np.full(len(local_pairs),-1.)
         if comm.rank==0:print('INVALID_GEOMETRY',realdict(x),flush=True)
+        # PSQP may still ask for a gradient here; without this, sensfun would run an
+        # adjoint at the previous valid state and pair it with this geometry.
+        cache={'record':{'cfd_failed':True}}
         return vals,True
     solver(ap,writeSolution=False)
+    fallback=False
+    if a.nk_fallback_tol and ap.solveFailed and not ap.fatalFail and anchor_state is not None:
+        # An early NK handover is 3x faster but can stall on a large step; retry the
+        # same design once with the later, robust handover before reporting failure.
+        if comm.rank==0:print('NK_FALLBACK',realdict(x),flush=True)
+        fallback=True
+        solver.setStates(anchor_state)
+        solver.setOption('NKSwitchTol',a.nk_fallback_tol)
+        solver(ap,writeSolution=False)
+        solver.setOption('NKSwitchTol',options['NKSwitchTol'])
     f={};solver.evalFunctions(ap,f)
     cl=float(f['wing_cl_wing']);cd=float(f['wing_cd_wing']);cmz=float(f['wing_cmz_wing'])
     ri,rs,rf=map(float,solver.getResNorms())
@@ -318,13 +379,14 @@ def objfun(x, force=False):
     feasible=bool(not failed and np.min(vals['surface_x'])>=-.25-1e-6
         and np.max(vals['surface_x'])<=1.25+1e-6
         and np.min(vals['surface_y'])>=.1-1e-6 and np.max(vals['surface_y'])<=.7+1e-6
-        and vals['max_thickness'][0]>=.06-1e-6 and cd/cdcap<=1+1e-5)
+        and vals['max_thickness'][0]>=.06-1e-6 and cd/cdcap<=1+1e-5
+        and (a.min_local_thickness<=0 or vals['local_thickness'].min()>=a.min_local_thickness/c0-1e-6))
     q=.5*ap.rho*V**2
     record={'evaluation':count,'cl':cl,'cd':cd,'cmz':cmz,
             'downforce_N_per_m':float(-cl*q*c0),'drag_N_per_m':float(cd*q*c0),
             'downforce_to_drag':float(-cl/cd),'force_down_N_extruded_span':float(-cl*q*c0*span),
             'residual_initial':ri,'residual_start':rs,'residual_final':rf,
-            'residual_ratio_initial':rf/ri,'cfd_failed':failed,'feasible':feasible,
+            'residual_ratio_initial':rf/ri,'cfd_failed':failed,'nk_fallback':fallback,'feasible':feasible,
             'evaluation_wall_time_s':time.perf_counter()-tic,'elapsed_wall_time_s':time.perf_counter()-start,
             'incidence_variable_deg':float(x['incidence'][0]),**metrics(pts),'design':realdict(x)}
     if comm.rank==0:
@@ -359,6 +421,12 @@ def sensfun(x, funcs):
     if failed:raise RuntimeError('Adjoint failed: refusing an unconverged optimization gradient')
     g['objective']={k:np.asarray(v) for k,v in fs['wing_cl_wing'].items()}
     g['drag']={k:np.asarray(v)/cdcap for k,v in fs['wing_cd_wing'].items()}
+    if a.save_iterate_flows:
+        # A gradient request marks a major iterate; the solver still holds its state.
+        folder=f"iterates/eval_{cache['record']['evaluation']:03d}"
+        if comm.rank==0:(root/folder).mkdir(parents=True,exist_ok=True)
+        comm.Barrier()
+        save_state(folder,cache['record'],cache['points'],x)
     if comm.rank==0:
         print('OPT_GRADIENT',count,'failed',failed,flush=True)
         with (root/'gradients.jsonl').open('a') as f:
@@ -418,6 +486,8 @@ optprob.addCon('drag',upper=1.)
 optprob.addConGroup('surface_x',len(points),lower=-.25,upper=1.25)
 optprob.addConGroup('surface_y',len(points),lower=.1,upper=.7)
 optprob.addCon('max_thickness',lower=.06)
+if a.min_local_thickness>0:
+    optprob.addConGroup('local_thickness',len(local_pairs),lower=a.min_local_thickness/c0)
 if comm.rank==0:
     (root/'problem.txt').write_text(str(optprob))
 optimizer=OPT(a.optimizer,options=optimizeroptions)
