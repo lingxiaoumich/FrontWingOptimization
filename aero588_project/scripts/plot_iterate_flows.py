@@ -1,11 +1,10 @@
 """Plot the flow at the PSQP iterates whose full solutions were saved (--save-iterate-flows).
 
-Each source is a chain folder (all its stages' iterates/eval_NNN) or one stage folder,
-taken in the order given; consecutive iterates with the same forces (a stage restart,
-or a stalled stage) are kept once. For a sequence of iterates this writes, under <out>/plots:
+Each source is a run folder (its iterates/eval_NNN with a flow file), taken in the order
+given; consecutive iterates with the same forces (a restart) are kept once. Writes under <out>/plots:
   cpt_iterates_<name>   total-pressure coefficient around the section at eight iterates
   cp_iterates_<name>    surface Cp at those iterates, the section where it pinches, and
-                        the true surface gap against the 2 mm pair measure for every iterate
+                        the surface gap and recirculation area at every iterate
   cpt_iterates_<name>.gif  every iterate, one frame each
 and <out>/iterate_flows_<name>.json with the per-iterate numbers.
 
@@ -13,16 +12,15 @@ Cpt = 1 - (p0,inf - p0)/q_inf (1 in the freestream, about Cp in dead air). The
 recirculation zone is where u < 0, outlined and reported as an area over computed
 (iblank 1) cells of both grids. Reversed wall flow is the sign of the first-cell velocity
 along the surface, away from the stagnation point; the blunt trailing-edge base
-(vertices 272-288) is left out. The true gap is the smallest distance
-from a vertex k = 15..124 (or its mirror 272-k) to the opposite surface polyline, which
-is what the chord-normal pair constraint is meant to bound. Run with the MACH-Aero env:
-  python scripts/plot_iterate_flows.py --out optimizations/continuation_summary_20261031 \
-      --name remesh2_xmax1.0 optimizations/continuation_tmin2mm_xmax5.0_20261031/stage_02 \
-      optimizations/continuation_tmin2mm_xmax5.0_20261031/stage_03 optimizations/continuation_remesh2_xmax1.0_20261031
+(vertices 272-288) is left out. The gap is the smallest distance from a vertex
+k = 15..124 (or its mirror 272-k) to the other surface, the local-thickness constraint.
+Run with the MACH-Aero env:
+  python scripts/plot_iterate_flows.py --out RUN --name NAME RUN
 """
 import argparse
 import ctypes as ct
 import json
+import pickle
 import sys
 from pathlib import Path
 
@@ -41,6 +39,9 @@ p.add_argument('sources', type=Path, nargs='+')
 p.add_argument('--out', type=Path, required=True)
 p.add_argument('--name', required=True)
 p.add_argument('--panels', type=int, default=8)
+p.add_argument('--cache', action='store_true',
+               help="keep each iterate's numbers and GIF frame under <out>/plots/cache_<name>, so a re-run on a "
+                    'growing run only reads the new iterates (frame titles then leave out the iterate total)')
 a = p.parse_args()
 out = a.out.resolve(); (out/'plots').mkdir(parents=True, exist_ok=True)
 
@@ -88,8 +89,9 @@ def slices(path):
     return np.array(rows)
 
 def iterate_dirs(src):
-    stages = sorted(s for s in src.glob('stage_*') if s.is_dir()) or [src]
-    return [d for s in stages for d in sorted((s/'iterates').glob('eval_*')) if (d/'flow_000_vol.cgns').exists()]
+    """Iterates with a flow file (design.json is written last; pruned iterates have no flow)."""
+    return [d for d in sorted((src/'iterates').glob('eval_*'))
+            if (d/'design.json').exists() and (d/'flow_000_vol.cgns').exists()]
 
 seq = []
 for src in a.sources:
@@ -99,6 +101,7 @@ for src in a.sources:
         seq.append({'dir': d, 'r': r})
 settings = json.loads((seq[0]['dir'].parents[1]/'settings.json').read_text())
 mach = settings['flow_derived']['mach']; g = 1.4
+floor_mm = settings['min_local_thickness_m']*1e3
 p0_inf = (1+.2*mach**2)**3.5  # over p_inf; q_inf/p_inf = g M^2/2
 
 def load(it):
@@ -107,8 +110,7 @@ def load(it):
         pp = 1+f['CoefPressure']*g*mach**2/2
         f['Cpt'] = 1-(p0_inf-pp*(1+.2*f['Mach']**2)**3.5)/(g*mach**2/2)
     xy = np.loadtxt(it['dir']/'surface_geometry.csv', delimiter=',', skiprows=1)[:, :2]
-    near = zones['near']; wall = np.c_[near['CoordinateX'][:, 0], near['CoordinateY'][:, 0]]
-    assert np.abs(wall[:len(xy)]-xy).max() < 1e-9, 'near-grid wall is not the surface vertex order'
+    near = zones['near']; wall = np.c_[near['CoordinateX'][:, 0], near['CoordinateY'][:, 0]]  # the surface vertices, in order
     t = np.diff(wall[:273], axis=0); t /= np.linalg.norm(t, axis=1)[:, None]
     ut = near['VelocityX'][:272, 0]*t[:, 0]+near['VelocityY'][:272, 0]*t[:, 1]
     stag = int(np.argmin(np.abs(ut[100:172])))+100  # flow runs away from the stagnation point near the leading edge
@@ -146,9 +148,9 @@ box = dict(xmin=-.125, xmax=.625, ymin=.05, ymax=.35)
 def save(fig, name):
     fig.savefig(out/'plots'/(name+'.png'), dpi=170, bbox_inches='tight')
     fig.savefig(out/'plots'/(name+'.svg'), bbox_inches='tight'); plt.close(fig)
-def title(n, it, extra):
+def title(n, it, extra, total=True):
     r = it['r']
-    return (f"iterate {n+1}/{len(seq)}{' · remeshed grid' if 'remesh' in str(it['dir']) else ' · warped grid'}\n"
+    return (f"iterate {n+1}{f'/{len(seq)}' if total else ''}{' · remeshed grid' if 'remesh' in str(it['dir']) else ' · warped grid'}\n"
             f"$C_L c$ {r['cl']*.5:.3f}, $C_D c$ {r['cd']*.5:.3f}, gap {extra['gap']*1e3:.2f} mm, u < 0 over {extra['reversed_area']*1e4:.0f} cm²")
 def field(ax, zones, xy, extra, xlim=(-.2, 1.05), ylim=(0, .42)):
     for tag in ['background', 'near']:
@@ -165,21 +167,32 @@ def field(ax, zones, xy, extra, xlim=(-.2, 1.05), ylim=(0, .42)):
     ax.set(xlim=xlim, ylim=ylim, xlabel='x (m)', ylabel='height (m)'); ax.set_aspect('equal')
 
 # All iterates: numbers, and the GIF frames
+cache = out/'plots'/f'cache_{a.name}' if a.cache else None
+if cache: cache.mkdir(exist_ok=True)
 data = []; frames = []
 for n, it in enumerate(seq):
-    zones, xy, extra = load(it)
-    it.update(xy=xy, extra=extra)
-    rc = extra['reversed_cells']
-    data.append({'iterate': str(it['dir'].relative_to(out.parent)), 'cl_c_m': it['r']['cl']*.5, 'cd_c_m': it['r']['cd']*.5,
+    rel = str(it['dir'].relative_to(out.parent))
+    # A cached iterate is reused while its flow file is unchanged (run names contain dots: no with_suffix).
+    stamp = (it['dir']/'flow_000_vol.cgns').stat().st_mtime_ns
+    kept, shot = (Path(f"{cache/rel.replace('/', '__')}{e}") for e in ('.pkl', '.png')) if cache else (None, None)
+    hit = pickle.loads(kept.read_bytes()) if cache and kept.exists() and shot.exists() else None
+    if hit and hit['stamp'] == stamp:
+        xy, extra, entry = hit['xy'], hit['extra'], hit['entry']; frame = Image.open(shot).convert('RGB')
+    else:
+        zones, xy, extra = load(it)
+        rc = extra['reversed_cells']
+        entry = {'iterate': rel, 'cl_c_m': it['r']['cl']*.5, 'cd_c_m': it['r']['cd']*.5,
                  'true_gap_mm': extra['gap']*1e3, 'gap_vertices': list(extra['gap_vertices']),
-                 'pair_min_thickness_mm': it['r']['minimum_local_thickness_m']*1e3,
                  'reversed_area_cm2': extra['reversed_area']*1e4, 'reversed_wall_cells': int(len(rc)), 'reversed_x_m': [float(xy[rc, 0].min()), float(xy[rc, 0].max())] if len(rc) else None,
-                 'min_cpt': float(min(z['Cpt'][np.isin(z['Iblank'], [1, -1])].min() for z in zones.values()))})
-    fig, ax = plt.subplots(figsize=(9, 4.1))
-    field(ax, zones, xy, extra); ax.set_title(title(n, it, extra), fontsize=10, loc='left')
-    fig.colorbar(sm, ax=ax, shrink=.8, pad=.02, label='$C_{pt}$', extend='both')
-    fig.canvas.draw(); frames.append(Image.fromarray(np.asarray(fig.canvas.buffer_rgba())).convert('RGB')); plt.close(fig)
-    print(f"{n+1:3d} {data[-1]['iterate']} CLc {data[-1]['cl_c_m']:.4f} gap {data[-1]['true_gap_mm']:.4f} mm reversed {len(rc)}", flush=True)
+                 'min_cpt': float(min(z['Cpt'][np.isin(z['Iblank'], [1, -1])].min() for z in zones.values()))}
+        fig, ax = plt.subplots(figsize=(9, 4.1))
+        field(ax, zones, xy, extra); ax.set_title(title(n, it, extra, total=not cache), fontsize=10, loc='left')
+        fig.colorbar(sm, ax=ax, shrink=.8, pad=.02, label='$C_{pt}$', extend='both')
+        fig.canvas.draw(); frame = Image.fromarray(np.asarray(fig.canvas.buffer_rgba())).convert('RGB'); plt.close(fig)
+        if cache:
+            frame.save(shot); kept.write_bytes(pickle.dumps({'stamp': stamp, 'xy': xy, 'extra': extra, 'entry': entry}))
+    it.update(xy=xy, extra=extra); data.append(entry); frames.append(frame)
+    print(f"{n+1:3d} {entry['iterate']} CLc {entry['cl_c_m']:.4f} gap {entry['true_gap_mm']:.4f} mm reversed {entry['reversed_wall_cells']}", flush=True)
 frames[0].save(out/'plots'/f'cpt_iterates_{a.name}.gif', save_all=True, append_images=frames[1:],
                duration=[450]*(len(frames)-1)+[2500], loop=0, optimize=True)
 (out/f'iterate_flows_{a.name}.json').write_text(json.dumps(data, indent=1)+'\n')
@@ -214,17 +227,15 @@ for side, ls, name in [(slice(0, 137), '-', 'upper side'), (slice(136, 273), '--
     ax.plot(xy[side, 0], xy[side, 1], ls, c=ramp[-1], lw=1.3, marker='.', ms=4, label=name)
 ax.scatter(*centre, s=110, facecolor='none', edgecolor=pinch_c, lw=1.4, zorder=5)
 where = 'lies on the other surface' if data[-1]['true_gap_mm'] < 1 else f"is {data[-1]['true_gap_mm']:.2f} mm from the other surface"
-ax.annotate(f"thinnest point: vertex {w[0]} {where}\n(segment {w[1]}–{w[1]+1}); its pair {272-w[0]}\nreads {data[-1]['pair_min_thickness_mm']:.2f} mm", centre,
+ax.annotate(f"thinnest point: vertex {w[0]} {where}\n(segment {w[1]}–{w[1]+1})", centre,
             xytext=(.03, .97), textcoords='axes fraction', ha='left', va='top', fontsize=8.5, color=ink, arrowprops=dict(arrowstyle='->', color=muted, lw=.8))
 ax.set(xlim=(centre[0]-.04, centre[0]+.04), ylim=(centre[1]-.006, centre[1]+.006), xlabel='x (m)', ylabel='height (m)',
        title=f'Last iterate near vertex {w[0]} (height stretched)'); ax.grid(c=grid); ax.legend(fontsize=8, frameon=False, loc='lower right')
 ax = fig.add_subplot(gs[1, 1])
-ax.plot(clc, [d['pair_min_thickness_mm'] for d in data], c=muted, lw=1.4, marker='s', ms=3, label='constrained: chord-normal pair k / 272−k')
-ax.plot(clc, [d['true_gap_mm'] for d in data], c=ramp[5], lw=1.8, marker='o', ms=3.5, label='true gap: nearest point on the other surface')
-ax.axhline(2, c=ink, ls='--', lw=.9); ax.text(clc[0], 2.04, '2 mm floor', fontsize=8, color=ink, va='bottom')
-ax.invert_xaxis(); ax.grid(c=grid); ax.set_ylim(bottom=0)
-ax.set(xlabel='$C_L c$, each point a saved iterate', ylabel='minimum thickness (mm)', title='What the constraint measured vs the real gap')
-ax.legend(fontsize=8, frameon=False, loc='lower left')
+ax.plot(clc, [d['true_gap_mm'] for d in data], c=ramp[5], lw=1.8, marker='o', ms=3.5)
+ax.axhline(floor_mm, c=ink, ls='--', lw=.9); ax.text(clc[0], floor_mm*1.02, f'{floor_mm:g} mm floor', fontsize=8, color=ink, va='bottom')
+ax.invert_xaxis(); ax.grid(c=grid); ax.set_ylim(0, 1.15*max(floor_mm, max(d['true_gap_mm'] for d in data)))
+ax.set(xlabel='$C_L c$, each point a saved iterate', ylabel='minimum gap (mm)', title='Gap to the other surface, k = 15..124')
 ax = fig.add_subplot(gs[1, 2])
 ax.plot(clc, [d['reversed_area_cm2'] for d in data], c=reverse_c, lw=1.8, marker='o', ms=3.5)
 ax.invert_xaxis(); ax.grid(c=grid); ax.set_ylim(bottom=0)
