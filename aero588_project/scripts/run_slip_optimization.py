@@ -34,6 +34,8 @@ p.add_argument('--ffd-stations',type=int,default=5)
 p.add_argument('--shape-directions',choices=['y','xy'],default='xy')
 p.add_argument('--drag-cap',type=float,default=.05)
 # Geometry constraints on the actual surface (0 turns each off)
+p.add_argument('--box',type=float,nargs=4,default=[-.125,.625,.05,.35],metavar=('XMIN','XMAX','YMIN','YMAX'),
+               help='m; regulation box that holds every surface vertex')
 p.add_argument('--min-local-thickness',type=float,default=0.,
                help='m; floor on the gap from each vertex k=15..124 and 272-k to the other surface')
 p.add_argument('--te-min-angle',type=float,default=0.,
@@ -59,6 +61,7 @@ if a.ffd_stations < 2:
     p.error('--ffd-stations must be at least 2')
 if not np.isfinite(a.drag_cap) or a.drag_cap <= 0:
     p.error('--drag-cap must be finite and positive')
+box = dict(zip(['xmin','xmax','ymin','ymax'], a.box))
 root = a.root.resolve()
 if (root/'run_complete.json').exists():
     raise RuntimeError('This run is complete. Use a fresh --root to preserve its results.')
@@ -211,8 +214,8 @@ def metrics(pts):
             **({'minimum_te_taper_margin_m':float(te_taper(pts).min())} if a.te_min_angle>0 else {}),
             'actual_chord_m':float(np.linalg.norm(chord)),
             'chord_incidence_deg':float(-np.rad2deg(np.arctan2(chord[1],chord[0]))),
-            'box_minimum_margin_m':float(min(xy[:,0].min()+.125,.625-xy[:,0].max(),
-                                            xy[:,1].min()-.05,.35-xy[:,1].max()))}
+            'box_minimum_margin_m':float(min(xy[:,0].min()-box['xmin'],box['xmax']-xy[:,0].max(),
+                                            xy[:,1].min()-box['ymin'],box['ymax']-xy[:,1].max()))}
 
 def geometry_sens(pts):
     # Analytic pyGeo total Jacobian combined with complex-step derivatives of
@@ -264,7 +267,7 @@ geometry_setup={'ffd_chordwise_stations':nstation,'ffd_dimensions':[nstation,2,2
     'shape_units':'m','incidence_units':'deg','drag_cap':a.drag_cap,
     'reference_chord_m':c0,'max_section_thickness_min_m':.06*c0,
     'thickness_definition':'Maximum continuous interior chord-normal segment of the actual piecewise-linear surface',
-    'box_m':{'xmin':-.125,'xmax':.625,'ymin':.05,'ymax':.35}}
+    'box_m':box}
 dump(root/'source/geometry_setup.json',geometry_setup)
 dump(root/'source/initial_design.json',realdict(xinitial))
 if a.geometry_only:
@@ -313,7 +316,7 @@ settings={'description':'Minimize upward-positive CL with prescribed CD cap; sli
  'reference_chord_m':c0,'reference_area_m2':c0*span,'span_m':span,
  'speed_ms':V,'temperature_K':T,'pressure_Pa':P,'initial_incidence_deg':-3.,
  'incidence_explicit_bounds':None,'shape_explicit_bounds':None,
- 'box_m':{'xmin':-.125,'xmax':.625,'ymin':.05,'ymax':.35},
+ 'box_m':box,
  'max_section_thickness_min_over_initial_chord':.06,
  'min_local_thickness_m':a.min_local_thickness,'local_thickness_vertex_pairs':'k and 272-k, k=15..124',
  'local_thickness_measure':'signed distance from vertex k and from 272-k to the nearest point of the other surface',
@@ -450,9 +453,9 @@ def objfun(x, force=False):
         if comm.rank==0:
             (root/'settings.txt').write_text('CFD AND OPTIMIZER SETTINGS\n\n'+json.dumps(settings,indent=2)+'\n')
     vals.update({'objective':cl,'drag':cd/cdcap})
-    feasible=bool(not failed and np.min(vals['surface_x'])>=-.25-1e-6
-        and np.max(vals['surface_x'])<=1.25+1e-6
-        and np.min(vals['surface_y'])>=.1-1e-6 and np.max(vals['surface_y'])<=.7+1e-6
+    feasible=bool(not failed and np.min(vals['surface_x'])>=box['xmin']/c0-1e-6
+        and np.max(vals['surface_x'])<=box['xmax']/c0+1e-6
+        and np.min(vals['surface_y'])>=box['ymin']/c0-1e-6 and np.max(vals['surface_y'])<=box['ymax']/c0+1e-6
         and vals['max_thickness'][0]>=.06-1e-6 and cd/cdcap<=1+1e-5
         and all(vals[name].min()>=low/c0-1e-6 for name,(_,low) in vertex_constraints.items()))
     q=.5*ap.rho*V**2
@@ -608,8 +611,8 @@ optprob=Optimization('Slip-ground downforce with surface box',objfun,comm=comm)
 geo.addVariablesPyOpt(optprob)
 optprob.addObj('objective')
 optprob.addCon('drag',upper=1.)
-optprob.addConGroup('surface_x',len(points),lower=-.25,upper=1.25)
-optprob.addConGroup('surface_y',len(points),lower=.1,upper=.7)
+optprob.addConGroup('surface_x',len(points),lower=box['xmin']/c0,upper=box['xmax']/c0)
+optprob.addConGroup('surface_y',len(points),lower=box['ymin']/c0,upper=box['ymax']/c0)
 optprob.addCon('max_thickness',lower=.06)
 for name,(fun,low) in vertex_constraints.items():
     optprob.addConGroup(name,len(fun(points)),lower=low/c0)

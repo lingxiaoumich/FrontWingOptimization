@@ -8,7 +8,7 @@ counted again. Writes under <out>/plots:
   chain_sections  the section at every PSQP iterate, true scale, in the box
 and <out>/chain_summary.json. Recirculation areas come from each run's
 iterate_flows_*.json (plot_iterate_flows.py) where present.
-  python scripts/plot_run_chain.py --out optimizations/<chain>_summary_<date> RUN1 RUN2 ...
+  python scripts/plot_run_chain.py --out optimizations/run_NNN_<name>/summary optimizations/run_NNN_<name>/r00 ...
 """
 import argparse
 import json
@@ -36,14 +36,20 @@ def iterates(run, H):
     """PSQP iterates: the evaluations behind the NIT lines of PSQP.out."""
     grads = list(dict.fromkeys(json.loads(l)['evaluation_count']-1 for l in (run/'gradients.jsonl').read_text().splitlines()))
     text = (run/'PSQP.out').read_text().split('EXIT FROM PSQP')[0]  # the exit summary repeats the last line
-    L = [(int(n), float(f)) for n, f in re.findall(r'NIT=\s*\d+\s+NFV=\s*(\d+)\s+NFG=\s*\d+\s+F=\s*(\S+)', text)]
+    L = [(int(v), int(g)) for v, g in re.findall(r'NIT=\s*\d+\s+NFV=\s*(\d+)\s+NFG=\s*(\d+)\s+F=', text)]
+    F0 = float(re.search(r'NIT=\s*\d+\s+NFV=\s*\d+\s+NFG=\s*\d+\s+F=\s*(\S+)', text).group(1))
+    # The start is the latest gradient evaluation with cl = F[0] (the derivative check also
+    # solves the start design); the printed F differs from cl where a constraint is violated.
+    starts = [k for k, e in enumerate(grads) if abs(H[e]['cl']-F0) < 1e-4][::-1]
     # Match by count: each PSQP function call is one evaluation, so an iterate is NFV-NFV0
-    # evaluations after the start (the printed F differs from cl where a constraint is violated).
-    # The start is the latest gradient evaluation with cl = F[0] from which every iterate lands
-    # on a gradient evaluation (the derivative check also solves the start design).
-    for e0 in reversed([e for e in grads if abs(H[e]['cl']-L[0][1]) < 1e-4]):
-        its = [e0+n-L[0][0] for n, f in L]
+    # evaluations after the start, and every iterate lands on a gradient evaluation.
+    for k0 in starts:
+        its = [grads[k0]+v-L[0][0] for v, g in L]
         if all(e in grads for e in its): return its
+    # After failed solves function calls drift from the evaluations; then count gradients:
+    # an iterate is the (NFG-NFG0)-th gradient evaluation after the start.
+    for k0 in starts:
+        if k0+L[-1][1]-L[0][1] < len(grads): return [grads[k0+g-L[0][1]] for v, g in L]
     raise ValueError(f'{run}: PSQP.out iterations do not match gradients.jsonl')
 
 runs, t0, grids = [], 0., []

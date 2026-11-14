@@ -1,25 +1,29 @@
 """Keep an optimization going across worn-out grids: watch the run, and when its grid needs
 replacing, stop it, remesh at its last PSQP iterate and start the next run there.
 
-Give the chain's run folders in order; the last one is the current run. The hand-over:
+An optimization lives in optimizations/run_NNN_<name>/: r00 is the run on the original
+grid, r01, r02, ... the runs on each new grid (a letter, r03b, marks a retry), grids/ the
+grids and summary/ the chain plots. Give the run folders in order; the last one is the
+current run. The hand-over:
   1. stop the run and note why in its command.txt;
   2. remesh_design.py at its last saved iterate (iterates/eval_NNN) into
-     remesh_<date>/rN_from_<run>_evalNNN, with the first pyHyp setting in HYP that gives
+     grids/rNN_from_<run>_evalNNN, with the first pyHyp setting in HYP that gives
      no cell with a negative corner (remesh_attempts.json lists the tries);
-  3. a new run folder <run>_remeshN_... with the previous run's source/, the current
+  3. the next run folder rNN with the previous run's source/, the current
      run_slip_optimization.py, the new grid and the iterate's flow as the initial flow;
      the same command with the new --baseline;
   4. start it (it runs its own derivative check) and, with --live-plots, live_plots.py.
 
 The grid needs replacing when
   - the last --max-failures evaluations all failed, or 6 of the last 8 did,
-  - the best feasible C_L c improved by under --min-gain in --stall-minutes,
+  - the best C_L c of the PSQP iterates improved by under --min-gain in --stall-minutes,
   - PSQP exited by itself (a fresh grid also restarts PSQP), or
   - no evaluation finished in --hang-minutes.
 The chain ends when a run gained under --min-gain in all, a run died by itself, every pyHyp
-setting gives inverted cells, the disk is nearly full, or --max-runs runs have started.
+setting gives a usable grid, the disk is nearly full, or --max-runs runs have started.
 Killing this driver leaves the optimization running. Run with the MACH-Aero env:
-  python scripts/run_chain.py --live-plots optimizations/<chain>_summary_<date> RUN1 RUN2 ... > run_chain.log 2>&1 &
+  cd optimizations/run_NNN_<name>
+  python ../../scripts/run_chain.py --live-plots summary r00 [r01 ...] > summary/run_chain.log 2>&1 &
 --dry-run DIR only does steps 2-3 for the last run, under DIR.
 """
 import argparse
@@ -52,24 +56,33 @@ def pids(pattern):
 def ranks(run): return pids(f'[p]ython -u {run}/source/')
 def launcher(run): return pids(f'^(mpirun|prterun) .*--root {run} ')
 
-def verdict(rows, a):
+def iterates(run):
+    """(elapsed s, cl) of the saved PSQP iterates. Progress is judged on these, not on strictly
+    feasible evaluations: an iterate can sit microns outside a limit until PSQP converges."""
+    out = []
+    for d in (run/'iterates').glob('eval_*'):
+        if (d/'design.json').exists():
+            r = json.loads((d/'result.json').read_text()); out.append((r['elapsed_wall_time_s'], r['cl']))
+    return sorted(out)
+
+def verdict(run, rows, a):
     """Why the grid needs replacing, from the evaluations so far; None while the run is healthy."""
     failed = [r['cfd_failed'] for r in rows]
     if len(rows) >= a.max_failures and all(failed[-a.max_failures:]):
         return f'the last {a.max_failures} evaluations failed'
     if len(rows) >= 8 and sum(failed[-8:]) >= 6:
         return '6 or more of the last 8 evaluations failed'
-    ok = [r for r in rows if r['feasible']]
-    if ok:
+    its = iterates(run)
+    if its:
         now = rows[-1]['elapsed_wall_time_s']
-        before = [r['cl'] for r in ok if r['elapsed_wall_time_s'] < now-60*a.stall_minutes]
-        if before and C0*(min(before)-min(r['cl'] for r in ok)) < a.min_gain:
-            return f'best C_L c improved by under {a.min_gain:g} in {a.stall_minutes:g} min'
+        before = [cl for t, cl in its if t < now-60*a.stall_minutes]
+        if before and C0*(min(before)-min(cl for _, cl in its)) < a.min_gain:
+            return f'the PSQP iterates improved C_L c by under {a.min_gain:g} in {a.stall_minutes:g} min'
     return None
 
-def gain(rows):
-    ok = [r['cl'] for r in rows if r['feasible']]
-    return C0*(rows[0]['cl']-min(ok)) if ok else 0.
+def gain(run):
+    its = [cl for _, cl in iterates(run)]
+    return C0*(its[0]-min(its)) if its else 0.
 
 def last_iterate(run):
     """The newest saved PSQP iterate (the optimizer writes design.json last)."""
@@ -77,12 +90,9 @@ def last_iterate(run):
     return d, json.loads((d/'result.json').read_text())
 
 def next_name(name):
-    base = re.sub(r'_\d{8}$', '', name)
-    m = re.search(r'_remesh(\d+)[a-z]?', base)  # remesh3b, a second try at remesh 3, is followed by remesh4
-    if m: base, n = f'{base[:m.start()]}_remesh{int(m.group(1))+1}{base[m.end():]}', int(m.group(1))+1
-    elif '_xmax' in base: base, n = base.replace('_xmax', '_remesh1_xmax', 1), 1
-    else: base, n = base+'_remesh1', 1
-    return f"{base}_{time.strftime('%Y%m%d')}", n
+    """r00 -> r01; r03b, a retry on grid 3, -> r04."""
+    n = int(re.match(r'r(\d+)', name).group(1))+1
+    return f'r{n:02d}'
 
 def option(cmd, name):
     return cmd[cmd.index(name)+1] if name in cmd else None
@@ -91,8 +101,8 @@ def prepare(run, where):
     """Steps 2-3 under the folder `where`. Returns (root, command), or None without a usable grid."""
     it, r = last_iterate(run)
     cmd = (run/'command.txt').read_text().split('\n')[0].split()
-    name, n = next_name(run.name)
-    mesh = where/f"remesh_{time.strftime('%Y%m%d')}"/f"r{n}_from_{re.sub(r'_xmax.*$', '', run.name)}_{it.name.replace('_', '')}"
+    name = next_name(run.name)
+    mesh = where/'grids'/f"{name}_from_{run.name}_{it.name.replace('_', '')}"
     root = where/name
     mesh.mkdir(parents=True)
     shutil.copy(it/'design.json', mesh/'source_design.json')
@@ -106,16 +116,16 @@ def prepare(run, where):
         made = subprocess.run([sys.executable, str(S/'remesh_design.py'), '--design', str(mesh/'source_design.json'), '--out', str(mesh/f'try{k}'),
                                '--hyp-options', hyp] + (['--baseline', old] if old else []), capture_output=True, text=True, env=ONE_THREAD)
         (mesh/f'remesh_try{k}.log').write_text(made.stdout+made.stderr)
-        inverted = bool(made.returncode)  # remesh_design.py exits with an error on inverted cells
-        corners = None if inverted else sum(b['nonpositive_corners'] for b in json.loads((mesh/f'try{k}/baseline.json').read_text())['blocks'])
-        tries.append({'pyhyp': json.loads(hyp), 'inverted_cells': inverted, 'negative_corners': corners})
+        failed = bool(made.returncode)  # remesh_design.py exits with an error on inverted cells or a lost lattice
+        corners = None if failed else sum(b['nonpositive_corners'] for b in json.loads((mesh/f'try{k}/baseline.json').read_text())['blocks'])
+        tries.append({'pyhyp': json.loads(hyp), 'failed': failed, 'negative_corners': corners})
         if corners == 0: break
-    valid = [k for k, t in enumerate(tries) if not t['inverted_cells']]
+    valid = [k for k, t in enumerate(tries) if not t['failed']]
     use = min(valid, key=lambda k: tries[k]['negative_corners'], default=None)  # a clean grid, else the fewest negative corners
     for k, t in enumerate(tries): t['used'] = k == use
     (mesh/'remesh_attempts.json').write_text(json.dumps(tries, indent=1)+'\n')
     if use is None:
-        log('remesh failed: inverted cells with every pyHyp setting -', mesh); return None
+        log('remesh failed with every pyHyp setting (see remesh_try*.log) -', mesh); return None
     for f in (mesh/f'try{use}').iterdir(): shutil.move(str(f), mesh/f.name)
     shutil.move(str(mesh/f'remesh_try{use}.log'), mesh/'remesh.log')
     for k in range(len(tries)): shutil.rmtree(mesh/f'try{k}', ignore_errors=True)
@@ -170,12 +180,12 @@ def watch(run, a):
             if 'stopped by' in (run/'command.txt').read_text():
                 return 'it was already stopped', True
             return 'the run died by itself; see the end of its run.log', False
-        why = verdict(rows, a)
+        why = verdict(run, rows, a)
         newest = max(f.stat().st_mtime for f in (run/'history.jsonl', run/'command.txt') if f.exists())
         if not why and time.time()-newest > 60*a.hang_minutes:
             why = f'no evaluation finished in {a.hang_minutes:g} min'
         if why:
-            stop(run, why+'; remeshed from the last iterate')
+            stop(run, why)
             return why, True
         time.sleep(a.poll)
 
@@ -199,12 +209,12 @@ def main():
     for started in range(a.max_runs+1):
         run = runs[-1]
         why, go_on = watch(run, a)
-        rows = history(run)
-        log(f"{run.name}: {why}. It went from C_L c {C0*rows[0]['cl']:.3f} to {C0*rows[0]['cl']-gain(rows):.3f} "
-            f"in {len(rows)} evaluations." if rows else f'{run.name}: {why}. No evaluation was recorded.')
+        its = [cl for _, cl in iterates(run)]
+        log(f"{run.name}: {why}. Its PSQP iterates went from C_L c {C0*its[0]:.3f} to {C0*min(its):.3f} "
+            f"in {len(history(run))} evaluations." if its else f'{run.name}: {why}. No iterate was saved.')
         if not go_on:
             log('chain ended: the run needs a look.'); return
-        if not rows or gain(rows) < a.min_gain:
+        if gain(run) < a.min_gain:
             log(f'chain ended: this run gained under {a.min_gain:g}, so another grid would not help.'); return
         if started == a.max_runs:
             log(f'chain ended: --max-runs {a.max_runs} runs started.'); return

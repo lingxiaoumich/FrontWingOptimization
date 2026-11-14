@@ -61,6 +61,14 @@ for name, ax in [('shape_x', 0), ('shape_y', 1)]:
 with (out/'ffd.xyz').open('w') as f:
     f.write(f'1\n{dims[0]} {dims[1]} {dims[2]}\n')
     for axis in range(3): np.savetxt(f, L[..., axis].ravel(order='F'), fmt='%.16e')
+# The next run rebuilds the surface from this lattice; a strongly deformed lattice can lose
+# vertices (they no longer project inside it), which gives a self-crossing start shape.
+from pygeo import DVGeometry
+check = DVGeometry(str(out/'ffd.xyz')); check.addPointSet(pts, 'p')
+embed_err = float(np.abs(check.update('p')-pts).max())
+if embed_err > 1e-9:
+    shutil.rmtree(scratch)
+    raise SystemExit(f'the design surface does not re-embed in the deformed lattice ({embed_err:.1e} m)')
 
 xy = pts[:, :2]
 np.savetxt(out/'airfoil_coordinates.csv', xy, delimiter=',', header='x_m,y_m', comments='')
@@ -121,7 +129,7 @@ for b in grid.blocks:
                    'nonpositive_cell_volumes': int((vol*sgn <= 0).sum()),
                    'min_cell_volume_over_median': float(np.abs(vol).min()/np.median(np.abs(vol)))})
 info = {'design': str(own.design.resolve()), 'previous_baseline': str(own.baseline.resolve()) if own.baseline else None,
-        'pivot_m': [float(pivot[0]), float(pivot[1])],
+        'pivot_m': [float(pivot[0]), float(pivot[1])], 'lattice_reembedding_error_m': embed_err,
         'pyhyp': {k: v for k, v in hyp_options.items() if k != 'BC'}, 'background': 'identical to the original case',
         'surface': {'x_min_m': float(xy[:, 0].min()), 'x_max_m': float(xy[:, 0].max()),
                     'y_min_m': float(xy[:, 1].min()), 'y_max_m': float(xy[:, 1].max())},
@@ -129,5 +137,5 @@ info = {'design': str(own.design.resolve()), 'previous_baseline': str(own.baseli
 (out/'baseline.json').write_text(json.dumps(info, indent=2)+'\n')
 print(json.dumps(info, indent=2))
 shutil.rmtree(scratch)
-# run_chain.py takes a non-zero exit as "inverted cells"
+# run_chain.py takes a non-zero exit as a failed grid
 assert all(c['nonpositive_cell_volumes'] == 0 for c in checks), 'Inverted cells in the new grid'

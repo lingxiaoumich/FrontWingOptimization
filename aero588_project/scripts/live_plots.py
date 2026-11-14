@@ -7,11 +7,11 @@ Give the chain of run folders in order; the last one is the run being watched (i
 and once more when the run has stopped, then exits. A failed refresh is logged and left to
 the next one. Each refresh takes some 10 s of a core from the solver; the defaults keep
 that near 5 % of the run. Run with the MACH-Aero env, in the background:
-  python scripts/live_plots.py --out optimizations/<chain>_summary_<date> RUN1 RUN2 ... > live_plots.log 2>&1 &
+  cd optimizations/run_NNN_<name>
+  python ../../scripts/live_plots.py --out summary r00 [r01 ...] > summary/live_plots.log 2>&1 &
 """
 import argparse
 import os
-import re
 import subprocess
 import sys
 import time
@@ -26,7 +26,6 @@ p.add_argument('--flows-every', type=int, default=5, help='new iterates between 
 p.add_argument('--poll', type=float, default=20., help='s between looks at the run folder')
 a = p.parse_args()
 runs = [r.resolve() for r in a.runs]; run = runs[-1]
-name = re.sub(r'_gap\w+_\d{8}$', '', run.name)  # as the earlier runs' plot names
 
 # numpy's BLAS would otherwise start a thread per core, on cores the solver is using
 ONE_THREAD = dict(os.environ, OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1', MKL_NUM_THREADS='1')
@@ -41,10 +40,11 @@ def refresh(script, *args):
     print(f"{time.strftime('%H:%M:%S')} {script} at {saved()} iterates{why}", flush=True)
 
 flows = chain = 0  # iterates at the last refresh
+start = time.time()
 while True:
-    alive, n = running(), saved()
+    alive, n = running() or time.time()-start < 300, saved()  # the ranks take a moment to start
     if n and (n-flows >= a.flows_every or not alive):
-        refresh('plot_iterate_flows.py', '--cache', '--out', run, '--name', name, run); flows = n
+        refresh('plot_iterate_flows.py', '--cache', '--out', run, '--name', run.name, run); flows = n
     if n and (n-chain >= a.chain_every or not alive):  # after the flows: it reads their recirculation areas
         refresh('plot_run_chain.py', '--out', a.out, *runs); chain = n
     if not alive: break

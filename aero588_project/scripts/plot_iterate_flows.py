@@ -18,21 +18,20 @@ Run with the MACH-Aero env:
   python scripts/plot_iterate_flows.py --out RUN --name NAME RUN
 """
 import argparse
-import ctypes as ct
 import json
 import pickle
-import sys
 from pathlib import Path
 
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.tri as mtri
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.patches import Rectangle
 from PIL import Image
+
+from flow_fields import add_cpt, read_zones, tri
 
 p = argparse.ArgumentParser()
 p.add_argument('sources', type=Path, nargs='+')
@@ -44,29 +43,6 @@ p.add_argument('--cache', action='store_true',
                     'growing run only reads the new iterates (frame titles then leave out the iterate total)')
 a = p.parse_args()
 out = a.out.resolve(); (out/'plots').mkdir(parents=True, exist_ok=True)
-
-lib = ct.CDLL(str(Path(sys.prefix)/'lib/libcgns.so')); cgsize = ct.c_int64
-def read_zones(path):
-    """Vertex x, y and cell-centred fields of each zone's first z plane."""
-    fn = ct.c_int()
-    if lib.cg_open(str(path).encode(), 0, ct.byref(fn)): raise RuntimeError(path)
-    zones = {}
-    for z in (1, 2):
-        name = ct.create_string_buffer(64); size = (cgsize*9)(); lib.cg_zone_read(fn, 1, z, name, size)
-        n, m = list(size[:3]), list(size[3:6])
-        near = b'airfoil' in name.value
-        plane = (lambda v: v[:, 0, :]) if near else (lambda v: v[:, :, 0])  # near grid is (i, z, j)
-        def read(field, dims, coord):
-            buf = np.empty(int(np.prod(dims))); lo = (cgsize*3)(1, 1, 1); hi = (cgsize*3)(*dims)
-            args = (fn, 1, z, field, 4, lo, hi, buf.ctypes.data_as(ct.c_void_p))
-            code = lib.cg_coord_read(*args) if coord else lib.cg_field_read(fn, 1, z, 1, *args[3:])
-            if code: raise RuntimeError(field)
-            return plane(buf.reshape(dims, order='F'))
-        f = {k: read(k.encode(), n, True) for k in ['CoordinateX', 'CoordinateY']}
-        f.update({k: read(k.encode(), m, False) for k in ['CoefPressure', 'Mach', 'VelocityX', 'VelocityY', 'Iblank']})
-        zones['near' if near else 'background'] = f
-    lib.cg_close(fn)
-    return zones
 
 def seg_dist(q, A, B):
     AB = B-A; t = np.clip(((q-A)*AB).sum(1)/(AB*AB).sum(1), 0, 1)
@@ -100,15 +76,11 @@ for src in a.sources:
         if seq and abs(r['cl']-seq[-1]['r']['cl']) < 1e-4 and abs(r['cd']-seq[-1]['r']['cd']) < 1e-4: continue
         seq.append({'dir': d, 'r': r})
 settings = json.loads((seq[0]['dir'].parents[1]/'settings.json').read_text())
-mach = settings['flow_derived']['mach']; g = 1.4
+mach = settings['flow_derived']['mach']
 floor_mm = settings['min_local_thickness_m']*1e3
-p0_inf = (1+.2*mach**2)**3.5  # over p_inf; q_inf/p_inf = g M^2/2
 
 def load(it):
-    zones = read_zones(it['dir']/'flow_000_vol.cgns')
-    for f in zones.values():
-        pp = 1+f['CoefPressure']*g*mach**2/2
-        f['Cpt'] = 1-(p0_inf-pp*(1+.2*f['Mach']**2)**3.5)/(g*mach**2/2)
+    zones = read_zones(it['dir']/'flow_000_vol.cgns'); add_cpt(zones, mach)
     xy = np.loadtxt(it['dir']/'surface_geometry.csv', delimiter=',', skiprows=1)[:, :2]
     near = zones['near']; wall = np.c_[near['CoordinateX'][:, 0], near['CoordinateY'][:, 0]]  # the surface vertices, in order
     t = np.diff(wall[:273], axis=0); t /= np.linalg.norm(t, axis=1)[:, None]
@@ -126,16 +98,6 @@ def load(it):
     idx = np.argmin(((s[:, None, :2]-xy[None, :273])**2).sum(-1), axis=1)
     return zones, xy, {'reversed_cells': np.flatnonzero(reversed_), 'gap': gap, 'gap_vertices': (v, w), 'reversed_area': back, 'slice': s, 'slice_index': idx}
 
-def centers(x): return .25*(x[:-1, :-1]+x[1:, :-1]+x[1:, 1:]+x[:-1, 1:])
-def tri(f, near):
-    x, y = centers(f['CoordinateX']), centers(f['CoordinateY'])
-    ids = np.arange(x.size).reshape(x.shape)
-    quads = [[ids[:-1, :-1], ids[1:, :-1], ids[1:, 1:], ids[:-1, 1:]]]
-    if near: quads.append([ids[-1, :-1], ids[0, :-1], ids[0, 1:], ids[-1, 1:]])  # O-grid seam
-    t = np.concatenate([np.r_[np.c_[q[0].ravel(), q[1].ravel(), q[2].ravel()], np.c_[q[0].ravel(), q[2].ravel(), q[3].ravel()]] for q in quads])
-    live = np.isin(f['Iblank'], [1, -1]).ravel()
-    return mtri.Triangulation(x.ravel(), y.ravel(), t[live[t].all(axis=1)])
-
 plt.rcParams.update({'font.size': 10, 'axes.spines.top': False, 'axes.spines.right': False,
                      'figure.facecolor': 'white', 'savefig.facecolor': 'white', 'font.family': 'DejaVu Sans'})
 ink, muted, grid = '#2b2b2b', '#6b6b6b', '#e4e4e4'
@@ -144,13 +106,14 @@ order_cmap = LinearSegmentedColormap.from_list('early_to_late', ramp)
 cpt_cmap = LinearSegmentedColormap.from_list('cpt', ['#0d366b', '#2a78d6', '#86b6ef', '#f4f8fd'])  # loss dark -> freestream light
 reverse_c, pinch_c = '#eb6834', '#d03b3b'
 levels = np.linspace(-1.2, 1.02, 75); cnorm = Normalize(-1.2, 1.02); sm = ScalarMappable(norm=cnorm, cmap=cpt_cmap)
-box = dict(xmin=-.125, xmax=.625, ymin=.05, ymax=.35)
+box = settings['box_m']
+remeshed = '--baseline' in (seq[0]['dir'].parents[1]/'command.txt').read_text().split('\n')[0]
 def save(fig, name):
     fig.savefig(out/'plots'/(name+'.png'), dpi=170, bbox_inches='tight')
     fig.savefig(out/'plots'/(name+'.svg'), bbox_inches='tight'); plt.close(fig)
 def title(n, it, extra, total=True):
     r = it['r']
-    return (f"iterate {n+1}{f'/{len(seq)}' if total else ''}{' · remeshed grid' if 'remesh' in str(it['dir']) else ' · warped grid'}\n"
+    return (f"iterate {n+1}{f'/{len(seq)}' if total else ''}{' · remeshed grid' if remeshed else ' · warped grid'}\n"
             f"$C_L c$ {r['cl']*.5:.3f}, $C_D c$ {r['cd']*.5:.3f}, gap {extra['gap']*1e3:.2f} mm, u < 0 over {extra['reversed_area']*1e4:.0f} cm²")
 def field(ax, zones, xy, extra, xlim=(-.2, 1.05), ylim=(0, .42)):
     for tag in ['background', 'near']:
