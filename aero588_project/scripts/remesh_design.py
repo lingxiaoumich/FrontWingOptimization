@@ -37,8 +37,10 @@ scratch = Path(tempfile.mkdtemp())
 shutil.copytree(P/'setups/slip_ground_xy5_cd005/source', scratch/'source')
 if own.baseline: shutil.copy(own.baseline.parent/'airfoil_coordinates.csv', scratch/'source')
 sys.path.insert(0, str(scratch/'source'))
-nstation = len(json.loads(own.design.read_text())['shape_x'])//2  # upper/lower pair per station
-sys.argv = ['x', '--root', str(scratch), '--ffd-stations', str(nstation), '--shape-directions', 'xy'] + \
+raw = json.loads(own.design.read_text())
+directions = 'y' if 'shape' in raw else 'xy'  # 'shape' holds the moves of --shape-directions y
+nstation = len(raw['shape' if directions == 'y' else 'shape_x'])//2  # upper/lower pair per station
+sys.argv = ['x', '--root', str(scratch), '--ffd-stations', str(nstation), '--shape-directions', directions] + \
            (['--baseline', str(own.baseline.resolve())] if own.baseline else [])
 S = {}
 exec(compile((P/'scripts/run_slip_optimization.py').read_text().split('options={')[0], 'setup', 'exec'), S)
@@ -56,8 +58,8 @@ t = np.deg2rad(-(design['incidence'][0]+3.))
 R = np.array([[np.cos(t), -np.sin(t)], [np.sin(t), np.cos(t)]])
 L = L0.copy()
 L[..., :2] = (L0[..., :2]-pivot[:2])@R.T+pivot[:2]
-for name, ax in [('shape_x', 0), ('shape_y', 1)]:
-    L[..., ax] += np.reshape(design[name], dims[:2])[:, :, None]
+for name, ax in [('shape_x', 0), ('shape_y', 1), ('shape', 1)]:
+    if name in design: L[..., ax] += np.reshape(design[name], dims[:2])[:, :, None]
 with (out/'ffd.xyz').open('w') as f:
     f.write(f'1\n{dims[0]} {dims[1]} {dims[2]}\n')
     for axis in range(3): np.savetxt(f, L[..., axis].ravel(order='F'), fmt='%.16e')
@@ -111,6 +113,9 @@ boundary('top', 'bcfarfield', 1, bdims[1], 'farfield'); boundary('ground', 'bcsy
 boundary('span0', 'bcsymmetryplane', 2, 1, 'symmetry'); boundary('span1', 'bcsymmetryplane', 2, 2, 'symmetry')
 background = Grid(); background.blocks = [block]
 grid = combineGrids([readGrid(str(out/'airfoil_near.cgns')), background])
+if grid.blocks[0].coords[..., 1].min() <= 0:  # the near grid must stay above the slip ground
+    shutil.rmtree(scratch)
+    raise SystemExit(f"the near grid reaches the ground (lowest y {grid.blocks[0].coords[..., 1].min():.4f} m)")
 grid.connect()
 grid.writeToCGNS(str(out/'ground.cgns'))
 checks = []

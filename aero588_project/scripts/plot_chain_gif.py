@@ -9,7 +9,6 @@ file. Writes <out>/plots/chain_iterates.gif. Run with the MACH-Aero env:
 """
 import argparse
 import json
-import os
 import tempfile
 from multiprocessing import Pool
 from pathlib import Path
@@ -30,6 +29,7 @@ p = argparse.ArgumentParser()
 p.add_argument('runs', type=Path, nargs='+')
 p.add_argument('--out', type=Path, required=True)
 p.add_argument('--ms', type=int, default=250, help='ms per frame; the last one stays 3 s')
+p.add_argument('--jobs', type=int, default=8, help='frames drawn at once (keep cores free for a running solver)')
 a = p.parse_args()
 out = a.out.resolve(); runs = [r.resolve() for r in a.runs]
 settings = json.loads((runs[0]/'settings.json').read_text())
@@ -46,7 +46,9 @@ pivot = np.array([.25*c0, xy0[136, 1]+.25*c0*np.sin(np.deg2rad(3.))])
 def control_points(L0, design):
     t = np.deg2rad(-(design['incidence'][0]+3.)); R = np.array([[np.cos(t), -np.sin(t)], [np.sin(t), np.cos(t)]])
     P = (L0[:, :, 0, :2]-pivot)@R.T+pivot
-    return P+np.stack([np.reshape(design['shape_x'], P.shape[:2]), np.reshape(design['shape_y'], P.shape[:2])], -1)
+    dx = design.get('shape_x', np.zeros(P[..., 0].size))  # --shape-directions y: only 'shape', the y moves
+    dy = design['shape_y'] if 'shape_y' in design else design['shape']
+    return P+np.stack([np.reshape(dx, P.shape[:2]), np.reshape(dy, P.shape[:2])], -1)
 
 its = json.loads((out/'chain_summary.json').read_text())['iterates']
 L0 = [lattice(r/'source/ffd.xyz') for r in runs]
@@ -122,7 +124,7 @@ def frame(n):
     path = Path(tmp)/f'{n:04d}.png'; fig.savefig(path); plt.close(fig)
     return path
 
-with tempfile.TemporaryDirectory() as tmp, Pool(min(32, os.cpu_count())) as pool:
+with tempfile.TemporaryDirectory() as tmp, Pool(a.jobs) as pool:
     frames = [Image.open(f).convert('RGB') for f in pool.map(frame, range(N))]
 (out/'plots').mkdir(exist_ok=True)
 frames[0].save(out/'plots/chain_iterates.gif', save_all=True, append_images=frames[1:],

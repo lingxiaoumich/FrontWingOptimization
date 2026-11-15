@@ -32,6 +32,7 @@ p.add_argument('--evaluate-design', type=Path)
 p.add_argument('--optimizer',choices=['SLSQP','PSQP'],default='PSQP')
 p.add_argument('--ffd-stations',type=int,default=5)
 p.add_argument('--shape-directions',choices=['y','xy'],default='xy')
+p.add_argument('--fix-incidence',action='store_true',help='keep the incidence at its start: only the shape variables move')
 p.add_argument('--drag-cap',type=float,default=.05)
 # Geometry constraints on the actual surface (0 turns each off)
 p.add_argument('--box',type=float,nargs=4,default=[-.125,.625,.05,.35],metavar=('XMIN','XMAX','YMIN','YMAX'),
@@ -124,7 +125,9 @@ geo.addRefAxis('incidence_axis', curve=Curve(k=2,t=[0.,0.,1.,1.],coef=np.array([
     [pivot[0],pivot[1],-.005],[pivot[0],pivot[1],span+.005]])), axis=np.array([0.,0.,1.]))
 def incidence(val, g):
     g.rot_z['incidence_axis'].coef[:] = -(val[0]+3.)
-geo.addGlobalDV('incidence', [-3.], incidence, scale=1.)
+# --fix-incidence: both bounds at the start (pyGeo's freezeVars would pass them complex, which PSQP rejects)
+fixed = -3. if a.fix_incidence else None
+geo.addGlobalDV('incidence', [-3.], incidence, lower=fixed, upper=fixed, scale=1.)
 idx = geo.getLocalIndex(0)
 shape_groups = []
 for axis in ([0,1] if a.shape_directions=='xy' else [1]):
@@ -315,7 +318,7 @@ optimizeroptions=({'ACC':1e-5,'MAXIT':a.maxit,'IPRINT':2,'IFILE':str(root/'SLSQP
 settings={'description':'Minimize upward-positive CL with prescribed CD cap; slip ground',
  'reference_chord_m':c0,'reference_area_m2':c0*span,'span_m':span,
  'speed_ms':V,'temperature_K':T,'pressure_Pa':P,'initial_incidence_deg':-3.,
- 'incidence_explicit_bounds':None,'shape_explicit_bounds':None,
+ 'incidence_explicit_bounds':None,'shape_explicit_bounds':None,'incidence_fixed':a.fix_incidence,
  'box_m':box,
  'max_section_thickness_min_over_initial_chord':.06,
  'min_local_thickness_m':a.min_local_thickness,'local_thickness_vertex_pairs':'k and 272-k, k=15..124',

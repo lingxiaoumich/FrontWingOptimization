@@ -12,15 +12,20 @@ current run. The hand-over:
   3. the next run folder rNN with the previous run's source/, the current
      run_slip_optimization.py, the new grid and the iterate's flow as the initial flow;
      the same command with the new --baseline;
-  4. start it (it runs its own derivative check) and, with --live-plots, live_plots.py.
+  4. start it (it runs its own derivative check) and, with --live-plots, live_plots.py. If the
+     solver reports orphan cells in the overset grid, stop it and go back to step 2 with the
+     next pyHyp setting, as rNNb, rNNc, ...; when no setting gives a usable grid, with the
+     iterate before (up to 3 back).
 
 The grid needs replacing when
   - the last --max-failures evaluations all failed, or 6 of the last 8 did,
   - the best C_L c of the PSQP iterates improved by under --min-gain in --stall-minutes,
   - PSQP exited by itself (a fresh grid also restarts PSQP), or
   - no evaluation finished in --hang-minutes.
-The chain ends when a run gained under --min-gain in all, a run died by itself, every pyHyp
-setting gives a usable grid, the disk is nearly full, or --max-runs runs have started.
+The chain ends when a run gained under --min-gain in all, or its best is not --min-gain better
+than the best of the earlier runs (a fresh grid moves C_L c by some 2 %, which a run can regain
+without real progress), a run died by itself, no pyHyp setting gives a usable grid, the disk is
+nearly full, or --max-runs runs have started.
 Killing this driver leaves the optimization running. Run with the MACH-Aero env:
   cd optimizations/run_NNN_<name>
   python ../../scripts/run_chain.py --live-plots summary r00 [r01 ...] > summary/run_chain.log 2>&1 &
@@ -39,7 +44,8 @@ from pathlib import Path
 S = Path(__file__).resolve().parent
 # pyHyp settings, tried in this order. Volume smoothing can leave cells with a negative
 # corner at a leaning trailing-edge base; the solver accepts them, but a clean grid is preferred.
-HYP = ['{"cMax":1.0,"volSmoothIter":30}', '{"cMax":1.0,"volSmoothIter":0}', '{"cMax":1.0,"volSmoothIter":30,"epsI":4.0}']
+HYP = ['{"cMax":1.0,"volSmoothIter":30}', '{"cMax":1.0,"volSmoothIter":0}', '{"cMax":1.0,"volSmoothIter":30,"epsI":4.0}',
+       '{"cMax":1.0,"volSmoothIter":30,"marchDist":0.03}']  # last: a deeper near grid, which removes orphan cells for some shapes
 C0 = .5  # reference chord: C_L c = C0 * cl
 # numpy's BLAS would otherwise start a thread per core, on cores the solver is using
 ONE_THREAD = dict(os.environ, OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1', MKL_NUM_THREADS='1')
@@ -76,7 +82,9 @@ def verdict(run, rows, a):
     if its:
         now = rows[-1]['elapsed_wall_time_s']
         before = [cl for t, cl in its if t < now-60*a.stall_minutes]
-        if before and C0*(min(before)-min(cl for _, cl in its)) < a.min_gain:
+        # Judged once PSQP has stepped: the first two iterates are the derivative check and PSQP's
+        # start, which a slow machine can push 15 min apart from the first step.
+        if len(its) > 2 and before and C0*(min(before)-min(cl for _, cl in its)) < a.min_gain:
             return f'the PSQP iterates improved C_L c by under {a.min_gain:g} in {a.stall_minutes:g} min'
     return None
 
@@ -84,9 +92,10 @@ def gain(run):
     its = [cl for _, cl in iterates(run)]
     return C0*(its[0]-min(its)) if its else 0.
 
-def last_iterate(run):
-    """The newest saved PSQP iterate (the optimizer writes design.json last)."""
-    d = max(d for d in (run/'iterates').glob('eval_*') if (d/'design.json').exists())
+def last_iterate(run, back=0):
+    """The newest saved PSQP iterate, or the one `back` before it (the optimizer writes design.json last)."""
+    saved = sorted(d for d in (run/'iterates').glob('eval_*') if (d/'design.json').exists())
+    d = saved[max(0, len(saved)-1-back)]
     return d, json.loads((d/'result.json').read_text())
 
 def next_name(name):
@@ -97,11 +106,19 @@ def next_name(name):
 def option(cmd, name):
     return cmd[cmd.index(name)+1] if name in cmd else None
 
-def prepare(run, where):
-    """Steps 2-3 under the folder `where`. Returns (root, command), or None without a usable grid."""
-    it, r = last_iterate(run)
+def retry_name(name):
+    """r01 -> r01b -> r01c: another grid for the same run."""
+    m = re.fullmatch(r'(r\d+)([a-z]?)', name)
+    return m.group(1)+(chr(ord(m.group(2))+1) if m.group(2) else 'b')
+
+def prepare(run, where, name=None, skip=(), back=0):
+    """Steps 2-3 under the folder `where`, as run `name` (default: the next one), at the iterate
+    `back` before the newest, leaving out the pyHyp settings in `skip`. Returns (root, command,
+    pyHyp setting), or None without a usable grid."""
+    if all(h in skip for h in HYP): return None
+    it, r = last_iterate(run, back)
     cmd = (run/'command.txt').read_text().split('\n')[0].split()
-    name = next_name(run.name)
+    name = name or next_name(run.name)
     mesh = where/'grids'/f"{name}_from_{run.name}_{it.name.replace('_', '')}"
     root = where/name
     mesh.mkdir(parents=True)
@@ -111,10 +128,13 @@ def prepare(run, where):
     # the derivative check runs just off the new grid's zero point, a kink of the warp
     (mesh/'offset_design.json').write_text(json.dumps({k: [-3.02] if k == 'incidence' else [0.]*len(v) for k, v in design.items()}))
     old = option(cmd, '--baseline')
-    tries = []
-    for k, hyp in enumerate(HYP):
-        made = subprocess.run([sys.executable, str(S/'remesh_design.py'), '--design', str(mesh/'source_design.json'), '--out', str(mesh/f'try{k}'),
-                               '--hyp-options', hyp] + (['--baseline', old] if old else []), capture_output=True, text=True, env=ONE_THREAD)
+    tries, hyps = [], [h for h in HYP if h not in skip]
+    for k, hyp in enumerate(hyps):
+        try:  # pyHyp can hang on a shape: a grid taking over 10 min counts as failed
+            made = subprocess.run([sys.executable, str(S/'remesh_design.py'), '--design', str(mesh/'source_design.json'), '--out', str(mesh/f'try{k}'),
+                                   '--hyp-options', hyp] + (['--baseline', old] if old else []), capture_output=True, text=True, env=ONE_THREAD, timeout=600)
+        except subprocess.TimeoutExpired as e:
+            made = subprocess.CompletedProcess(e.cmd, 1, str(e.stdout or ''), 'remesh_design.py timed out after 10 min\n')
         (mesh/f'remesh_try{k}.log').write_text(made.stdout+made.stderr)
         failed = bool(made.returncode)  # remesh_design.py exits with an error on inverted cells or a lost lattice
         corners = None if failed else sum(b['nonpositive_corners'] for b in json.loads((mesh/f'try{k}/baseline.json').read_text())['blocks'])
@@ -149,7 +169,21 @@ def prepare(run, where):
                                     "design variables restart at zero; initial flow source/restart_vol.cgns = that evaluation's "
                                     'converged flow; set up and started by run_chain.py\n')
     log(f"remeshed {run.name} at evaluation {r['evaluation']} (C_L c {C0*r['cl']:.3f}) with pyHyp {json.dumps(tries[use]['pyhyp'])} -> {root.name}")
-    return root, ' '.join(cmd)
+    return root, ' '.join(cmd), hyps[use]
+
+def orphans(run):
+    """Orphan cells (no donor) left in the overset grid; None if the solver reports nothing in 5 min.
+    The solver assembles the overlap in passes and its first count is often large: the grid is bad
+    only when the passes end non-zero ('Orphans present in grid'), clean once a pass counts 0. The
+    flow solve tolerates orphans, but the adjoint then fails."""
+    t = time.time()
+    while time.time()-t < 300:
+        text = (run/'run.log').read_text(errors='ignore')
+        found = re.findall(r'Total number of orphans:\s*(\d+)', text)
+        if 'Orphans present in grid' in text: return int(found[-1]) if found else 1
+        if found and found[-1] == '0': return 0
+        time.sleep(5)
+    return None
 
 def stop(run, why):
     for pid in launcher(run): subprocess.run(['kill', str(pid)])
@@ -216,16 +250,29 @@ def main():
             log('chain ended: the run needs a look.'); return
         if gain(run) < a.min_gain:
             log(f'chain ended: this run gained under {a.min_gain:g}, so another grid would not help.'); return
+        before = [cl for r in runs[:-1] for _, cl in iterates(r)]
+        if before and C0*(min(before)-min(its)) < a.min_gain:
+            log(f'chain ended: this run did not beat the best of the earlier runs by {a.min_gain:g}.'); return
         if started == a.max_runs:
             log(f'chain ended: --max-runs {a.max_runs} runs started.'); return
         free = shutil.disk_usage(run).free/1e9
         if free < a.min_free_gb:
             log(f'chain ended: {free:.1f} GB of disk left, under --min-free-gb {a.min_free_gb:g}.'); return
-        new = prepare(run, run.parent)
-        if new is None:
-            log('chain ended: no new grid.'); return
-        root, cmd = new
-        subprocess.Popen(cmd, shell=True, cwd=root, stdout=(root/'run.log').open('w'), stderr=subprocess.STDOUT, start_new_session=True)
+        skip, name, back = [], None, 0
+        while True:
+            new = prepare(run, run.parent, name, skip, back)
+            if new is None and back < 3:  # no usable grid at this iterate: try the one before
+                back, skip = back+1, []
+                log(f'no usable grid at that iterate; trying the iterate {back} before the newest'); continue
+            if new is None:
+                log('chain ended: no new grid.'); return
+            root, cmd, hyp = new
+            subprocess.Popen(cmd, shell=True, cwd=root, stdout=(root/'run.log').open('w'), stderr=subprocess.STDOUT, start_new_session=True)
+            n = orphans(root)
+            if not n: break
+            stop(root, f'{n} orphan cells in the overset grid; the adjoint cannot converge with them')
+            log(f'{root.name}: {n} orphan cells in the overset grid; trying the next pyHyp setting')
+            skip.append(hyp); name = retry_name(root.name)
         runs.append(root); log('started', root.name)
         if a.live_plots:
             out = a.live_plots.resolve(); out.mkdir(parents=True, exist_ok=True)
