@@ -1,0 +1,2397 @@
+#
+# ADflow, multiblock structured flow solver
+#
+# This code solves the 3D RANS, laminar NS or Euler equations
+# on multiblock structured hexahedral grids.
+# This is a parallel executable running on 48 processors.
+# It has been compiled with the following options:
+# - Optimized mode.
+# - Size of standard integers: 4 bytes.
+# - Size of standard floating point types: 8 bytes.
+# - With cgns support
+# - With support for signals.
+#
++----------------------------------------+
+|          All ADFLOW Options:           |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKAMGLevels': 2,
+ 'ANKAMGNSmooth': 1,
+ 'ANKASMOverlap': 1,
+ 'ANKASMOverlapCoarse': 0,
+ 'ANKCFL0': 5.0,
+ 'ANKCFLCutback': 0.5,
+ 'ANKCFLExponent': 0.5,
+ 'ANKCFLFactor': 10.0,
+ 'ANKCFLLimit': 100000.0,
+ 'ANKCFLMin': 1.0,
+ 'ANKCFLReset': True,
+ 'ANKCharTimeStepType': 'None',
+ 'ANKConstCFLStep': 0.4,
+ 'ANKCoupledSwitchTol': 1e-16,
+ 'ANKGlobalPreconditioner': 'additive Schwarz',
+ 'ANKInnerPreconIts': 1,
+ 'ANKInnerPreconItsCoarse': 1,
+ 'ANKJacobianLag': 10,
+ 'ANKLinResMax': 0.1,
+ 'ANKLinearSolveBuffer': 0.01,
+ 'ANKLinearSolveTol': 0.05,
+ 'ANKMaxIter': 40,
+ 'ANKNSubiterTurb': 1,
+ 'ANKOuterPreconIts': 1,
+ 'ANKPCILUFill': 2,
+ 'ANKPCILUFillCoarse': 0,
+ 'ANKPCUpdateCutoff': 1e-16,
+ 'ANKPCUpdateTol': 0.5,
+ 'ANKPCUpdateTolAfterCutoff': 0.0001,
+ 'ANKPhysicalLSTol': 0.2,
+ 'ANKPhysicalLSTolTurb': 0.99,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKStepFactor': 1.0,
+ 'ANKStepMin': 0.01,
+ 'ANKSubspaceSize': -1,
+ 'ANKSwitchTol': 10.0,
+ 'ANKTurbCFLScale': 1.0,
+ 'ANKTurbKSPDebug': False,
+ 'ANKUnsteadyLSTol': 1.0,
+ 'ANKUseApproxSA': False,
+ 'ANKUseFullVisc': True,
+ 'ANKUseMatrixFree': True,
+ 'ANKUseTurbDADI': True,
+ 'ASMOverlap': 1,
+ 'ASMOverlapCoarse': 0,
+ 'CFL': 1.7,
+ 'CFLCoarse': 1.0,
+ 'CFLLimit': 1.5,
+ 'GMRESOrthogonalizationType': 'modified Gram-Schmidt',
+ 'ILUFill': 4,
+ 'ILUFillCoarse': 0,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceCoarse': 0.01,
+ 'L2ConvergenceRel': 1e-10,
+ 'MGCycle': 'sg',
+ 'MGStartLevel': -1,
+ 'NKADPC': True,
+ 'NKAMGLevels': 2,
+ 'NKAMGNSmooth': 1,
+ 'NKASMOverlap': 3,
+ 'NKASMOverlapCoarse': 0,
+ 'NKFixedStep': 0.25,
+ 'NKGlobalPreconditioner': 'additive Schwarz',
+ 'NKInnerPreconIts': 1,
+ 'NKInnerPreconItsCoarse': 1,
+ 'NKJacobianLag': 20,
+ 'NKLS': 'cubic',
+ 'NKLinearSolveTol': 0.1,
+ 'NKOuterPreconIts': 1,
+ 'NKPCILUFill': 4,
+ 'NKPCILUFillCoarse': 0,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-06,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'RKReset': False,
+ 'TSStability': False,
+ 'acousticScaleFactor': 1.0,
+ 'adjointAMGLevels': 2,
+ 'adjointAMGNSmooth': 1,
+ 'adjointDivTol': 100000.0,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointL2ConvergenceAbs': 1e-16,
+ 'adjointL2ConvergenceRel': 1e-16,
+ 'adjointMaxIter': 2000,
+ 'adjointMaxL2DeviationFactor': 1.0,
+ 'adjointMonitorStep': 10,
+ 'adjointSolver': 'GMRES',
+ 'adjointSubspaceSize': 500,
+ 'alphaFollowing': True,
+ 'alphaMode': False,
+ 'altitudeMode': False,
+ 'applyAdjointPCSubspaceSize': 20,
+ 'applyPCSubspaceSize': 10,
+ 'approxPC': True,
+ 'backgroundVolScale': 1.0,
+ 'betaMode': False,
+ 'blockSplitting': True,
+ 'cavExponent': 0,
+ 'cavSensorOffset': 0.0,
+ 'cavSensorSharpness': 10.0,
+ 'cavitationNumber': 1.4,
+ 'closedSurfaceFamilies': None,
+ 'coarseDiscretization': 'central plus scalar dissipation',
+ 'computeCavitation': False,
+ 'computeSepSensorKs': False,
+ 'coupledSolution': False,
+ 'cpMinRho': 100.0,
+ 'cutCallback': None,
+ 'debugZipper': False,
+ 'deltaT': 0.01,
+ 'designSurfaceFamily': 'airfoil',
+ 'discretization': 'central plus scalar dissipation',
+ 'dissContMagnitude': 1.0,
+ 'dissContMidpoint': 3.0,
+ 'dissContSharpness': 3.0,
+ 'dissipationLumpingParameter': 6.0,
+ 'dissipationScalingExponent': 0.67,
+ 'eddyVisInfRatio': 0.009,
+ 'equationMode': 'steady',
+ 'equationType': 'RANS',
+ 'eulerWallTreatment': 'linear pressure extrapolation',
+ 'explicitSurfaceCallback': None,
+ 'firstRun': True,
+ 'flowType': 'external',
+ 'forcesAsTractions': True,
+ 'frozenTurbulence': False,
+ 'globalPreconditioner': 'additive Schwarz',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/source/ground.cgns',
+ 'gridPrecision': 'double',
+ 'gridPrecisionSurface': 'single',
+ 'infChangeCorrection': True,
+ 'infChangeCorrectionTol': 1e-12,
+ 'infChangeCorrectionType': 'offset',
+ 'innerPreconIts': 1,
+ 'innerPreconItsCoarse': 1,
+ 'isoVariables': [],
+ 'isosurface': {},
+ 'liftIndex': 2,
+ 'limiter': 'van Albada',
+ 'loadBalanceIter': 10,
+ 'loadImbalance': 0.1,
+ 'localPreconditioner': 'ILU',
+ 'lowSpeedPreconditioner': False,
+ 'machMode': False,
+ 'matrixOrdering': 'RCM',
+ 'maxL2DeviationFactor': 1.0,
+ 'meshMaxSkewness': 1.0,
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 10000,
+ 'nCyclesCoarse': 500,
+ 'nFloodIter': -1,
+ 'nRKReset': 5,
+ 'nRefine': 10,
+ 'nSaveSurface': 1,
+ 'nSaveVolume': 1,
+ 'nSubiter': 1,
+ 'nSubiterTurb': 3,
+ 'nTimeStepsCoarse': 48,
+ 'nTimeStepsFine': 400,
+ 'nearWallDist': 0.01,
+ 'numberSolutions': True,
+ 'outerPreconIts': 3,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/evaluations',
+ 'outputSurfaceFamily': 'allSurfaces',
+ 'overlapFactor': 0.9,
+ 'oversetDebugPrint': False,
+ 'oversetLoadBalance': True,
+ 'oversetPriority': {},
+ 'oversetProjTol': 1e-12,
+ 'oversetUpdateMode': 'frozen',
+ 'pMode': False,
+ 'partitionLikeNProc': -1,
+ 'partitionOnly': False,
+ 'preconditionerSide': 'right',
+ 'printAllOptions': True,
+ 'printBadlySkewedCells': False,
+ 'printIntro': True,
+ 'printIterations': True,
+ 'printNegativeVolumes': False,
+ 'printTiming': True,
+ 'printWarnings': True,
+ 'qMode': False,
+ 'rMode': False,
+ 'recomputeOverlapMatrix': True,
+ 'resAveraging': 'alternate',
+ 'restartAdjoint': True,
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/r02/iterates/eval_090/flow_000_vol.cgns',
+ 'restrictionRelaxation': 0.8,
+ 'selfZipCutoff': 120.0,
+ 'sepSensorKsOffset': 0.0,
+ 'sepSensorKsPhi': 90.0,
+ 'sepSensorKsRho': 1000.0,
+ 'sepSensorKsSharpness': 25.0,
+ 'sepSensorOffset': 0.0,
+ 'sepSensorSharpness': 10.0,
+ 'setMonitor': True,
+ 'skipAfterFailedAdjoint': True,
+ 'smoothParameter': 1.5,
+ 'smoother': 'DADI',
+ 'solutionPrecision': 'single',
+ 'solutionPrecisionSurface': 'single',
+ 'storeConvHist': True,
+ 'storeRindLayer': True,
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'timeAccuracy': 2,
+ 'timeIntegrationScheme': 'BDF',
+ 'timeIntervals': 1,
+ 'timeLimit': -1.0,
+ 'turbResScale': 10000.0,
+ 'turbulenceModel': 'SA',
+ 'turbulenceOrder': 'first order',
+ 'turbulenceProduction': 'strain',
+ 'updateWallAssociations': False,
+ 'useALE': True,
+ 'useANKSolver': True,
+ 'useApproxWallDistance': True,
+ 'useBlockettes': True,
+ 'useDiagTSPC': True,
+ 'useDissContinuation': False,
+ 'useExternalDynamicMesh': False,
+ 'useGridMotion': False,
+ 'useLinResMonitor': False,
+ 'useMatrixFreedrdw': True,
+ 'useNKSolver': True,
+ 'useOversetWallScaling': False,
+ 'useQCR': False,
+ 'useRotationSA': False,
+ 'useSkewnessCheck': False,
+ 'useTSInterpolatedGridVelocity': False,
+ 'useWallFunctions': False,
+ 'useZipperMesh': False,
+ 'useft2SA': True,
+ 'verifyExtra': True,
+ 'verifySpatial': True,
+ 'verifyState': True,
+ 'vis2': 0.25,
+ 'vis2Coarse': 0.5,
+ 'vis4': 0.0156,
+ 'viscPC': True,
+ 'viscWallTreatment': 'constant pressure extrapolation',
+ 'viscousSurfaceVelocities': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'wallDistCutoff': 1e+20,
+ 'windAxis': False,
+ 'writeSolutionDigits': 3,
+ 'writeSolutionEachIter': False,
+ 'writeSurfaceSolution': True,
+ 'writeTecplotSurfaceSolution': True,
+ 'writeVolumeSolution': True,
+ 'zipperSurfaceFamily': None}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# It is assumed that the grid is given in meters.
+#
+#
+# Specified load imbalance tolerance 0.100 achieved.
+# Continuing with 0.083 load imbalance for the cells and 0.084 for the faces
+#
+#
+# Grid level: 1, Total number of cells: 88548
+#
++--------------------------------------------------+
+  CGNS Surface Families by Boundary Condition Type
++--------------------------------------------------+
+| Wall Types           : airfoil 
+| Inflow Types         : 
+| Outflow Types        : 
+| Symmetry Types       : ground sym symmetry 
+| Farfield Types       : farfield 
+| Overset Types        : overset 
++--------------------------------------------------+
+ Flood Iteration:           1 Blanked         1272 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       85015
+ | Fringe Cells            :        2162
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1139
+ | FloodSeed Cells         :         232
+ +--------------------------------+
+ Total number of orphans:           0
+ Flood Iteration:           1 Blanked         1371 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       85015
+ | Fringe Cells            :        2162
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1139
+ | FloodSeed Cells         :         232
+ +--------------------------------+
+ Total number of orphans:           0
+ +--------------------------------+
+ | Compute Cells           :       85015
+ | Fringe Cells            :        1112
+ | Blanked Cells           :        1050
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1139
+ | FloodSeed Cells         :         232
+ +--------------------------------+
+ Total number of orphans:           0
++--------------------------------------------------+
+|
+| Initialization Times:
+|
+| Library Load Time             :      0.032 sec
+| Set Defaults Time             :      0.003 sec
+| Base Class Init Time          :      0.002 sec
+| Introductory Time             :      0.067 sec
+| Partitioning Time             :      0.026 sec
+| Preprocessing Time            :      1.988 sec
+| Family Setup Time             :      0.000 sec
+| Cut Callback Time             :      0.000 sec
+| Explicit Surface Cut Time     :      0.000 sec
+| Overset Preprocessing Time    :      0.023 sec
+| Initialize Flow Time          :      0.003 sec
+|
+| Total Init Time               :      2.144 sec
++--------------------------------------------------+
++----------------------------------------+
+|          All IDWarp Options:           |
++----------------------------------------+
+{'LdefFact': 1.0,
+ 'aExp': 3.0,
+ 'alpha': 0.25,
+ 'bExp': 5.0,
+ 'bucketSize': 8,
+ 'cornerAngle': 30.0,
+ 'errTol': 1e-05,
+ 'evalMode': 'fast',
+ 'fileType': 'CGNS',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/source/ground.cgns',
+ 'restartFile': None,
+ 'specifiedSurfaces': None,
+ 'symmTol': 1e-06,
+ 'symmetryPlanes': [[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                    [[0.0, 0.0, 0.05], [0.0, 0.0, 1.0]]],
+ 'symmetrySurfaces': None,
+ 'useRotations': True,
+ 'zeroCornerRotations': True}
+  -> Reading CGNS File: /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/source/ground.cgns
+    -> Number of Zones:           2
+#------------------------------#
+ Total Volume Nodes :    178884 
+#------------------------------#
++-------------------- Symmetry Planes -------------------+
+|           Point                        Normal          |
+| (  0.000   0.000   0.000)    (  0.000   1.000   0.000) |
+| (  0.000   0.000   0.000)    (  0.000   0.000   1.000) |
+| (  0.000   0.000   0.050)    (  0.000   0.000   1.000) |
++--------------------------------------------------------+
+#--------------------------------#
+ Unique Surface Nodes :       576 
+#--------------------------------#
+ Computing Denominator Estimate...
+ Load Balancing...
+ Finished Mesh Initialization.
+
++------------------------------------------------------------------------------+
+| pyADFLOW Warning: 'zipperSurfaceFamily' option was not given. Using all wall |
+| boundary conditions for the zipper mesh.                                     |
++------------------------------------------------------------------------------+
+
++----------------------------------------------------------------------+
+|  Switching to Aero Problem: wing                                     |
++----------------------------------------------------------------------+
+-> Alpha... 0.000000 
++----------------------------------------+
+|      All Modified ADFLOW Options:      |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKSwitchTol': 10.0,
+ 'ILUFill': 4,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceRel': 1e-10,
+ 'NKADPC': True,
+ 'NKASMOverlap': 3,
+ 'NKLinearSolveTol': 0.1,
+ 'NKPCILUFill': 4,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-06,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointMaxIter': 2000,
+ 'adjointSubspaceSize': 500,
+ 'designSurfaceFamily': 'airfoil',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/source/ground.cgns',
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 10000,
+ 'nearWallDist': 0.01,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/evaluations',
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/r02/iterates/eval_090/flow_000_vol.cgns',
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'turbResScale': 10000.0,
+ 'useNKSolver': True,
+ 'useZipperMesh': False,
+ 'viscPC': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'writeTecplotSurfaceSolution': True}
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Found restart file: /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/r02/iterates/eval_090/flow_000_vol.cgns
+#
+#
+#                      Warning
+# 312 type mismatches occured when reading the solution of the blocks
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   2.8612305025260595E-04   5.4811176064471051E-09  -4.6169874725321680E+00   3.3531868841103030E-01   4.4594917687048763E-01 
+      1       1      5      *NK     ----    1.00  0.081   4.7774408153272390E-05   1.1280238459344558E-10  -4.6169875119871184E+00   3.3531872330282042E-01   3.4067046821888956E-02 
+      1       2     17       NK     ----    1.00  0.100   5.2994317844498276E-06   9.4102590361452181E-11  -4.6169871246315486E+00   3.3531862155470865E-01   4.0242669330790336E-03 
+      1       3     42       NK     ----    1.00  0.099   5.8525679254537487E-07   2.4312857626684672E-11  -4.6169871710786143E+00   3.3531865494379953E-01   3.8863468963371884E-04 
+      1       4    128       NK     ----    1.00  0.095   4.0149350066055808E-08   8.4635773130155006E-12  -4.6169866136406741E+00   3.3531866190613807E-01   3.8084959636991782E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.821 sec
+| Solution Time                 :      5.246 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :      6.066 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.002 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.003 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 0, "cl": -4.616986613640674, "cd": 0.3353186619061381, "cmz": -0.40443964552055284, "downforce_N_per_m": 4364.018662460256, "drag_N_per_m": 316.946316046537, "downforce_to_drag": 13.768952158508416, "force_down_N_extruded_span": 218.2009331230128, "cpt_loss_outlet": 0.02208018258545542, "cpt_loss_outlet_flux_c_m": 0.10699016019529467, "outlet_ptot_Pa": 103186.30764871692, "outlet_mdot_kg_s": 16.488139834225304, "residual_initial": 3227838.460399259, "residual_start": 0.44594917687048763, "residual_final": 3.808495963699178e-05, "residual_ratio_initial": 1.179890508903626e-11, "cfd_failed": false, "feasible": true, "evaluation_wall_time_s": 6.073208305053413, "elapsed_wall_time_s": 13.163442939054221, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.05, "maximum_height_m": 0.1881, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.029999999103508344, "maximum_section_thickness_over_reference_chord": 0.05999999820701669, "minimum_surface_gap_m": 0.001999999976379658, "te_base_thickness_m": 0.0012787920446277658, "minimum_te_taper_margin_m": -1.2887430397563564e-07, "actual_chord_m": 0.5367575720588349, "chord_incidence_deg": -12.368265540988551, "box_minimum_margin_m": -1.1102230246251565e-16, "design": {"incidence": [-3.0], "shape": [-0.030605602204468944, 0.038336794888732956, -0.000956713510377576, 0.005399100544167644, 0.017011678670161665, -0.039193911077993436, 0.0203082890351814, -0.05278397929453875, 0.024855395775929642, -0.06295531537804086, 0.02670495797152828, -0.06124648996197535, 0.02866603296607106, -0.06145204069880955, 0.028637423996727637, -0.0565405600019338, 0.029315738186981223, -0.05400694089440454, 0.028790651637560387, -0.04935741787034692, 0.028139966888820256, -0.04464559183157304, 0.0286038935702183, -0.04247573797424395, 0.02936223310050398, -0.04076154958696881, 0.030461721284136687, -0.0391848540225967, 0.03196125727731206, -0.03881111569649742, 0.03486024321697667, -0.03831622926606595, 0.03784554711332711, -0.04349128572497803, 0.02296576215423404, -0.002379846139810569, -0.02446524103325314, -0.02219047517403695, -0.09579814953524261, 0.16524548864170427]}}
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/baseline/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/baseline/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/baseline/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/baseline/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/baseline/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/best_feasible/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/best_feasible/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/best_feasible/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/best_feasible/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/best_feasible/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   4.0149350196170650E-08   8.4635773130149900E-12  -4.6169866136406741E+00   3.3531866190613807E-01   3.8084958327561157E-05 
+      1       1    124       NK     ----    1.00  0.099   7.7169260334477447E-09   4.7980624734839349E-13  -4.6169865113947193E+00   3.3531867133009668E-01   3.4418649358804056E-06 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.553 sec
+| Solution Time                 :      3.088 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :      3.640 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.539 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.541 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 1, "cl": -4.61698651139472, "cd": 0.3353186713300967, "cmz": -0.40443964627423756, "downforce_N_per_m": 4364.01856581643, "drag_N_per_m": 316.9463249541502, "downforce_to_drag": 13.768951466617363, "force_down_N_extruded_span": 218.2009282908215, "cpt_loss_outlet": 0.02208016449114582, "cpt_loss_outlet_flux_c_m": 0.10699007264938738, "outlet_ptot_Pa": 103186.30768292274, "outlet_mdot_kg_s": 16.488139854350507, "residual_initial": 3227838.460399259, "residual_start": 3.8084958327561157e-05, "residual_final": 3.4418649358804056e-06, "residual_ratio_initial": 1.0663064394662034e-12, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.0, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 4.185100501985289, "elapsed_wall_time_s": 17.79140703403391, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.05, "maximum_height_m": 0.1881, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.029999999103508344, "maximum_section_thickness_over_reference_chord": 0.05999999820701669, "minimum_surface_gap_m": 0.001999999976379658, "te_base_thickness_m": 0.0012787920446277658, "minimum_te_taper_margin_m": -1.2887430397563564e-07, "actual_chord_m": 0.5367575720588349, "chord_incidence_deg": -12.368265540988551, "box_minimum_margin_m": -1.1102230246251565e-16, "design": {"incidence": [-3.0], "shape": [-0.030605602204468944, 0.038336794888732956, -0.000956713510377576, 0.005399100544167644, 0.017011678670161665, -0.039193911077993436, 0.0203082890351814, -0.05278397929453875, 0.024855395775929642, -0.06295531537804086, 0.02670495797152828, -0.06124648996197535, 0.02866603296607106, -0.06145204069880955, 0.028637423996727637, -0.0565405600019338, 0.029315738186981223, -0.05400694089440454, 0.028790651637560387, -0.04935741787034692, 0.028139966888820256, -0.04464559183157304, 0.0286038935702183, -0.04247573797424395, 0.02936223310050398, -0.04076154958696881, 0.030461721284136687, -0.0391848540225967, 0.03196125727731206, -0.03881111569649742, 0.03486024321697667, -0.03831622926606595, 0.03784554711332711, -0.04349128572497803, 0.02296576215423404, -0.002379846139810569, -0.02446524103325314, -0.02219047517403695, -0.09579814953524261, 0.16524548864170427]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving ADjoint Transpose with PETSc...
+   0 KSP Residual norm 3.0754269207E+00
+  10 KSP Residual norm 3.0715586010E+00
+  20 KSP Residual norm 3.0692794046E+00
+  30 KSP Residual norm 3.0682116085E+00
+  40 KSP Residual norm 3.0621187228E+00
+  50 KSP Residual norm 3.0497622182E+00
+  60 KSP Residual norm 2.9375496925E+00
+  70 KSP Residual norm 2.4544879969E+00
+  80 KSP Residual norm 1.9453010637E+00
+  90 KSP Residual norm 1.5928796445E+00
+ 100 KSP Residual norm 1.1782035517E+00
+ 110 KSP Residual norm 8.4497519962E-01
+ 120 KSP Residual norm 6.3021060677E-01
+ 130 KSP Residual norm 4.7585531596E-01
+ 140 KSP Residual norm 3.3893818885E-01
+ 150 KSP Residual norm 2.1689633782E-01
+ 160 KSP Residual norm 1.3142839895E-01
+ 170 KSP Residual norm 7.1898771808E-02
+ 180 KSP Residual norm 4.1436667218E-02
+ 190 KSP Residual norm 2.2741194710E-02
+ 200 KSP Residual norm 1.2051212358E-02
+ 210 KSP Residual norm 6.5541791873E-03
+ 220 KSP Residual norm 3.6410913902E-03
+ 230 KSP Residual norm 1.9252643376E-03
+ 240 KSP Residual norm 9.6206627030E-04
+ 250 KSP Residual norm 4.9853645748E-04
+ 260 KSP Residual norm 2.5280349110E-04
+ 270 KSP Residual norm 1.2969181630E-04
+ 280 KSP Residual norm 7.0334039792E-05
+ 290 KSP Residual norm 4.0889000355E-05
+ 300 KSP Residual norm 2.5402984050E-05
+ 310 KSP Residual norm 1.5341542167E-05
+ 320 KSP Residual norm 8.7940584217E-06
+ 330 KSP Residual norm 4.9726461423E-06
+ 340 KSP Residual norm 2.8268999444E-06
+ 350 KSP Residual norm 1.7113074986E-06
+ 360 KSP Residual norm 1.0112293126E-06
+ 370 KSP Residual norm 5.1994934734E-07
+Solving ADjoint Transpose with PETSc time (s) =    31.79
+ Norm of error = 2.9508E-07    Iterations =  379
+ ------------------------------------------------
+ PETSc solver converged after   379 iterations.
+ ------------------------------------------------
+Solving adjoint: ptot_outlet
+-> Alpha... 0.000000 
+Solving ADjoint Transpose with PETSc...
+   0 KSP Residual norm 7.5384155216E+03
+  10 KSP Residual norm 6.1268613033E+03
+  20 KSP Residual norm 4.2521995918E+03
+  30 KSP Residual norm 2.4245672366E+03
+  40 KSP Residual norm 1.1064997278E+03
+  50 KSP Residual norm 6.5902594434E+02
+  60 KSP Residual norm 5.4681688242E+02
+  70 KSP Residual norm 3.8808250091E+02
+  80 KSP Residual norm 2.2563542728E+02
+  90 KSP Residual norm 1.6043513264E+02
+ 100 KSP Residual norm 1.3613136442E+02
+ 110 KSP Residual norm 1.2119378547E+02
+ 120 KSP Residual norm 7.9350753282E+01
+ 130 KSP Residual norm 3.6944920433E+01
+ 140 KSP Residual norm 2.4744020690E+01
+ 150 KSP Residual norm 1.8882484605E+01
+ 160 KSP Residual norm 1.3628653080E+01
+ 170 KSP Residual norm 8.3811185998E+00
+ 180 KSP Residual norm 4.6067188694E+00
+ 190 KSP Residual norm 2.7714404835E+00
+ 200 KSP Residual norm 1.6349115125E+00
+ 210 KSP Residual norm 9.4337438148E-01
+ 220 KSP Residual norm 5.6530848452E-01
+ 230 KSP Residual norm 3.4451954048E-01
+ 240 KSP Residual norm 1.9520369217E-01
+ 250 KSP Residual norm 9.9180215054E-02
+ 260 KSP Residual norm 5.2872071010E-02
+ 270 KSP Residual norm 3.2499494068E-02
+ 280 KSP Residual norm 2.2239866085E-02
+ 290 KSP Residual norm 1.5022327078E-02
+ 300 KSP Residual norm 1.0081656622E-02
+ 310 KSP Residual norm 6.2388206395E-03
+ 320 KSP Residual norm 3.5899149174E-03
+ 330 KSP Residual norm 2.0200195955E-03
+ 340 KSP Residual norm 1.0749961900E-03
+Solving ADjoint Transpose with PETSc time (s) =    27.25
+ Norm of error = 7.5367E-04    Iterations =  345
+ ------------------------------------------------
+ PETSc solver converged after   345 iterations.
+ ------------------------------------------------
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     34.159 sec
+| Total Sensitivity Time - cl_wing:      0.681 sec
+| Adjoint Solve Time - ptot_outlet:     27.314 sec
+| Total Sensitivity Time - ptot_outlet:      0.678 sec
+|
+| Complete Sensitivity Time     :     63.774 sec
++--------------------------------------------------+
+OPT_GRADIENT 2 failed False
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.1486877710629133E-01   8.3368432857376981E-08  -4.6170279731261079E+00   3.3451303417714795E-01   1.2509781973735492E+02 
+      1       1      9    *SANK   1.61E+02  1.00  0.046   1.6996824253400978E-02   6.3363652742894275E-08  -4.6129167772258635E+00   3.3416330524194798E-01   1.8782316152427811E+01 
+      1       2     43    *SANK   1.14E+03  1.00  0.043   3.5359810428714704E-03   5.7573097902457215E-08  -4.6123798620703305E+00   3.3465847660142095E-01   3.8123761867183847E+00 
+      1       3     85    *SANK   7.12E+03  1.00  0.113   3.7395973133425931E-04   1.4345218563316366E-07  -4.6133017969717409E+00   3.3506009271068099E-01   6.9688210618978808E-01 
+      1       4    187      *NK     ----    1.00  0.099   3.7989447080148759E-05   1.8136807461229650E-08  -4.6159607642992375E+00   3.3506289198722505E-01   7.4044452814338343E-02 
+      1       5    288       NK     ----    1.00  0.097   3.0136185833772299E-06   2.0437321553916321E-09  -4.6163744019076640E+00   3.3506437133535560E-01   7.3417276584508331E-03 
+      1       6    381       NK     ----    1.00  0.100   4.7304362608529641E-07   1.6203066753516498E-10  -4.6163779133602132E+00   3.3506374376974812E-01   7.0307954569299904E-04 
+      1       7    505       NK     ----    1.00  0.100   6.5022134417896378E-08   1.7488192750354865E-11  -4.6163816351152098E+00   3.3506364303873415E-01   6.9216230016791607E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.559 sec
+| Solution Time                 :     12.423 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     12.982 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.538 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.540 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 2, "cl": -4.61638163511521, "cd": 0.33506364303873415, "cmz": -0.4050525868913104, "downforce_N_per_m": 4363.4468311346645, "drag_N_per_m": 316.70526984264666, "downforce_to_drag": 13.77762622422614, "force_down_N_extruded_span": 218.17234155673324, "cpt_loss_outlet": 0.022066633497937412, "cpt_loss_outlet_flux_c_m": 0.10692404775775621, "outlet_ptot_Pa": 103186.33326216384, "outlet_mdot_kg_s": 16.48806890921943, "residual_initial": 3227838.460399259, "residual_start": 125.09781973735492, "residual_final": 6.92162300167916e-05, "residual_ratio_initial": 2.144352354244831e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.009999999999999787, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 13.525671222014353, "elapsed_wall_time_s": 99.33629398199264, "incidence_variable_deg": -2.99, "minimum_clearance_m": 0.050015012946859, "maximum_height_m": 0.18803245436419463, "minimum_x_m": -0.01230206739432155, "maximum_x_m": 0.512015969270003, "maximum_section_thickness_m": 0.029999946869889348, "maximum_section_thickness_over_reference_chord": 0.059999893739778695, "minimum_surface_gap_m": 0.001998948189919589, "te_base_thickness_m": 0.001278805530033495, "minimum_te_taper_margin_m": -8.420442969107877e-08, "actual_chord_m": 0.5367554047824417, "chord_incidence_deg": -12.358316250063975, "box_minimum_margin_m": -1.5969270003024505e-05, "design": {"incidence": [-2.99], "shape": [-0.030605602204468944, 0.038336794888732956, -0.000956713510377576, 0.005399100544167644, 0.017011678670161665, -0.039193911077993436, 0.0203082890351814, -0.05278397929453875, 0.024855395775929642, -0.06295531537804086, 0.02670495797152828, -0.06124648996197535, 0.02866603296607106, -0.06145204069880955, 0.028637423996727637, -0.0565405600019338, 0.029315738186981223, -0.05400694089440454, 0.028790651637560387, -0.04935741787034692, 0.028139966888820256, -0.04464559183157304, 0.0286038935702183, -0.04247573797424395, 0.02936223310050398, -0.04076154958696881, 0.030461721284136687, -0.0391848540225967, 0.03196125727731206, -0.03881111569649742, 0.03486024321697667, -0.03831622926606595, 0.03784554711332711, -0.04349128572497803, 0.02296576215423404, -0.002379846139810569, -0.02446524103325314, -0.02219047517403695, -0.09579814953524261, 0.16524548864170427]}}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   2.2969463244099472E-01   1.6608902478783657E-07  -4.6162984046321824E+00   3.3667468539141643E-01   2.5014851844207533E+02 
+      1       1      8    *SANK   1.14E+02  1.00  0.043   4.1707633529175586E-02   1.2088916172949089E-07  -4.6235394099851810E+00   3.3727234828776548E-01   4.5919647745871075E+01 
+      1       2     36    *SANK   7.44E+02  1.00  0.042   9.1842910474570980E-03   9.6106033697815164E-08  -4.6261110590796743E+00   3.3663578791478943E-01   9.9726411193622386E+00 
+      1       3     78    *SANK   4.51E+03  1.00  0.088   1.1857279818605244E-03   2.5404070626157022E-07  -4.6236210862001164E+00   3.3565224692077539E-01   1.5580470022844937E+00 
+      1       4    178      *NK     ----    1.00  0.098   8.8180414690012851E-05   3.8850862014540946E-08  -4.6185742844021016E+00   3.3557853814437849E-01   1.6876238419779319E-01 
+      1       5    279       NK     ----    1.00  0.096   6.8254208284988758E-06   4.3932082898515331E-09  -4.6176253575529280E+00   3.3557338516960089E-01   1.6358702437893575E-02 
+      1       6    387       NK     ----    1.00  0.095   8.7616682427201204E-07   3.9663112843247358E-10  -4.6175805989857759E+00   3.3557429850214993E-01   1.5365253383327272E-03 
+      1       7    514       NK     ----    1.00  0.098   1.0272335997781414E-07   3.4265828121219006E-11  -4.6175741322857080E+00   3.3557428721576033E-01   1.4874460330156531E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.541 sec
+| Solution Time                 :     11.424 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     11.965 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.533 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.534 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 3, "cl": -4.617574132285708, "cd": 0.3355742872157603, "cmz": -0.40382738782139727, "downforce_N_per_m": 4364.573990544573, "drag_N_per_m": 317.18793546524887, "downforce_to_drag": 13.760214379347842, "force_down_N_extruded_span": 218.22869952722863, "cpt_loss_outlet": 0.02209373515252815, "cpt_loss_outlet_flux_c_m": 0.10705628623996613, "outlet_ptot_Pa": 103186.28202869218, "outlet_mdot_kg_s": 16.488210171197935, "residual_initial": 3227838.460399259, "residual_start": 250.14851844207533, "residual_final": 0.0001487446033015653, "residual_ratio_initial": 4.6081799051110736e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.019999999999999574, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 12.501993719954044, "elapsed_wall_time_s": 111.95808200002648, "incidence_variable_deg": -3.01, "minimum_clearance_m": 0.04998465142415329, "maximum_height_m": 0.18816754284761317, "minimum_x_m": -0.0122979284232814, "maximum_x_m": 0.5119844134471838, "maximum_section_thickness_m": 0.030000051267390814, "maximum_section_thickness_over_reference_chord": 0.06000010253478163, "minimum_surface_gap_m": 0.0020004046050880416, "te_base_thickness_m": 0.0012787785521981222, "minimum_te_taper_margin_m": -1.7353929590460497e-07, "actual_chord_m": 0.5367597392527043, "chord_incidence_deg": -12.378214791946363, "box_minimum_margin_m": -6.754284761317786e-05, "design": {"incidence": [-3.01], "shape": [-0.030605602204468944, 0.038336794888732956, -0.000956713510377576, 0.005399100544167644, 0.017011678670161665, -0.039193911077993436, 0.0203082890351814, -0.05278397929453875, 0.024855395775929642, -0.06295531537804086, 0.02670495797152828, -0.06124648996197535, 0.02866603296607106, -0.06145204069880955, 0.028637423996727637, -0.0565405600019338, 0.029315738186981223, -0.05400694089440454, 0.028790651637560387, -0.04935741787034692, 0.028139966888820256, -0.04464559183157304, 0.0286038935702183, -0.04247573797424395, 0.02936223310050398, -0.04076154958696881, 0.030461721284136687, -0.0391848540225967, 0.03196125727731206, -0.03881111569649742, 0.03486024321697667, -0.03831622926606595, 0.03784554711332711, -0.04349128572497803, 0.02296576215423404, -0.002379846139810569, -0.02446524103325314, -0.02219047517403695, -0.09579814953524261, 0.16524548864170427]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.0617065526917165E-01   8.5936844107002165E-08  -4.6176156373656720E+00   3.3475800425701729E-01   1.1558677241022245E+02 
+      1       1     10    *SANK   1.67E+02  1.00  0.039   1.7548920666356257E-02   6.6168315571189169E-08  -4.6131372433091027E+00   3.3430886833846052E-01   1.9272629624662017E+01 
+      1       2     44    *SANK   1.14E+03  1.00  0.049   3.9167633103401106E-03   5.8232442697804407E-08  -4.6127305230077251E+00   3.3487783131489762E-01   4.2179573986184060E+00 
+      1       3     86    *SANK   6.88E+03  1.00  0.105   3.9708060112856155E-04   1.4876317458835588E-07  -4.6137065664030192E+00   3.3529727864969955E-01   7.2942524343945991E-01 
+      1       4    189      *NK     ----    1.00  0.097   3.8341347540600801E-05   1.8694703277190507E-08  -4.6164797449481885E+00   3.3530176673236428E-01   7.5573416489846765E-02 
+      1       5    287       NK     ----    1.00  0.099   2.9566452643337171E-06   2.1467095031426562E-09  -4.6168933631814371E+00   3.3530235662382946E-01   7.6439990345492483E-03 
+      1       6    395       NK     ----    1.00  0.098   4.4071078841487116E-07   1.8620102131726244E-10  -4.6169103546413881E+00   3.3530171804111114E-01   7.4185624131394088E-04 
+      1       7    524       NK     ----    1.00  0.099   5.0110847349457589E-08   1.7396931118079356E-11  -4.6169137713061401E+00   3.3530172913682244E-01   7.1911035876984797E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.538 sec
+| Solution Time                 :     12.255 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     12.793 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.533 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.534 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 4, "cl": -4.61691377130614, "cd": 0.3353017291368224, "cmz": -0.4044764468084006, "downforce_N_per_m": 4363.949811208579, "drag_N_per_m": 316.9303110355883, "downforce_to_drag": 13.769430247769984, "force_down_N_extruded_span": 218.19749056042897, "cpt_loss_outlet": 0.022079288042352225, "cpt_loss_outlet_flux_c_m": 0.10698582814495247, "outlet_ptot_Pa": 103186.30933977783, "outlet_mdot_kg_s": 16.488140217048908, "residual_initial": 3227838.460399259, "residual_start": 115.58677241022245, "residual_final": 7.19110358769848e-05, "residual_ratio_initial": 2.2278387459355682e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.010049875621120696, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 13.330813764012419, "elapsed_wall_time_s": 125.40839541796595, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.0500041568776584, "maximum_height_m": 0.18809732444497687, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.029999202506539542, "maximum_section_thickness_over_reference_chord": 0.059998405013079084, "minimum_surface_gap_m": 0.002000196373655631, "te_base_thickness_m": 0.001278819371773708, "minimum_te_taper_margin_m": -5.321085118294329e-08, "actual_chord_m": 0.5367568474138554, "chord_incidence_deg": -12.367912788486679, "box_minimum_margin_m": -1.1102230246251565e-16, "design": {"incidence": [-3.0], "shape": [-0.03060554224110513, 0.03833735669222147, -0.0009554510641996928, 0.005400290501817238, 0.01701834339955193, -0.03919095976664437, 0.02031156960946773, -0.05278239101848644, 0.024855149041486228, -0.0629551918408421, 0.02670505017132602, -0.06124596444324582, 0.028665446825367688, -0.061451869484532365, 0.02863714911075592, -0.05654030224437267, 0.02931546423195402, -0.054006640050899855, 0.028790172714984637, -0.049357166028903394, 0.028139641201605375, -0.04464523106721301, 0.02860350948118814, -0.04247535153872653, 0.029361751218244254, -0.04076111664504954, 0.030461325526450235, -0.039184351162881735, 0.031960773915806595, -0.03881067986274499, 0.03486005896175583, -0.03831600013382363, 0.03784543703413767, -0.04349134753631713, 0.022965592242870873, -0.002380012689344049, -0.02446661093300699, -0.022191636756856314, -0.09580159599124881, 0.1652420426928929]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   7.4833459834443533E-02   3.6935542772180057E-08  -4.6169137997599305E+00   3.3532288310940056E-01   8.1462100143635141E+01 
+      1       1      9    *SANK   1.99E+02  1.00  0.037   7.8323045970884360E-03   7.1122991030324595E-09  -4.6172314259589617E+00   3.3550501055465226E-01   8.6739140678466775E+00 
+      1       2     41    *SANK   1.56E+03  1.00  0.025   9.1559255667343013E-04   1.1325302787148270E-08  -4.6174114305983132E+00   3.3537911088623884E-01   9.7099505627412763E-01 
+      1       3     71      *NK     ----    1.00  0.095   6.1487187960330544E-05   1.0529042367401877E-08  -4.6172944702257368E+00   3.3533919195205608E-01   8.7740581681836419E-02 
+      1       4    156       NK     ----    1.00  0.099   4.6671386501537170E-06   1.9725066986754634E-09  -4.6171047578941105E+00   3.3533571041264082E-01   8.8091417431348327E-03 
+      1       5    257       NK     ----    1.00  0.097   4.6381291853197769E-07   2.1676725311491372E-10  -4.6170629607410048E+00   3.3533551188783073E-01   8.7914547348029784E-04 
+      1       6    381       NK     ----    1.00  0.098   4.3529295607906894E-08   1.9417061975195616E-11  -4.6170592807540070E+00   3.3533562983650855E-01   8.4844141433359385E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.538 sec
+| Solution Time                 :      9.330 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :      9.868 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.535 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.536 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 5, "cl": -4.617059280754008, "cd": 0.33533562983650855, "cmz": -0.40440284619503764, "downforce_N_per_m": 4364.087348091225, "drag_N_per_m": 316.9623542920413, "downforce_to_drag": 13.76847215133398, "force_down_N_extruded_span": 218.20436740456125, "cpt_loss_outlet": 0.022081030193859062, "cpt_loss_outlet_flux_c_m": 0.1069942656815346, "outlet_ptot_Pa": 103186.30604638223, "outlet_mdot_kg_s": 16.48813958385806, "residual_initial": 3227838.460399259, "residual_start": 81.46210014363514, "residual_final": 8.484414143335938e-05, "residual_ratio_initial": 2.6285126246021872e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.0020000000000003583, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 10.408495347946882, "elapsed_wall_time_s": 135.93385043600574, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.04999584312234161, "maximum_height_m": 0.18810267555502314, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.030000795768948724, "maximum_section_thickness_over_reference_chord": 0.06000159153789745, "minimum_surface_gap_m": 0.001999687031244295, "te_base_thickness_m": 0.0012787647185690005, "minimum_te_taper_margin_m": -2.045366660229954e-07, "actual_chord_m": 0.5367582967241602, "chord_incidence_deg": -12.368618292537958, "box_minimum_margin_m": -4.1568776583955636e-06, "design": {"incidence": [-3.0], "shape": [-0.03060566216783276, 0.03833623308524444, -0.0009579759565554592, 0.005397910586518049, 0.017005013940771398, -0.0391968623893425, 0.020305008460895068, -0.05278556757059106, 0.024855642510373057, -0.06295543891523962, 0.02670486577173054, -0.061247015480704874, 0.028666619106774434, -0.06145221191308674, 0.028637698882699354, -0.056540817759494925, 0.029316012142008425, -0.054007241737909224, 0.028791130560136137, -0.049357669711790446, 0.028140292576035137, -0.04464595259593306, 0.028604277659248462, -0.04247612440976137, 0.02936271498276371, -0.040761982528888074, 0.03046211704182314, -0.039185356882311666, 0.03196174063881753, -0.03881155153024986, 0.03486042747219752, -0.038316458398308266, 0.037845657192516556, -0.043491223913638924, 0.022965932065597206, -0.0023796795902770894, -0.024463871133499286, -0.022189313591217584, -0.09579470307923642, 0.16524893459051565]}}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.4968251147593456E-01   7.4534956409936231E-08  -4.6170592240196013E+00   3.3529331513355454E-01   1.6294118295379246E+02 
+      1       1      9    *SANK   1.41E+02  1.00  0.024   2.1232663361680001E-02   1.6153542974668759E-08  -4.6165499781373338E+00   3.3494435436869413E-01   2.3311240612183155E+01 
+      1       2     25    *SANK   1.01E+03  1.00  0.042   3.0556651418895686E-03   1.6850849625880024E-08  -4.6157262671339812E+00   3.3507133893025798E-01   3.2775538427044362E+00 
+      1       3     65    *SANK   7.32E+03  1.00  0.038   1.3902861212420863E-04   4.0720781835491386E-08  -4.6163153752275345E+00   3.3526585636944062E-01   3.8150393623632123E-01 
+      1       4    139      *NK     ----    1.00  0.098   2.0134527427657637E-05   5.6073427413034195E-09  -4.6165606358895364E+00   3.3526729296160218E-01   3.5450941521972139E-02 
+      1       5    238       NK     ----    1.00  0.099   1.7681503937687034E-06   9.0591953708342126E-10  -4.6167567403714536E+00   3.3526794525833775E-01   3.6949485817022358E-03 
+      1       6    355       NK     ----    1.00  0.099   1.7647729917919464E-07   8.6251535870712854E-11  -4.6167670957333096E+00   3.3526786910786710E-01   3.6288771499956839E-04 
+      1       7    476       NK     ----    1.00  0.099   2.0369220612726626E-08   9.3546035745154008E-12  -4.6167688860209068E+00   3.3526782879984557E-01   3.6536149995465935E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.536 sec
+| Solution Time                 :     11.219 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     11.755 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.533 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.534 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 6, "cl": -4.616768886020907, "cd": 0.3352678287998455, "cmz": -0.4045500412106372, "downforce_N_per_m": 4363.812864290257, "drag_N_per_m": 316.89826812197157, "downforce_to_drag": 13.770390384748524, "force_down_N_extruded_span": 218.19064321451285, "cpt_loss_outlet": 0.022077438980713716, "cpt_loss_outlet_flux_c_m": 0.10697687121028272, "outlet_ptot_Pa": 103186.31283527832, "outlet_mdot_kg_s": 16.488140640427126, "residual_initial": 3227838.460399259, "residual_start": 162.94118295379246, "residual_final": 3.6536149995465935e-05, "residual_ratio_initial": 1.1319076355186218e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.0039999999999998865, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 12.292314979014918, "elapsed_wall_time_s": 148.34370453900192, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.050012470632975176, "maximum_height_m": 0.18809197333493063, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.02999760951798855, "maximum_section_thickness_over_reference_chord": 0.0599952190359771, "minimum_surface_gap_m": 0.002000347486567765, "te_base_thickness_m": 0.0012788740293275393, "minimum_te_taper_margin_m": 9.811932617288278e-08, "actual_chord_m": 0.5367553981849338, "chord_incidence_deg": -12.367207280625607, "box_minimum_margin_m": -1.1102230246251565e-16, "design": {"incidence": [-3.0], "shape": [-0.030605422314377496, 0.0383384802991985, -0.0009529261718439264, 0.0054026704171164265, 0.017031672858332465, -0.03918505714394624, 0.02031813075804039, -0.05277921446638183, 0.024854655572599398, -0.06295494476644457, 0.026705234570921506, -0.06124491340578677, 0.028664274543960946, -0.061451527055977985, 0.02863659933881248, -0.056539786729250405, 0.02931491632189962, -0.05400603836389048, 0.02878921486983314, -0.04935666234601635, 0.028138989827175616, -0.04464450953849297, 0.028602741303127815, -0.042474578667691686, 0.0293607874537248, -0.040760250761211016, 0.03046053401107733, -0.03918334544345181, 0.03195980719279567, -0.03880980819524011, 0.03485969045131414, -0.03831554186933899, 0.03784521687575878, -0.043491471158995335, 0.022965252420144543, -0.0023803457884110086, -0.024469350732514692, -0.022193959922495045, -0.09580848890326119, 0.16523515079527012]}}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   2.2448240589777657E-01   1.1150051051557966E-07  -4.6167689716164553E+00   3.3533128025556058E-01   2.4436675147358233E+02 
+      1       1      8    *SANK   1.15E+02  1.00  0.036   3.8875660150715759E-02   2.6266095445868362E-08  -4.6172972980445515E+00   3.3581824979356767E-01   4.2678973081183571E+01 
+      1       2     24    *SANK   7.69E+02  1.00  0.038   6.0948553809787361E-03   2.1850699278603782E-08  -4.6187370788634210E+00   3.3569748609821648E-01   6.5624847526186922E+00 
+      1       3     60    *SANK   5.40E+03  1.00  0.045   3.5952840339425600E-04   5.4981494678371614E-08  -4.6179116515292655E+00   3.3538682666026531E-01   6.3606474113937794E-01 
+      1       4    129      *NK     ----    1.00  0.099   3.3151971857132708E-05   9.5375845944918497E-09  -4.6175471042127603E+00   3.3536921263196701E-01   5.9481196087259193E-02 
+      1       5    227       NK     ----    1.00  0.098   2.8781031959989016E-06   1.6204226277970379E-09  -4.6172212614852723E+00   3.3536911095422667E-01   6.2962597655590279E-03 
+      1       6    334       NK     ----    1.00  0.098   3.6567453492136962E-07   1.0183809295699865E-10  -4.6172074159447511E+00   3.3536943407419517E-01   5.9837306347177333E-04 
+      1       7    450       NK     ----    1.00  0.094   3.2751425072243281E-08   1.5195947524329682E-11  -4.6172032360648014E+00   3.3536956110358168E-01   5.7611632926853846E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.538 sec
+| Solution Time                 :     11.064 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     11.602 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#                      Warning
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.532 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.533 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 7, "cl": -4.6172032360648005, "cd": 0.3353695611035816, "cmz": -0.4043291892748181, "downforce_N_per_m": 4364.223415989062, "drag_N_per_m": 316.99442644107256, "downforce_to_drag": 13.767508359647284, "force_down_N_extruded_span": 218.21117079945313, "cpt_loss_outlet": 0.022082875798443286, "cpt_loss_outlet_flux_c_m": 0.10700320463279828, "outlet_ptot_Pa": 103186.30255741702, "outlet_mdot_kg_s": 16.488138970774884, "residual_initial": 3227838.460399259, "residual_start": 244.36675147358233, "residual_final": 5.7611632926853846e-05, "residual_ratio_initial": 1.784836311781468e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.005999999999999415, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 12.137094132020138, "elapsed_wall_time_s": 160.59964175405912, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.04998752936702483, "maximum_height_m": 0.18810802666506934, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.03000238930527193, "maximum_section_thickness_over_reference_chord": 0.06000477861054386, "minimum_surface_gap_m": 0.001999059190683277, "te_base_thickness_m": 0.0012787100697128984, "minimum_te_taper_margin_m": -3.558581186953024e-07, "actual_chord_m": 0.5367597461158472, "chord_incidence_deg": -12.369323792779237, "box_minimum_margin_m": -1.2470632975172813e-05, "design": {"incidence": [-3.0], "shape": [-0.030605782094560392, 0.03833510947826741, -0.0009605008489112256, 0.005395530671218861, 0.016991684481990864, -0.03920276501204063, 0.020298447312322408, -0.05278874412269567, 0.024856135979259886, -0.06295568598963715, 0.026704681372135053, -0.061248066518163925, 0.028667791388181176, -0.06145255434164112, 0.028638248654642793, -0.05654133327461719, 0.029316560052062825, -0.0540078434249186, 0.028792088405287634, -0.04935817339467749, 0.028140943950464896, -0.044646674124653105, 0.028605045837308787, -0.04247689728079621, 0.029363678747283163, -0.0407628484127266, 0.030462908557196043, -0.03918636260174159, 0.031962707361828456, -0.038812423197754735, 0.034860795982639206, -0.0383169166627929, 0.037845877350895445, -0.04349110029096072, 0.022966271888323536, -0.0023793464912101295, -0.024461131333991585, -0.022186990425578854, -0.09578781016722404, 0.1652558264881384]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   4.8653567166387407E-01   2.4383083941353843E-07  -4.6172030523242027E+00   3.3523201740962183E-01   5.2963240129658811E+02 
+      1       1      6    *SANK   7.81E+01  1.00  0.030   1.1824585228788116E-01   7.2185038373669524E-08  -4.6165860590187222E+00   3.3431345210606972E-01   1.2952219906008210E+02 
+      1       2     19    *SANK   4.45E+02  1.00  0.050   2.1882755135998577E-02   3.4921628635149522E-08  -4.6135177003718910E+00   3.3420039070911500E-01   2.3649957559480359E+01 
+      1       3     54    *SANK   2.92E+03  1.00  0.047   2.1629544779823923E-03   9.6820216086313827E-08  -4.6144478677776384E+00   3.3504913167890177E-01   2.5020624329837293E+00 
+      1       4    102      *NK     ----    1.00  0.096   1.6872635443460597E-04   3.8005531692536966E-08  -4.6150847766322363E+00   3.3514548214130269E-01   2.4395722028521871E-01 
+      1       5    196       NK     ----    1.00  0.100   1.2319130045009643E-05   5.9518166725944951E-09  -4.6161673979949747E+00   3.3515091401979263E-01   2.4512303144773182E-02 
+      1       6    305       NK     ----    1.00  0.098   1.3584990601824890E-06   4.9055869617551763E-10  -4.6162420112519307E+00   3.3514963182705082E-01   2.3920013032628197E-03 
+      1       7    430       NK     ----    1.00  0.100   1.2640568649992890E-07   5.9733807454984987E-11  -4.6162577850340520E+00   3.3514938822368856E-01   2.3953642840089274E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.538 sec
+| Solution Time                 :     10.303 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     10.841 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.532 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.533 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 8, "cl": -4.616257785034053, "cd": 0.33514938822368856, "cmz": -0.4048074166992086, "downforce_N_per_m": 4363.329766886759, "drag_N_per_m": 316.7863169884737, "downforce_to_drag": 13.773731796141686, "force_down_N_extruded_span": 218.16648834433795, "cpt_loss_outlet": 0.022071269970994296, "cpt_loss_outlet_flux_c_m": 0.10694698898946327, "outlet_ptot_Pa": 103186.32449728898, "outlet_mdot_kg_s": 16.488142165917598, "residual_initial": 3227838.460399259, "residual_start": 529.6324012965881, "residual_final": 0.00023953642840089274, "residual_ratio_initial": 7.420954652460022e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.012999999999999644, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 11.377337138983421, "elapsed_wall_time_s": 172.09452646400314, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.05004156877658393, "maximum_height_m": 0.1880732444497688, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.029992036213890603, "maximum_section_thickness_over_reference_chord": 0.059984072427781206, "minimum_surface_gap_m": 0.0020008763820808695, "te_base_thickness_m": 0.0012790653650222898, "minimum_te_taper_margin_m": 6.278093087664933e-07, "actual_chord_m": 0.5367503265246084, "chord_incidence_deg": -12.364737973112307, "box_minimum_margin_m": -1.1102230246251565e-16, "design": {"incidence": [-3.0], "shape": [-0.030605002570830785, 0.03834241292361811, -0.0009440890485987441, 0.005411000120663586, 0.017078325964064334, -0.03916439796450278, 0.020341094778044706, -0.052768096534015686, 0.024852928431495492, -0.06295408000605326, 0.026705879969505696, -0.061241234774680096, 0.028660171559037342, -0.06145032855603766, 0.028634675137010453, -0.0565379824263225, 0.02931299863670922, -0.05400393245935767, 0.0287858624118029, -0.04935489945591169, 0.028136710016671455, -0.04464198418797282, 0.028600052679916676, -0.04247187361906973, 0.02935741427790671, -0.04075722016777618, 0.030457763707272167, -0.03917982542544706, 0.031956423662257406, -0.03880675735897306, 0.03485840066476823, -0.03831393794364277, 0.037844446321432676, -0.04349190383836905, 0.022964063040602386, -0.0023815116351453684, -0.024478940030791655, -0.022202091002230598, -0.09583261409530452, 0.16521102915359043]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   7.4806259901475314E-01   3.7277475737877711E-07  -4.6162580730808624E+00   3.3536077125156122E-01   8.1432481173531562E+02 
+      1       1      5    *SANK   6.30E+01  1.00  0.043   2.1999848605414740E-01   1.2868412588374195E-07  -4.6169974928147282E+00   3.3667726114996083E-01   2.4097555027444702E+02 
+      1       2     17    *SANK   3.19E+02  1.00  0.041   4.1109488090621961E-02   5.0928848729668899E-08  -4.6212082975172555E+00   3.3707681264751260E-01   4.4518438258641787E+01 
+      1       3     49    *SANK   2.08E+03  1.00  0.049   5.6123706972898259E-03   1.3193617645995604E-07  -4.6206397790906450E+00   3.3567545485183969E-01   6.0735412900288530E+00 
+      1       4     91    *SANK   1.52E+04  1.00  0.120   4.9322106589945176E-04   1.9719161200901937E-07  -4.6202546897583598E+00   3.3553336973535081E-01   1.5741265446379469E+00 
+      1       5    166      *NK     ----    1.00  0.098   7.9739910238128635E-05   2.9767645091621170E-08  -4.6185565917923421E+00   3.3548477995493592E-01   1.5235266705239534E-01 
+      1       6    270       NK     ----    1.00  0.096   6.4722509379819789E-06   4.0616561165783090E-09  -4.6177042162658504E+00   3.3548620731213952E-01   1.5149598152768133E-02 
+      1       7    363       NK     ----    1.00  0.100   7.3313155247428119E-07   4.6365186112966522E-10  -4.6177070860495029E+00   3.3548837382955649E-01   1.5590821325317870E-03 
+      1       8    466       NK     ----    1.00  0.096   1.7939729532551734E-07   3.1008990603595409E-11  -4.6177058014345240E+00   3.3548847205556243E-01   1.3263565090993872E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.539 sec
+| Solution Time                 :     10.775 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     11.314 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.532 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.533 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 9, "cl": -4.617705801434523, "cd": 0.3354884720555624, "cmz": -0.404071214817352, "downforce_N_per_m": 4364.698445447908, "drag_N_per_m": 317.1068221781713, "downforce_to_drag": 13.764126597678608, "force_down_N_extruded_span": 218.2349222723954, "cpt_loss_outlet": 0.022089169950423978, "cpt_loss_outlet_flux_c_m": 0.10703368891452822, "outlet_ptot_Pa": 103186.2906588351, "outlet_mdot_kg_s": 16.488136781586277, "residual_initial": 3227838.460399259, "residual_start": 814.3248117353156, "residual_final": 0.00013263565090993872, "residual_ratio_initial": 4.10911675219127e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.019999999999999872, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 11.848839535959996, "elapsed_wall_time_s": 184.05902822397184, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.04995833622382503, "maximum_height_m": 0.18812675555023117, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.03000796884028012, "maximum_section_thickness_over_reference_chord": 0.06001593768056024, "minimum_surface_gap_m": 0.001996860843880561, "te_base_thickness_m": 0.0012785188329552887, "minimum_te_taper_margin_m": -8.854488567392686e-07, "actual_chord_m": 0.5367648196276282, "chord_incidence_deg": -12.37179301361748, "box_minimum_margin_m": -4.16637761749758e-05, "design": {"incidence": [-3.0], "shape": [-0.030606201838107104, 0.0383311768538478, -0.0009693379721564079, 0.005387200967671701, 0.016945031376258995, -0.03922342419148409, 0.020275483292318094, -0.05279986205506181, 0.024857863120363793, -0.06295655075002846, 0.026704035973550862, -0.0612517451492706, 0.02867189437310478, -0.061453752841581444, 0.02864017285644482, -0.056543137577545095, 0.029318477737253226, -0.05400994932945141, 0.028795440863317874, -0.04935993628478215, 0.028143223760969057, -0.044649199475173255, 0.028607734460519927, -0.042479602329418165, 0.029367051923101253, -0.04076587900616144, 0.030465678861001207, -0.03918988261974634, 0.03196609089236672, -0.03881547403402179, 0.03486208576918511, -0.03831852058848913, 0.03784664790522155, -0.043490667611587, 0.022967461267865693, -0.0023781806444757698, -0.024451542035714622, -0.0221788593458433, -0.0957636849751807, 0.1652799481298181]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   3.6974344655136121E-01   1.8591269036187994E-07  -4.6177056530856602E+00   3.3539539843489352E-01   4.0248484500635288E+02 
+      1       1      6    *SANK   8.96E+01  1.00  0.036   7.9823718146356817E-02   4.9238912860633524E-08  -4.6172315805764992E+00   3.3471502744383475E-01   8.7565650648069280E+01 
+      1       2     20    *SANK   5.43E+02  1.00  0.047   1.4159707528424130E-02   2.5905986190965053E-08  -4.6149632743475895E+00   3.3471863542947566E-01   1.5294566396893561E+01 
+      1       3     55    *SANK   3.63E+03  1.00  0.049   1.1721184225839255E-03   7.5845912372941527E-08  -4.6158478002097567E+00   3.3529174816430268E-01   1.4841386756304020E+00 
+      1       4    104      *NK     ----    1.00  0.100   9.7604306610789786E-05   2.5548444026300486E-08  -4.6162410752988983E+00   3.3534202426119847E-01   1.4919426798836116E-01 
+      1       5    200       NK     ----    1.00  0.097   7.8010342996784018E-06   3.4592144314948020E-09  -4.6169866474012213E+00   3.3534371138893326E-01   1.4819097181223470E-02 
+      1       6    306       NK     ----    1.00  0.097   8.4504128688524007E-07   2.6763732465173591E-10  -4.6170258026871256E+00   3.3534337722181656E-01   1.4328709937646120E-03 
+      1       7    432       NK     ----    1.00  0.099   7.6111196217553830E-08   3.7744692251495907E-11  -4.6170353021557133E+00   3.3534322269525235E-01   1.4315778763371222E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.534 sec
+| Solution Time                 :     11.011 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     11.545 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.534 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.535 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 10, "cl": -4.617035302155713, "cd": 0.33534322269525235, "cmz": -0.404433602201568, "downforce_N_per_m": 4364.064683297234, "drag_N_per_m": 316.9695311327022, "downforce_to_drag": 13.768088900223596, "force_down_N_extruded_span": 218.20323416486173, "cpt_loss_outlet": 0.022081574218141352, "cpt_loss_outlet_flux_c_m": 0.10699692082600523, "outlet_ptot_Pa": 103186.30501794862, "outlet_mdot_kg_s": 16.48814252086501, "residual_initial": 3227838.460399259, "residual_start": 402.4848450063529, "residual_final": 0.00014315778763371222, "residual_ratio_initial": 4.435097647854555e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.009348252536487491, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 12.083301809965633, "elapsed_wall_time_s": 196.25942527898587, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.04999862878007328, "maximum_height_m": 0.18810442167335958, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.03000037376579393, "maximum_section_thickness_over_reference_chord": 0.06000074753158786, "minimum_surface_gap_m": 0.0019999404371696334, "te_base_thickness_m": 0.001278741610415389, "minimum_te_taper_margin_m": -2.68379481111131e-07, "actual_chord_m": 0.5367586623695448, "chord_incidence_deg": -12.368796276754042, "box_minimum_margin_m": -4.421673359594758e-06, "design": {"incidence": [-3.0], "shape": [-0.030606123432861756, 0.03833654926844223, -0.0009582605715690505, 0.005398197733010933, 0.01701020396013883, -0.03919473552978072, 0.020306338492251462, -0.052784873135448315, 0.024853432186248976, -0.06295618989990398, 0.02670348067958551, -0.06124720590803979, 0.02866489603575316, -0.06145258478575962, 0.028636688045086508, -0.05654096908538094, 0.02931523123188791, -0.05400732355489527, 0.02879026578787618, -0.049357796771040297, 0.02813968507361616, -0.04464593502031379, 0.028603575449421232, -0.0424761828825721, 0.029361810708869028, -0.04076213525840859, 0.030461200976913634, -0.03918558291955121, 0.031960663655275265, -0.038811913463119005, 0.034859905149985444, -0.038316682241528226, 0.037845929778435705, -0.043490945179085416, 0.022966137591826814, -0.002379494784546339, -0.024463593185573614, -0.022188772339726767, -0.09579231416880003, 0.16525143600240835]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.5987302211457711E-02   9.6578208350336519E-09  -4.6170353181215820E+00   3.3531759992379129E-01   1.7419029079420895E+01 
+      1       1     14    *SANK   4.30E+02  1.00  0.047   1.2095550909769640E-03   8.1950222347538118E-09  -4.6166781371198420E+00   3.3518381419123200E-01   1.3582341800145359E+00 
+      1       2     47      *NK     ----    0.49  0.094   6.1998688731148990E-04   9.1691372108348600E-09  -4.6167029136944562E+00   3.3523500883346297E-01   6.9657988326085130E-01 
+      1       3     80       NK     ----    1.00  0.086   4.4277939385494085E-05   9.1153214800711800E-09  -4.6167876538442458E+00   3.3529240958263418E-01   6.0784364691083961E-02 
+      1       4    165       NK     ----    1.00  0.097   2.8743867022363715E-06   1.4659371903130065E-09  -4.6169077769589721E+00   3.3529429716568859E-01   6.1588295918011743E-03 
+      1       5    275       NK     ----    1.00  0.098   2.4422077650859136E-07   1.7657036607498659E-10  -4.6169342474995769E+00   3.3529410755139616E-01   6.2326003643709471E-04 
+      1       6    390       NK     ----    1.00  0.100   3.6585859068435980E-08   1.3839332098713782E-11  -4.6169369092248091E+00   3.3529412791436342E-01   6.0289257315686213E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.539 sec
+| Solution Time                 :      9.476 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     10.015 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#                      Warning
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.533 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.534 sec
++--------------------------------------------------+
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+OPT_EVAL {"evaluation": 11, "cl": -4.616936909224808, "cd": 0.3352941279143634, "cmz": -0.40444567407718396, "downforce_N_per_m": 4363.9716813843725, "drag_N_per_m": 316.92312628946615, "downforce_to_drag": 13.769811412873917, "force_down_N_extruded_span": 218.19858406921864, "cpt_loss_outlet": 0.022078894395562723, "cpt_loss_outlet_flux_c_m": 0.10698390105116164, "outlet_ptot_Pa": 103186.31008393504, "outlet_mdot_kg_s": 16.488137186027224, "residual_initial": 3227838.460399259, "residual_start": 17.419029079420895, "residual_final": 6.028925731568621e-05, "residual_ratio_initial": 1.8677904131617818e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.001999999999999909, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 10.551098176976666, "elapsed_wall_time_s": 206.92608473601285, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.05000137121992669, "maximum_height_m": 0.18809557832664037, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.02999962445651277, "maximum_section_thickness_over_reference_chord": 0.05999924891302554, "minimum_surface_gap_m": 0.001999856185065821, "te_base_thickness_m": 0.001278842482583333, "minimum_te_taper_margin_m": 1.0634572714411303e-08, "actual_chord_m": 0.5367564817941816, "chord_incidence_deg": -12.367734803066941, "box_minimum_margin_m": -1.1102230246251565e-16, "design": {"incidence": [-3.0], "shape": [-0.030605080976076133, 0.03833704050902368, -0.0009551664491861015, 0.005400003355324355, 0.017013153380184498, -0.03919308662620615, 0.020310239578111337, -0.05278308545362918, 0.02485735936561031, -0.06295444085617774, 0.026706435263471048, -0.06124577401591091, 0.028667169896388962, -0.06145149661185948, 0.028638159948368765, -0.05654015091848665, 0.029316245142074537, -0.05400655823391381, 0.028791037487244594, -0.049357038969653544, 0.028140248704024352, -0.044645248642832286, 0.02860421169101537, -0.0424752930659158, 0.029362655492138935, -0.040760963915529025, 0.03046224159135974, -0.03918412512564219, 0.03196185089934886, -0.03881031792987584, 0.0348605812839679, -0.03831577629060367, 0.03784516444821852, -0.04349162627087064, 0.022965386716641265, -0.002380197495074799, -0.024466888880932663, -0.022192178008347132, -0.0958039849016852, 0.16523954128100019]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   3.1973950392509505E-02   1.9331699545741565E-08  -4.6169368773052755E+00   3.3534537243644175E-01   3.4837339415635775E+01 
+      1       1     12    *SANK   3.04E+02  1.00  0.046   3.0806140777074539E-03   1.5951837814172030E-08  -4.6175369096575158E+00   3.3561470959626949E-01   3.4065749871779123E+00 
+      1       2     54    *SANK   2.43E+03  1.00  0.032   4.1330491533816656E-04   2.7515020136620255E-08  -4.6177884552212065E+00   3.3545528691163096E-01   4.4717710858355653E-01 
+      1       3    120      *NK     ----    1.00  0.099   2.0295107044500893E-05   9.4910016958543190E-09  -4.6173716430134473E+00   3.3539374504029718E-01   4.3332644526153236E-02 
+      1       4    227       NK     ----    1.00  0.096   1.9529457175460424E-06   1.0841067604320343E-09  -4.6171529422642141E+00   3.3539216237126268E-01   4.3033797294957168E-03 
+      1       5    355       NK     ----    1.00  0.098   2.0064155634051572E-07   1.0788342137985765E-10  -4.6171359168401302E+00   3.3539230946313892E-01   4.2057712516822279E-04 
+      1       6    462       NK     ----    1.00  0.098   2.5517692927952220E-08   9.6760817541513843E-12  -4.6171342765635988E+00   3.3539233308163496E-01   4.0724186505755404E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.537 sec
+| Solution Time                 :     10.937 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     11.475 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.537 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.538 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 12, "cl": -4.617134276563599, "cd": 0.3353923330816351, "cmz": -0.40442154439316963, "downforce_N_per_m": 4364.158234827542, "drag_N_per_m": 317.01595072639594, "downforce_to_drag": 13.766367985042104, "force_down_N_extruded_span": 218.20791174137713, "cpt_loss_outlet": 0.022084170719823812, "cpt_loss_outlet_flux_c_m": 0.10700953657762176, "outlet_ptot_Pa": 103186.30010947357, "outlet_mdot_kg_s": 16.488147809843156, "residual_initial": 3227838.460399259, "residual_start": 34.837339415635775, "residual_final": 4.0724186505755404e-05, "residual_ratio_initial": 1.261655036501366e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.004000000000000669, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 12.014800486038439, "elapsed_wall_time_s": 219.05892371200025, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.0499958863402199, "maximum_height_m": 0.18811326502007877, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.030001123136237144, "maximum_section_thickness_over_reference_chord": 0.06000224627247429, "minimum_surface_gap_m": 0.00199982135180771, "te_base_thickness_m": 0.00127864075321925, "minimum_te_taper_margin_m": -5.473787380390251e-07, "actual_chord_m": 0.5367608431291332, "chord_incidence_deg": -12.369857741816372, "box_minimum_margin_m": -1.3265020078784273e-05, "design": {"incidence": [-3.0], "shape": [-0.030607165889647375, 0.03833605802786079, -0.0009613546939519995, 0.005396392110697512, 0.01700725454009316, -0.0391963844333553, 0.020302437406391587, -0.052786660817267454, 0.024849505006887648, -0.06295793894363023, 0.02670052609569997, -0.06124863780016867, 0.028662622175117353, -0.061453672959659755, 0.028635216141804254, -0.056541787252275225, 0.029314217321701284, -0.05400808887587674, 0.02878949408850777, -0.04935855457242704, 0.028139121443207966, -0.044646621397795294, 0.02860293920782709, -0.04247707269922841, 0.02936096592559912, -0.04076330660128815, 0.03046016036246753, -0.03918704071346023, 0.03195947641120168, -0.03881350899636217, 0.03485922901600298, -0.03831758819245279, 0.037846695108652885, -0.04349026408730019, 0.022966888467012368, -0.002378792074017879, -0.02446029749021457, -0.022185366671106405, -0.09578064343591486, 0.16526333072381652]}}
+-> Alpha... 0.000000 
+#
+#                      Warning
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   4.7962090139653260E-02   2.8968608245346839E-08  -4.6171343244779450E+00   3.3531546322301092E-01   5.2257277084104985E+01 
+      1       1     11    *SANK   2.49E+02  1.00  0.044   5.3034025972510850E-03   2.3496526884054864E-08  -4.6163139160076261E+00   3.3491084907072821E-01   5.8564015268205099E+00 
+      1       2     53    *SANK   1.92E+03  1.00  0.025   7.7504071414620664E-04   3.8772379934411063E-08  -4.6158327127143348E+00   3.3513607373141419E-01   8.3411128029231418E-01 
+      1       3    114      *NK     ----    1.00  0.097   3.6356800231335354E-05   1.9050420361843336E-08  -4.6164637421063190E+00   3.3524270053049787E-01   7.9985412245261886E-02 
+      1       4    217       NK     ----    1.00  0.097   3.8123013400660852E-06   1.9309645950143442E-09  -4.6168062703696435E+00   3.3524531403448854E-01   7.8581151115523929E-03 
+      1       5    342       NK     ----    1.00  0.098   3.6957125240859936E-07   1.7245763221222360E-10  -4.6168348235730301E+00   3.3524509602618630E-01   7.4907241385667889E-04 
+      1       6    453       NK     ----    1.00  0.099   3.8757933473263483E-08   2.1159007566567034E-11  -4.6168384110438998E+00   3.3524502347457885E-01   7.6172104704347245E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.543 sec
+| Solution Time                 :     10.222 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     10.765 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.533 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.534 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 13, "cl": -4.616838411043899, "cd": 0.33524502347457896, "cmz": -0.40445774533759354, "downforce_N_per_m": 4363.878579988229, "drag_N_per_m": 316.87671231655236, "downforce_to_drag": 13.771534512857535, "force_down_N_extruded_span": 218.19392899941147, "cpt_loss_outlet": 0.022076163587351063, "cpt_loss_outlet_flux_c_m": 0.10697063473086184, "outlet_ptot_Pa": 103186.31524630565, "outlet_mdot_kg_s": 16.488131928007245, "residual_initial": 3227838.460399259, "residual_start": 52.257277084104985, "residual_final": 7.617210470434725e-05, "residual_ratio_initial": 2.359848723499172e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.006000000000001429, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 11.30304356396664, "elapsed_wall_time_s": 230.47970605199225, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.05000411365978011, "maximum_height_m": 0.18808673497992118, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.02999887520838923, "maximum_section_thickness_over_reference_chord": 0.05999775041677846, "minimum_surface_gap_m": 0.0019993853497143684, "te_base_thickness_m": 0.0012789433697262137, "minimum_te_taper_margin_m": 2.8966342598569367e-07, "actual_chord_m": 0.5367543014030457, "chord_incidence_deg": -12.366673320755691, "box_minimum_margin_m": -1.1102230246251565e-16, "design": {"incidence": [-3.0], "shape": [-0.030604038519290513, 0.03833753174960512, -0.0009520723268031526, 0.0054018089776377756, 0.01701610280023017, -0.039191437722631575, 0.020314140663971213, -0.052781297771810044, 0.024861286544971637, -0.06295269181245149, 0.026709389847356588, -0.061244342123782027, 0.02866944375702477, -0.06145040843795935, 0.02863963185165102, -0.05653933275159237, 0.029317259052261162, -0.05400579291293234, 0.028791809186613004, -0.0493562811682668, 0.028140812334432545, -0.04464456226535078, 0.028604847932609513, -0.04247440324925949, 0.029363500275408842, -0.040759792572649466, 0.030463282205805842, -0.03918266733173317, 0.03196303814342245, -0.038808722396632675, 0.03486125741795036, -0.038314870339679105, 0.03784439911800134, -0.043492307362655865, 0.02296463584145571, -0.0023809002056032593, -0.024470184576291708, -0.022195583676967494, -0.09581565563457037, 0.16522764655959202]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.0391061055138140E-01   6.2939339403953418E-08  -4.6168383073501378E+00   3.3541156488792745E-01   1.1321621633496476E+02 
+      1       1     10    *SANK   1.69E+02  1.00  0.042   1.5452048802874551E-02   4.9253933529926954E-08  -4.6182651014303335E+00   3.3625182678056287E-01   1.6950962018336831E+01 
+      1       2     40    *SANK   1.20E+03  1.00  0.043   2.5853002533159026E-03   6.5397403655283408E-08  -4.6198202696079500E+00   3.3595351961931147E-01   2.7932788203346282E+00 
+      1       3     86      *NK     ----    1.00  0.099   1.4701481611797729E-04   5.9819248413058847E-08  -4.6186649939980686E+00   3.3558701574523042E-01   2.7124580916473023E-01 
+      1       4    184       NK     ----    1.00  0.099   1.3147346067278407E-05   5.9349928790994307E-09  -4.6176294440471564E+00   3.3556403443520350E-01   2.6664634151991721E-02 
+      1       5    311       NK     ----    1.00  0.100   1.3083905373026111E-06   6.9881489315984458E-10  -4.6174897948843343E+00   3.3556391401315167E-01   2.7571558644922194E-03 
+      1       6    428       NK     ----    1.00  0.097   1.6288486920849197E-07   5.7043915781224509E-11  -4.6174785261513112E+00   3.3556422071064607E-01   2.5808223131798498E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.538 sec
+| Solution Time                 :     10.445 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     10.983 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.534 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.535 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 14, "cl": -4.61747852615131, "cd": 0.33556422071064607, "cmz": -0.4043792824518283, "downforce_N_per_m": 4364.483622737674, "drag_N_per_m": 317.17842051104594, "downforce_to_drag": 13.76034225690861, "force_down_N_extruded_span": 218.2241811368837, "cpt_loss_outlet": 0.022093449377908417, "cpt_loss_outlet_flux_c_m": 0.10705461609636899, "outlet_ptot_Pa": 103186.28256892583, "outlet_mdot_kg_s": 16.48816621360221, "residual_initial": 3227838.460399259, "residual_start": 113.21621633496476, "residual_final": 0.000258082231317985, "residual_ratio_initial": 7.995512615772667e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.012999999999999703, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 11.52072535501793, "elapsed_wall_time_s": 242.11598167405464, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.04998628780073301, "maximum_height_m": 0.188144216733596, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.030003746414505594, "maximum_section_thickness_over_reference_chord": 0.06000749282901119, "minimum_surface_gap_m": 0.001999404552315917, "te_base_thickness_m": 0.0012782878708903337, "minimum_te_taper_margin_m": -1.523759650444564e-06, "actual_chord_m": 0.5367684772384322, "chord_incidence_deg": -12.373572801605382, "box_minimum_margin_m": -4.421673359600309e-05, "design": {"incidence": [-3.0], "shape": [-0.03061081448839704, 0.03833433868582574, -0.0009721841222923209, 0.005390072432600538, 0.016996931569933312, -0.039202155595866296, 0.020288783605882023, -0.05279291770363443, 0.024835759879122996, -0.06296406059667209, 0.02669018505210059, -0.06125364942261976, 0.028654663662892037, -0.06145748156831024, 0.028630064480316367, -0.05654465083640521, 0.029310668636048094, -0.05401076749931187, 0.028786793140718324, -0.04936120687728066, 0.028137148736779295, -0.04464902371898055, 0.028600712362247593, -0.04248018705752547, 0.029358009184154446, -0.040767406301366604, 0.030456518211906175, -0.039192142992141785, 0.03195532105694411, -0.038819093362713254, 0.034856862547064375, -0.038320759020688745, 0.03784937376441301, -0.043487880266051895, 0.0229695165301618, -0.002376332587168268, -0.024448762556457913, -0.022173446830935133, -0.09573979587081678, 0.16530496224874508]}}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.5987570871986087E-01   9.6554358597992324E-08  -4.6174786860610499E+00   3.3530796982357791E-01   1.7419317906248284E+02 
+      1       1      9    *SANK   1.36E+02  1.00  0.044   2.8598136217349142E-02   7.4455778490411050E-08  -4.6155877997938388E+00   3.3403807650729811E-01   3.1365393215181424E+01 
+      1       2     32    *SANK   8.99E+02  1.00  0.050   4.9994278544631945E-03   9.2125168551910654E-08  -4.6123744398273878E+00   3.3424784490691939E-01   5.4211760790761625E+00 
+      1       3     74    *SANK   6.04E+03  1.00  0.072   5.4858654300511385E-04   2.0647383645083677E-07  -4.6135907766335791E+00   3.3495797965146035E-01   8.9628360728766865E-01 
+      1       4    175      *NK     ----    1.00  0.096   3.5513749009724927E-05   2.3220893617285890E-08  -4.6159861227639922E+00   3.3506901914992948E-01   8.7551049149985016E-02 
+      1       5    280       NK     ----    1.00  0.097   3.4490315034135477E-06   2.4025913456398219E-09  -4.6164562878270718E+00   3.3507425247887029E-01   8.6768307219334366E-03 
+      1       6    407       NK     ----    1.00  0.099   4.9280086687888206E-07   1.8938690944453650E-10  -4.6164887638694942E+00   3.3507327884679927E-01   8.3130609121405885E-04 
+      1       7    525       NK     ----    1.00  0.099   5.0128133355950313E-08   2.3811716272520199E-11  -4.6164923190692351E+00   3.3507323224441177E-01   8.4115729795562080E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.541 sec
+| Solution Time                 :     11.112 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     11.653 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.533 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.534 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 15, "cl": -4.616492319069235, "cd": 0.3350732322444117, "cmz": -0.40449998084287964, "downforce_N_per_m": 4363.551450636825, "drag_N_per_m": 316.71433364898553, "downforce_to_drag": 13.777562260484709, "force_down_N_extruded_span": 218.1775725318413, "cpt_loss_outlet": 0.022066865633611998, "cpt_loss_outlet_flux_c_m": 0.10692545913836299, "outlet_ptot_Pa": 103186.33282333025, "outlet_mdot_kg_s": 16.488113098152446, "residual_initial": 3227838.460399259, "residual_start": 174.19317906248284, "residual_final": 8.411572979556208e-05, "residual_ratio_initial": 2.605946079010336e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.01999999999999798, "reach_after": null, "feasible": false, "evaluation_wall_time_s": 12.189939081901684, "elapsed_wall_time_s": 254.4212128299987, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.050013712199266994, "maximum_height_m": 0.18805578326640401, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.029996253321507352, "maximum_section_thickness_over_reference_chord": 0.059992506643014705, "minimum_surface_gap_m": 0.0019977373950916914, "te_base_thickness_m": 0.0012792965926980444, "minimum_te_taper_margin_m": 1.2663809961965984e-06, "actual_chord_m": 0.5367466714848924, "chord_incidence_deg": -12.362958064760107, "box_minimum_margin_m": -1.1102230246251565e-16, "design": {"incidence": [-3.0], "shape": [-0.030600389920540847, 0.03833925109164017, -0.0009412428984628312, 0.005408128655734749, 0.017026425770390017, -0.039185666560120576, 0.020327794464480776, -0.05277504088544307, 0.02487503167273629, -0.06294657015940963, 0.02671973089095597, -0.06123933050133094, 0.028677402269250085, -0.06144659982930886, 0.028644783513138906, -0.05653646916746238, 0.029320807737914352, -0.05400311428949721, 0.02879451013440245, -0.04935362886341318, 0.028142785040861217, -0.044642159944165524, 0.02860707477818901, -0.042471288890962425, 0.029366457016853517, -0.04075569287257101, 0.0304669243563672, -0.039177565053051616, 0.03196719349768001, -0.03880313803028159, 0.03486362388688897, -0.03831169951144315, 0.03784172046224121, -0.04349469118390416, 0.02296200777830628, -0.00238335969245287, -0.024481719510048364, -0.022207503517138766, -0.09585650319966844, 0.16518601503466346]}}
+AERODYNAMIC_DERIVATIVE_CHECK {'objective': {'central_difference_per_deg': 0.059624858524909286, 'adjoint_per_deg': 0.05918392790440143, 'relative_error': 0.007395080364402816, 'scaled_gradient_norm': 0.09348070569443345, 'error_over_scaled_gradient_norm': 0.004716808856248385}, 'loss': {'central_difference_per_deg': -0.001355082729536869, 'adjoint_per_deg': -0.001362846127821189, 'relative_error': 0.0056964598760181175, 'scaled_gradient_norm': 0.0019029842196959196, 'error_over_scaled_gradient_norm': 0.0040795915194507424}, 'primal_failed': False, 'objective_shape': {'direction': 'own adjoint gradient in the shape variables', 'adjoint_per_m': 7.235955372261425, 'base': -4.61698651139472, 'steps_m': {'1e-05': {'central_difference_per_m': 7.27547239338655, 'relative_error': 0.00543154024761966, 'forward_difference_per_m': 7.274008858004776, 'forward_relative_error': 0.005231432417280403, 'backward_difference_per_m': 7.2769359287683235, 'backward_relative_error': 0.00563156758669371, 'plus': -4.61691377130614, 'minus': -4.617059280754008}, '3e-05': {'central_difference_per_m': 7.239167398228237, 'relative_error': 0.00044370102114206966, 'forward_difference_per_m': 7.254179127110423, 'forward_relative_error': 0.002512173263118389, 'backward_difference_per_m': 7.224155669346051, 'backward_relative_error': 0.0016307042136560449, 'plus': -4.616768886020907, 'minus': -4.6172032360648005}, '1e-04': {'central_difference_per_m': 7.240082002351045, 'relative_error': 0.0005699700760681801, 'forward_difference_per_m': 7.287263606672312, 'forward_relative_error': 0.007040809442368512, 'backward_difference_per_m': 7.192900398029778, 'backward_relative_error': 0.005950143694458863, 'plus': -4.616257785034053, 'minus': -4.617705801434523}}, 'relative_error': 0.00044370102114206966, 'agreement': ['central', 'forward', 'backward']}, 'loss_shape': {'direction': 'own adjoint gradient in the shape variables', 'adjoint_per_m': 0.1328156380963657, 'base': 0.02208016449114582, 'steps_m': {'1e-05': {'central_difference_per_m': 0.13399112893143494, 'relative_error': 0.008772900448288271, 'forward_difference_per_m': 0.14097269955305747, 'forward_relative_error': 0.05786270308047632, 'backward_difference_per_m': 0.12700955830981242, 'backward_relative_error': 0.043715332544957, 'plus': 0.022081574218141352, 'minus': 0.022078894395562723}, '3e-05': {'central_difference_per_m': 0.13345220787914827, 'relative_error': 0.004770020615612667, 'forward_difference_per_m': 0.13354095593301937, 'forward_relative_error': 0.005431426123813779, 'backward_difference_per_m': 0.13336345982527717, 'backward_relative_error': 0.004107734829534101, 'plus': 0.022084170719823812, 'minus': 0.022076163587351063}, '1e-04': {'central_difference_per_m': 0.132918721482099, 'relative_error': 0.0007755369942161636, 'forward_difference_per_m': 0.13284886762596204, 'forward_relative_error': 0.0002501303186858391, 'backward_difference_per_m': 0.13298857533823594, 'backward_relative_error': 0.001300391717336553, 'plus': 0.022093449377908417, 'minus': 0.022066865633611998}}, 'relative_error': 0.0007755369942161636, 'agreement': ['central', 'forward', 'backward']}, 'verdict': 'passed'}
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   7.9941654054811656E-02   4.8359466903475497E-08  -4.6164922393804781E+00   3.3520133189407980E-01   8.7100745226375338E+01 
+      1       1     10    *SANK   1.93E+02  1.00  0.049   1.0855576144401151E-02   3.8193713264720291E-08  -4.6176630071641771E+00   3.3585721378224875E-01   1.1940203331627625E+01 
+      1       2     42    *SANK   1.40E+03  1.00  0.039   1.7311427064475107E-03   5.3680611606435880E-08  -4.6186686802412105E+00   3.3556185027227847E-01   1.8678605780173656E+00 
+      1       3     89      *NK     ----    1.00  0.097   8.4846139458102693E-05   4.4803593745542771E-08  -4.6178759143356878E+00   3.3533550533073680E-01   1.8077191522004760E-01 
+      1       4    191       NK     ----    1.00  0.097   9.0156744947326657E-06   3.9444383422927144E-09  -4.6170778762865847E+00   3.3531683417106251E-01   1.7482503226980747E-02 
+      1       5    317       NK     ----    1.00  0.100   8.8287675248078988E-07   4.1056856350541505E-10  -4.6169959704412564E+00   3.3531851467600482E-01   1.7501338311219569E-03 
+      1       6    433       NK     ----    1.00  0.097   9.1159308841901431E-08   4.5602344539172517E-11  -4.6169871552385171E+00   3.3531865714632453E-01   1.7104437890581007E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.537 sec
+| Solution Time                 :     10.523 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     11.060 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.533 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.534 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 16, "cl": -4.616987155238517, "cd": 0.3353186571463246, "cmz": -0.4044396558104859, "downforce_N_per_m": 4364.019174383571, "drag_N_per_m": 316.946311547517, "downforce_to_drag": 13.768953969130864, "force_down_N_extruded_span": 218.20095871917857, "cpt_loss_outlet": 0.022080181852293664, "cpt_loss_outlet_flux_c_m": 0.10699015590759356, "outlet_ptot_Pa": 103186.3076501029, "outlet_mdot_kg_s": 16.48813972093293, "residual_initial": 3227838.460399259, "residual_start": 87.10074522637534, "residual_final": 0.00017104437890581007, "residual_ratio_initial": 5.2990377617798504e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.00999999999999899, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 11.597138119046576, "elapsed_wall_time_s": 266.1360403710278, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.05, "maximum_height_m": 0.1881, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.029999999103508344, "maximum_section_thickness_over_reference_chord": 0.05999999820701669, "minimum_surface_gap_m": 0.001999999976379658, "te_base_thickness_m": 0.0012787920446277658, "minimum_te_taper_margin_m": -1.2887430397563564e-07, "actual_chord_m": 0.5367575720588349, "chord_incidence_deg": -12.368265540988551, "box_minimum_margin_m": -1.1102230246251565e-16, "design": {"incidence": [-3.0], "shape": [-0.030605602204468944, 0.038336794888732956, -0.000956713510377576, 0.005399100544167644, 0.017011678670161665, -0.039193911077993436, 0.0203082890351814, -0.05278397929453875, 0.024855395775929642, -0.06295531537804086, 0.02670495797152828, -0.06124648996197535, 0.02866603296607106, -0.06145204069880955, 0.028637423996727637, -0.0565405600019338, 0.029315738186981223, -0.05400694089440454, 0.028790651637560387, -0.04935741787034692, 0.028139966888820256, -0.04464559183157304, 0.0286038935702183, -0.04247573797424395, 0.02936223310050398, -0.04076154958696881, 0.030461721284136687, -0.0391848540225967, 0.03196125727731206, -0.03881111569649742, 0.03486024321697667, -0.03831622926606595, 0.03784554711332711, -0.04349128572497803, 0.02296576215423404, -0.002379846139810569, -0.02446524103325314, -0.02219047517403695, -0.09579814953524261, 0.16524548864170427]}}
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/best_feasible/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/best_feasible/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/best_feasible/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/best_feasible/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/best_feasible/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.23E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   9.1159308585917023E-08   4.5602344539172950E-11  -4.6169871552385180E+00   3.3531865714632453E-01   1.7104438122127999E-04 
+      1       1    111       NK     ----    1.00  0.097   1.2668901145704206E-08   4.3008528917461409E-12  -4.6169865518208297E+00   3.3531867084969891E-01   1.6339029225735090E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.542 sec
+| Solution Time                 :      2.111 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :      2.653 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#                      Warning
+# Symmetry boundary face BC9 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
+#
+#                      Warning
+# Symmetry boundary face BC10 of zone domain.00001 is not planar.
+# Maximum deviation from the mean normal:  1.80000E+02 degrees
+#
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.533 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.534 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 17, "cl": -4.616986551820829, "cd": 0.33531867084969885, "cmz": -0.4044396477229278, "downforce_N_per_m": 4364.018604027563, "drag_N_per_m": 316.94632450007373, "downforce_to_drag": 13.768951606903864, "force_down_N_extruded_span": 218.20093020137816, "cpt_loss_outlet": 0.022080148147528948, "cpt_loss_outlet_flux_c_m": 0.10698999352910564, "outlet_ptot_Pa": 103186.30771381901, "outlet_mdot_kg_s": 16.488139865628877, "residual_initial": 3227838.460399259, "residual_start": 0.00017104438122128, "residual_final": 1.633902922573509e-05, "residual_ratio_initial": 5.061910447561269e-12, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.0, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 3.1906671579927206, "elapsed_wall_time_s": 269.60610335005913, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.05, "maximum_height_m": 0.1881, "minimum_x_m": -0.012300000000000049, "maximum_x_m": 0.5120000000000001, "maximum_section_thickness_m": 0.029999999103508344, "maximum_section_thickness_over_reference_chord": 0.05999999820701669, "minimum_surface_gap_m": 0.001999999976379658, "te_base_thickness_m": 0.0012787920446277658, "minimum_te_taper_margin_m": -1.2887430397563564e-07, "actual_chord_m": 0.5367575720588349, "chord_incidence_deg": -12.368265540988551, "box_minimum_margin_m": -1.1102230246251565e-16, "design": {"incidence": [-3.0], "shape": [-0.030605602204468944, 0.038336794888732956, -0.000956713510377576, 0.005399100544167644, 0.017011678670161665, -0.039193911077993436, 0.0203082890351814, -0.05278397929453875, 0.024855395775929642, -0.06295531537804086, 0.02670495797152828, -0.06124648996197535, 0.02866603296607106, -0.06145204069880955, 0.028637423996727637, -0.0565405600019338, 0.029315738186981223, -0.05400694089440454, 0.028790651637560387, -0.04935741787034692, 0.028139966888820256, -0.04464559183157304, 0.0286038935702183, -0.04247573797424395, 0.02936223310050398, -0.04076154958696881, 0.030461721284136687, -0.0391848540225967, 0.03196125727731206, -0.03881111569649742, 0.03486024321697667, -0.03831622926606595, 0.03784554711332711, -0.04349128572497803, 0.02296576215423404, -0.002379846139810569, -0.02446524103325314, -0.02219047517403695, -0.09579814953524261, 0.16524548864170427]}}
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/final/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/final/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/final/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/final/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_006_levelNoTilt/cptloss_eval/final/flow_000_surf.plt
+# Tecplot surface file(s) written
+#

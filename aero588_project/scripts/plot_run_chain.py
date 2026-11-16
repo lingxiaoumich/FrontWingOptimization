@@ -167,7 +167,8 @@ for r in (10, 20, 40):
 xm = max(down(I).max(), 3.4)*1.05; ym = max(c0*v('cd', I).max(), .33)*1.08
 for r in (10, 20, 40):
     x = min(xm*.98, ym*.95*r); ax.text(x, x/r, f'$-L/D$ = {r}', fontsize=7.5, color=muted, ha='right', va='bottom')
-ax.set(xlim=(.4, xm), ylim=(0, ym), xlabel='Downforce $-C_Lc$', ylabel='$C_Dc$', title=f'(e) Drag polar (cap $C_Dc$ = {c0*settings["drag_cap"]:g})')
+ax.set(xlim=(.4, xm), ylim=(0, ym), xlabel='Downforce $-C_Lc$', ylabel='$C_Dc$', title=f'(e) Drag polar (outlet $C_{{pt}}$ loss cap {settings["loss_cap"]:.4f})' if settings.get('loss_cap') else
+       f'(e) Drag polar (cap $C_Dc$ = {c0*settings["drag_cap"]:g})')
 ax.legend(fontsize=8, frameon=False, loc='upper left', ncol=NCOL)
 
 ax = axs[5]

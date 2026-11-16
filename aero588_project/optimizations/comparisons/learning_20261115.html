@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Learnings Nov 15</title>
+<title>Learnings Nov 15–16</title>
 <style>
 :root{
   --bg:#fbfaf7; --surface:#ffffff; --ink:#1f2328; --muted:#5f6670; --faint:#8a9099;
@@ -60,13 +60,14 @@ a{color:var(--accent)}
 table.tweaks td{white-space:normal} table.tweaks td:first-child{white-space:nowrap} table.tweaks code{white-space:nowrap}
 table.tweaks th:nth-child(2),table.tweaks td:nth-child(2){width:24%} table.tweaks th:nth-child(3),table.tweaks td:nth-child(3){width:34%}
 .grp td{background:var(--chip);color:var(--muted);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+figure.wide{margin:12px 0} figure.wide img{aspect-ratio:1540/990}
 </style>
 </head>
 <body>
 <main>
 
-<h1>Learnings · 15 Nov 2026</h1>
-<p class="sub">Runs on the reduced box, based on run_003. C<sub>L</sub>c &lt; 0 = downforce. Tilt = chord angle, nose down. Grid change moves C<sub>L</sub>c 2–4 %, so smaller gaps are noise.</p>
+<h1>Learnings · 15–16 Nov 2026</h1>
+<p class="sub">Runs on the reduced box. Sections 1–3: base run_003. Section 4 (16 Nov): outlet loss sweep, base run_006. C<sub>L</sub>c &lt; 0 = downforce. Tilt = chord angle, nose down. Grid change moves C<sub>L</sub>c 2–4 %, so smaller gaps are noise.</p>
 
 <div class="base">
 <b>Base: run_003</b> · NACA 0012 at 3°, 20 FFD pairs moving x + y, tilt free · box x −12…512 mm, y 50…188 mm (floor 50 mm) · no drag cap<br>
@@ -126,7 +127,33 @@ table.tweaks th:nth-child(2),table.tweaks td:nth-child(2){width:24%} table.tweak
 <p class="k" style="font-size:13px">Figures: <a href="sensitivity_20261115/campaign.png">campaign.png</a> (progress, polar, sections) · <a href="orphans_20261115/orphans.png">orphans.png</a> (the cells that broke runs)</p>
 
 <!-- ============================================================ -->
-<h2><span class="n">4</span>Iterate GIFs: completed runs</h2>
+<h2><span class="n">4</span>Outlet C<sub>pt</sub> loss sweep (new constraint)</h2>
+<div class="base">
+<b>New base: run_006</b> · level start, 20 FFD pairs moving y only, tilt locked · same box · no cap → C<sub>L</sub>c <b>−2.309</b>, C<sub>D</sub>c <b>0.168</b>, outlet loss <b>0.0221</b><br>
+<b>Loss</b> = mass-averaged (p0<sub>∞</sub> − p0)/q<sub>∞</sub> on a plane at x = 7.3 m (14 chords behind the wing; outlet 7.5 m), full 5 m height. Replaces the drag cap; drag is still computed and plotted.
+</div>
+<div class="tw"><table>
+<tr><th>run</th><th class="num">loss cap</th><th class="num">C<sub>L</sub>c</th><th class="num">vs base</th><th class="num">C<sub>D</sub>c</th><th class="num">−C<sub>L</sub>/C<sub>D</sub></th><th class="num">tilt</th><th class="num">cap used</th></tr>
+<tr class="b"><td>run_006</td><td class="num">none (0.0221)</td><td class="num">−2.309</td><td class="num">base</td><td class="num">0.168</td><td class="num">14</td><td class="num">12.4°</td><td class="num">—</td></tr>
+<tr><td>run_012</td><td class="num">75 % · 0.0166</td><td class="num">−2.203</td><td class="num dn">−5 %</td><td class="num">0.124</td><td class="num">18</td><td class="num">10.9°</td><td class="num">100 %</td></tr>
+<tr><td>run_013</td><td class="num">50 % · 0.0110</td><td class="num">−1.980</td><td class="num dn">−14 %</td><td class="num">0.079</td><td class="num">25</td><td class="num">8.9°</td><td class="num">99 %</td></tr>
+<tr><td>run_014</td><td class="num">25 % · 0.0055</td><td class="num">−1.730</td><td class="num dn">−25 %</td><td class="num">0.037</td><td class="num">47</td><td class="num">5.4°</td><td class="num">98 %</td></tr>
+<tr><td>run_015</td><td class="num">12.5 % · 0.0028</td><td class="num">−1.254</td><td class="num dn">−46 %</td><td class="num">0.017</td><td class="num">72</td><td class="num">3.3°</td><td class="num">100 %</td></tr>
+</table></div>
+<ul>
+<li>The cap is always active: every best design ends on it.</li>
+<li>Cheap at first, steep at the end: −25 % loss costs 5 % downforce; −87.5 % loss costs 46 %.</li>
+<li>Tighter cap → lower trailing edge (188 → 99 mm), less tilt. The upper surface varies a lot between runs (run_013 thick, run_014 bump) and matters little.</li>
+<li>Per unit drag, the same trade as the drag sweep, within ~3 points (fig. b). Capping the loss ≈ capping drag here.</li>
+<li>The plane misses part of the drag: loss flux = 64 % of C<sub>D</sub>c at run_006 and 77 % at run_015. Outside the wake p0 reads above p0<sub>∞</sub>, a far-field error that grows with downforce (−8 % of run_006's value).</li>
+<li>PSQP's last iterates sit 0.4–3 % over the cap; the table shows the best design inside it (costs ≤ 0.02 C<sub>L</sub>c).</li>
+<li>Adjoint gradient of the loss checked at run_006's optimum: 0.6 % error. Near low-loss designs the loss jumps 1e-6…2e-5 between tiny steps, so the start-of-run check can't test it there; that part is report-only.</li>
+</ul>
+<figure class="wide"><a href="cptloss_20261116/loss_sweep.png"><img loading="lazy" src="cptloss_20261116/loss_sweep.png" alt="Loss sweep: downforce against loss, against drag next to the drag sweep, and best sections"></a>
+<figcaption><b>(a)</b> downforce vs loss · <b>(b)</b> downforce vs drag, % of each base, next to the drag-cap sweep · <b>(c)</b> best sections</figcaption></figure>
+
+<!-- ============================================================ -->
+<h2><span class="n">5</span>Iterate GIFs: completed runs</h2>
 <p class="k" style="font-size:13px">Panels: Cpt · Cp (maize +1, white 0, blue −10) · control points with fading history · C<sub>L</sub>c vs C<sub>D</sub>c. Click for full size.</p>
 <div class="gifs">
 <figure><a href="../run_003_ffd20Pairs/summary/plots/chain_iterates.gif"><img loading="lazy" src="../run_003_ffd20Pairs/summary/plots/chain_iterates.gif" alt="run_003 iterates"></a>
@@ -143,11 +170,19 @@ table.tweaks th:nth-child(2),table.tweaks td:nth-child(2){width:24%} table.tweak
 <figcaption><b>run_006</b> y only, tilt locked · <span>−2.309 / 0.168 · 4 grids · 192 min @48</span></figcaption></figure>
 <figure><a href="../run_011_naca0010LevelFront/summary/plots/chain_iterates.gif"><img loading="lazy" src="../run_011_naca0010LevelFront/summary/plots/chain_iterates.gif" alt="run_011 iterates"></a>
 <figcaption><b>run_011</b> NACA 0010 at 0° · <span>−2.456 / 0.186 · 4 grids · 234 min @24</span></figcaption></figure>
+<figure><a href="../run_012_cptLoss075/summary/plots/chain_iterates.gif"><img loading="lazy" src="../run_012_cptLoss075/summary/plots/chain_iterates.gif" alt="run_012 iterates"></a>
+<figcaption><b>run_012</b> loss 75 % · <span>−2.203 / 0.124 · 3 grids · 214 min @24</span></figcaption></figure>
+<figure><a href="../run_013_cptLoss050/summary/plots/chain_iterates.gif"><img loading="lazy" src="../run_013_cptLoss050/summary/plots/chain_iterates.gif" alt="run_013 iterates"></a>
+<figcaption><b>run_013</b> loss 50 % · <span>−1.980 / 0.079 · 3 grids · 169 min @24</span></figcaption></figure>
+<figure><a href="../run_014_cptLoss025/summary/plots/chain_iterates.gif"><img loading="lazy" src="../run_014_cptLoss025/summary/plots/chain_iterates.gif" alt="run_014 iterates"></a>
+<figcaption><b>run_014</b> loss 25 % · <span>−1.730 / 0.037 · 3 grids · 193 min @24</span></figcaption></figure>
+<figure><a href="../run_015_cptLoss0125/summary/plots/chain_iterates.gif"><img loading="lazy" src="../run_015_cptLoss0125/summary/plots/chain_iterates.gif" alt="run_015 iterates"></a>
+<figcaption><b>run_015</b> loss 12.5 % · <span>−1.254 / 0.017 · 2 grids · 130 min @24</span></figcaption></figure>
 </div>
 <p class="k" style="font-size:13px">Values are C<sub>L</sub>c / C<sub>D</sub>c · grids used · chain wall time @ MPI ranks.</p>
 
 <!-- ============================================================ -->
-<h2><span class="n">5</span>Solver &amp; optimizer tweaks</h2>
+<h2><span class="n">6</span>Solver &amp; optimizer tweaks</h2>
 <p class="k" style="font-size:13px">"Was" = teammates' driver (main <code>9423b9e</code>) or tool default.</p>
 <div class="tw"><table class="tweaks">
 <tr><th>item</th><th>was</th><th>now</th><th>why</th></tr>
@@ -163,6 +198,9 @@ table.tweaks th:nth-child(2),table.tweaks td:nth-child(2){width:24%} table.tweak
 <tr><td>MIT / MFV</td><td>50 / 150</td><td>500 / 2000</td><td class="wrap">The watcher decides when to stop, not PSQP</td></tr>
 <tr><td>tilt lock</td><td>pyGeo <code>freezeVars</code></td><td>equal real bounds</td><td class="wrap"><code>freezeVars</code> passed complex bounds, which crashed PSQP</td></tr>
 <tr><td>drag cap input</td><td colspan="2">input is cd; C<sub>D</sub>c = 0.5·cd (<code>--drag-cap 0.1</code> → 0.05; 10 = off)</td><td class="wrap">Easy to get wrong</td></tr>
+<tr class="grp"><td colspan="4">Outlet loss constraint (16 Nov)</td></tr>
+<tr><td>loss measure</td><td>—</td><td>ADflow user integration plane at x = 7.3 m (<code>mavgptot</code>, <code>mdot</code>, with adjoint); <code>--loss-cap</code> needs <code>--drag-cap 10</code></td><td class="wrap">The outlet is a far-field BC; ADflow's built-in outlet integrals only work on outflow BCs</td></tr>
+<tr><td>derivative check</td><td>every gradient within 5 % or the run stops</td><td>loss part report-only; C<sub>L</sub> still gates</td><td class="wrap">Loss jumps 1e-6…2e-5 between tiny steps at low-loss designs, so finite differences can't test it</td></tr>
 <tr class="grp"><td colspan="4">Chain (run_chain.py, ours)</td></tr>
 <tr><td>regrid</td><td>one grid</td><td>new pyHyp near grid at the last iterate when PSQP stalls (gain &lt; 0.005 in 15 min, after its 1st step)</td><td class="wrap">The warped mesh degrades as the shape moves</td></tr>
 <tr><td>chain end</td><td>—</td><td>stops when a run gains &lt; 0.005, or a new grid doesn't beat the earlier best by 0.005</td><td class="wrap">The 2–4 % regrid shift otherwise loops forever</td></tr>
@@ -175,22 +213,22 @@ table.tweaks th:nth-child(2),table.tweaks td:nth-child(2){width:24%} table.tweak
 </table></div>
 
 <!-- ============================================================ -->
-<h2><span class="n">6</span>Computation cost</h2>
+<h2><span class="n">7</span>Computation cost</h2>
 <p class="k" style="font-size:13px">Grid: 88.5 k cells, RANS SA. CPU: AMD EPYC 7601. Medians over all campaign evaluations.</p>
 <div class="tiles">
-<div class="tile"><div class="l">Flow solve (warm start)</div><div class="v">12 s · 17 s</div><div class="s">48 · 24 ranks; big steps or a new grid 30–70 s</div></div>
-<div class="tile"><div class="l">Adjoint (C<sub>L</sub> + C<sub>D</sub> gradients)</div><div class="v">28 s · 41 s</div><div class="s">48 · 24 ranks</div></div>
+<div class="tile"><div class="l">Flow solve (warm start)</div><div class="v">12 s · 17 s</div><div class="s">48 · 24 ranks; big steps or a new grid 30–70 s; loss runs 19 s @24</div></div>
+<div class="tile"><div class="l">Adjoint (C<sub>L</sub> + C<sub>D</sub> gradients)</div><div class="v">28 s · 41 s</div><div class="s">48 · 24 ranks; C<sub>L</sub> + loss: 49 s @24</div></div>
 <div class="tile"><div class="l">One PSQP iterate</div><div class="v">≈ 40 s · 60 s</div><div class="s">solve + adjoint, 48 · 24 ranks</div></div>
-<div class="tile"><div class="l">One optimization (chain)</div><div class="v">2.5–3.2 h · 3.6–5.2 h</div><div class="s">48 · 24 ranks; 2–5 grids, 80–135 iterates</div></div>
+<div class="tile"><div class="l">One optimization (chain)</div><div class="v">2.5–3.2 h · 3.6–5.2 h</div><div class="s">48 · 24 ranks; 2–5 grids, 80–135 iterates; loss runs 2.2–3.6 h @24</div></div>
 </div>
 <div class="tw"><table>
-<tr><th>campaign (runs 003–011)</th><th class="num"></th></tr>
-<tr><td>chains</td><td class="num">9 (7 done, run_004 stopped, run_010 failed)</td></tr>
-<tr><td>run segments (grids + retries)</td><td class="num">40</td></tr>
-<tr><td>function evaluations / flow solves / adjoints</td><td class="num">1,357 / ≈2,200 / 861</td></tr>
-<tr><td>summed run time</td><td class="num">27 h</td></tr>
-<tr><td>compute</td><td class="num">≈ 900 core-h</td></tr>
-<tr><td>wall clock (2 lanes in parallel)</td><td class="num">16.6 h · Nov 14 15:52 → Nov 15 12:28</td></tr>
+<tr><th></th><th class="num">runs 003–011</th><th class="num">loss sweep 012–015</th></tr>
+<tr><td>chains</td><td class="num">9 (7 done, run_004 stopped, run_010 failed)</td><td class="num">4 (all done, 0 failed solves)</td></tr>
+<tr><td>run segments (grids + retries)</td><td class="num">40</td><td class="num">13</td></tr>
+<tr><td>function evaluations / flow solves / adjoints</td><td class="num">1,357 / ≈2,200 / 861</td><td class="num">626 / 717 / 410</td></tr>
+<tr><td>summed run time</td><td class="num">27 h</td><td class="num">12 h</td></tr>
+<tr><td>compute</td><td class="num">≈ 900 core-h</td><td class="num">≈ 290 core-h</td></tr>
+<tr><td>wall clock (2 lanes in parallel)</td><td class="num">16.6 h · Nov 14 15:52 → Nov 15 12:28</td><td class="num">7.9 h · Nov 15 18:03 → Nov 16 01:57</td></tr>
 </table></div>
 
 </main>

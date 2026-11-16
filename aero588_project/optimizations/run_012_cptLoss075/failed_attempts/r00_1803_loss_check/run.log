@@ -1,0 +1,1431 @@
+#
+# ADflow, multiblock structured flow solver
+#
+# This code solves the 3D RANS, laminar NS or Euler equations
+# on multiblock structured hexahedral grids.
+# This is a parallel executable running on 24 processors.
+# It has been compiled with the following options:
+# - Optimized mode.
+# - Size of standard integers: 4 bytes.
+# - Size of standard floating point types: 8 bytes.
+# - With cgns support
+# - With support for signals.
+#
++----------------------------------------+
+|          All ADFLOW Options:           |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKAMGLevels': 2,
+ 'ANKAMGNSmooth': 1,
+ 'ANKASMOverlap': 1,
+ 'ANKASMOverlapCoarse': 0,
+ 'ANKCFL0': 5.0,
+ 'ANKCFLCutback': 0.5,
+ 'ANKCFLExponent': 0.5,
+ 'ANKCFLFactor': 10.0,
+ 'ANKCFLLimit': 100000.0,
+ 'ANKCFLMin': 1.0,
+ 'ANKCFLReset': True,
+ 'ANKCharTimeStepType': 'None',
+ 'ANKConstCFLStep': 0.4,
+ 'ANKCoupledSwitchTol': 1e-16,
+ 'ANKGlobalPreconditioner': 'additive Schwarz',
+ 'ANKInnerPreconIts': 1,
+ 'ANKInnerPreconItsCoarse': 1,
+ 'ANKJacobianLag': 10,
+ 'ANKLinResMax': 0.1,
+ 'ANKLinearSolveBuffer': 0.01,
+ 'ANKLinearSolveTol': 0.05,
+ 'ANKMaxIter': 40,
+ 'ANKNSubiterTurb': 1,
+ 'ANKOuterPreconIts': 1,
+ 'ANKPCILUFill': 2,
+ 'ANKPCILUFillCoarse': 0,
+ 'ANKPCUpdateCutoff': 1e-16,
+ 'ANKPCUpdateTol': 0.5,
+ 'ANKPCUpdateTolAfterCutoff': 0.0001,
+ 'ANKPhysicalLSTol': 0.2,
+ 'ANKPhysicalLSTolTurb': 0.99,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKStepFactor': 1.0,
+ 'ANKStepMin': 0.01,
+ 'ANKSubspaceSize': -1,
+ 'ANKSwitchTol': 10.0,
+ 'ANKTurbCFLScale': 1.0,
+ 'ANKTurbKSPDebug': False,
+ 'ANKUnsteadyLSTol': 1.0,
+ 'ANKUseApproxSA': False,
+ 'ANKUseFullVisc': True,
+ 'ANKUseMatrixFree': True,
+ 'ANKUseTurbDADI': True,
+ 'ASMOverlap': 1,
+ 'ASMOverlapCoarse': 0,
+ 'CFL': 1.7,
+ 'CFLCoarse': 1.0,
+ 'CFLLimit': 1.5,
+ 'GMRESOrthogonalizationType': 'modified Gram-Schmidt',
+ 'ILUFill': 4,
+ 'ILUFillCoarse': 0,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceCoarse': 0.01,
+ 'L2ConvergenceRel': 1e-10,
+ 'MGCycle': 'sg',
+ 'MGStartLevel': -1,
+ 'NKADPC': True,
+ 'NKAMGLevels': 2,
+ 'NKAMGNSmooth': 1,
+ 'NKASMOverlap': 3,
+ 'NKASMOverlapCoarse': 0,
+ 'NKFixedStep': 0.25,
+ 'NKGlobalPreconditioner': 'additive Schwarz',
+ 'NKInnerPreconIts': 1,
+ 'NKInnerPreconItsCoarse': 1,
+ 'NKJacobianLag': 20,
+ 'NKLS': 'cubic',
+ 'NKLinearSolveTol': 0.1,
+ 'NKOuterPreconIts': 1,
+ 'NKPCILUFill': 4,
+ 'NKPCILUFillCoarse': 0,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-06,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'RKReset': False,
+ 'TSStability': False,
+ 'acousticScaleFactor': 1.0,
+ 'adjointAMGLevels': 2,
+ 'adjointAMGNSmooth': 1,
+ 'adjointDivTol': 100000.0,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointL2ConvergenceAbs': 1e-16,
+ 'adjointL2ConvergenceRel': 1e-16,
+ 'adjointMaxIter': 2000,
+ 'adjointMaxL2DeviationFactor': 1.0,
+ 'adjointMonitorStep': 10,
+ 'adjointSolver': 'GMRES',
+ 'adjointSubspaceSize': 500,
+ 'alphaFollowing': True,
+ 'alphaMode': False,
+ 'altitudeMode': False,
+ 'applyAdjointPCSubspaceSize': 20,
+ 'applyPCSubspaceSize': 10,
+ 'approxPC': True,
+ 'backgroundVolScale': 1.0,
+ 'betaMode': False,
+ 'blockSplitting': True,
+ 'cavExponent': 0,
+ 'cavSensorOffset': 0.0,
+ 'cavSensorSharpness': 10.0,
+ 'cavitationNumber': 1.4,
+ 'closedSurfaceFamilies': None,
+ 'coarseDiscretization': 'central plus scalar dissipation',
+ 'computeCavitation': False,
+ 'computeSepSensorKs': False,
+ 'coupledSolution': False,
+ 'cpMinRho': 100.0,
+ 'cutCallback': None,
+ 'debugZipper': False,
+ 'deltaT': 0.01,
+ 'designSurfaceFamily': 'airfoil',
+ 'discretization': 'central plus scalar dissipation',
+ 'dissContMagnitude': 1.0,
+ 'dissContMidpoint': 3.0,
+ 'dissContSharpness': 3.0,
+ 'dissipationLumpingParameter': 6.0,
+ 'dissipationScalingExponent': 0.67,
+ 'eddyVisInfRatio': 0.009,
+ 'equationMode': 'steady',
+ 'equationType': 'RANS',
+ 'eulerWallTreatment': 'linear pressure extrapolation',
+ 'explicitSurfaceCallback': None,
+ 'firstRun': True,
+ 'flowType': 'external',
+ 'forcesAsTractions': True,
+ 'frozenTurbulence': False,
+ 'globalPreconditioner': 'additive Schwarz',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/ground.cgns',
+ 'gridPrecision': 'double',
+ 'gridPrecisionSurface': 'single',
+ 'infChangeCorrection': True,
+ 'infChangeCorrectionTol': 1e-12,
+ 'infChangeCorrectionType': 'offset',
+ 'innerPreconIts': 1,
+ 'innerPreconItsCoarse': 1,
+ 'isoVariables': [],
+ 'isosurface': {},
+ 'liftIndex': 2,
+ 'limiter': 'van Albada',
+ 'loadBalanceIter': 10,
+ 'loadImbalance': 0.1,
+ 'localPreconditioner': 'ILU',
+ 'lowSpeedPreconditioner': False,
+ 'machMode': False,
+ 'matrixOrdering': 'RCM',
+ 'maxL2DeviationFactor': 1.0,
+ 'meshMaxSkewness': 1.0,
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 10000,
+ 'nCyclesCoarse': 500,
+ 'nFloodIter': -1,
+ 'nRKReset': 5,
+ 'nRefine': 10,
+ 'nSaveSurface': 1,
+ 'nSaveVolume': 1,
+ 'nSubiter': 1,
+ 'nSubiterTurb': 3,
+ 'nTimeStepsCoarse': 48,
+ 'nTimeStepsFine': 400,
+ 'nearWallDist': 0.01,
+ 'numberSolutions': True,
+ 'outerPreconIts': 3,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/evaluations',
+ 'outputSurfaceFamily': 'allSurfaces',
+ 'overlapFactor': 0.9,
+ 'oversetDebugPrint': False,
+ 'oversetLoadBalance': True,
+ 'oversetPriority': {},
+ 'oversetProjTol': 1e-12,
+ 'oversetUpdateMode': 'frozen',
+ 'pMode': False,
+ 'partitionLikeNProc': -1,
+ 'partitionOnly': False,
+ 'preconditionerSide': 'right',
+ 'printAllOptions': True,
+ 'printBadlySkewedCells': False,
+ 'printIntro': True,
+ 'printIterations': True,
+ 'printNegativeVolumes': False,
+ 'printTiming': True,
+ 'printWarnings': True,
+ 'qMode': False,
+ 'rMode': False,
+ 'recomputeOverlapMatrix': True,
+ 'resAveraging': 'alternate',
+ 'restartAdjoint': True,
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/restart_vol.cgns',
+ 'restrictionRelaxation': 0.8,
+ 'selfZipCutoff': 120.0,
+ 'sepSensorKsOffset': 0.0,
+ 'sepSensorKsPhi': 90.0,
+ 'sepSensorKsRho': 1000.0,
+ 'sepSensorKsSharpness': 25.0,
+ 'sepSensorOffset': 0.0,
+ 'sepSensorSharpness': 10.0,
+ 'setMonitor': True,
+ 'skipAfterFailedAdjoint': True,
+ 'smoothParameter': 1.5,
+ 'smoother': 'DADI',
+ 'solutionPrecision': 'single',
+ 'solutionPrecisionSurface': 'single',
+ 'storeConvHist': True,
+ 'storeRindLayer': True,
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'timeAccuracy': 2,
+ 'timeIntegrationScheme': 'BDF',
+ 'timeIntervals': 1,
+ 'timeLimit': -1.0,
+ 'turbResScale': 10000.0,
+ 'turbulenceModel': 'SA',
+ 'turbulenceOrder': 'first order',
+ 'turbulenceProduction': 'strain',
+ 'updateWallAssociations': False,
+ 'useALE': True,
+ 'useANKSolver': True,
+ 'useApproxWallDistance': True,
+ 'useBlockettes': True,
+ 'useDiagTSPC': True,
+ 'useDissContinuation': False,
+ 'useExternalDynamicMesh': False,
+ 'useGridMotion': False,
+ 'useLinResMonitor': False,
+ 'useMatrixFreedrdw': True,
+ 'useNKSolver': True,
+ 'useOversetWallScaling': False,
+ 'useQCR': False,
+ 'useRotationSA': False,
+ 'useSkewnessCheck': False,
+ 'useTSInterpolatedGridVelocity': False,
+ 'useWallFunctions': False,
+ 'useZipperMesh': False,
+ 'useft2SA': True,
+ 'verifyExtra': True,
+ 'verifySpatial': True,
+ 'verifyState': True,
+ 'vis2': 0.25,
+ 'vis2Coarse': 0.5,
+ 'vis4': 0.0156,
+ 'viscPC': True,
+ 'viscWallTreatment': 'constant pressure extrapolation',
+ 'viscousSurfaceVelocities': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'wallDistCutoff': 1e+20,
+ 'windAxis': False,
+ 'writeSolutionDigits': 3,
+ 'writeSolutionEachIter': False,
+ 'writeSurfaceSolution': True,
+ 'writeTecplotSurfaceSolution': True,
+ 'writeVolumeSolution': True,
+ 'zipperSurfaceFamily': None}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# It is assumed that the grid is given in meters.
+#
+#
+# Specified load imbalance tolerance 0.100 achieved.
+# Continuing with 0.083 load imbalance for the cells and 0.086 for the faces
+#
+#
+# Grid level: 1, Total number of cells: 88548
+#
++--------------------------------------------------+
+  CGNS Surface Families by Boundary Condition Type
++--------------------------------------------------+
+| Wall Types           : airfoil 
+| Inflow Types         : 
+| Outflow Types        : 
+| Symmetry Types       : ground sym symmetry 
+| Farfield Types       : farfield 
+| Overset Types        : overset 
++--------------------------------------------------+
+ Flood Iteration:           1 Blanked         1727 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       84659
+ | Fringe Cells            :        2071
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1608
+ | FloodSeed Cells         :         210
+ +--------------------------------+
+ Total number of orphans:           0
+ Flood Iteration:           1 Blanked         1818 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       84659
+ | Fringe Cells            :        2071
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1608
+ | FloodSeed Cells         :         210
+ +--------------------------------+
+ Total number of orphans:           0
+ +--------------------------------+
+ | Compute Cells           :       84659
+ | Fringe Cells            :        1052
+ | Blanked Cells           :        1019
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1608
+ | FloodSeed Cells         :         210
+ +--------------------------------+
+ Total number of orphans:           0
++--------------------------------------------------+
+|
+| Initialization Times:
+|
+| Library Load Time             :      0.032 sec
+| Set Defaults Time             :      0.002 sec
+| Base Class Init Time          :      0.002 sec
+| Introductory Time             :      0.451 sec
+| Partitioning Time             :      0.024 sec
+| Preprocessing Time            :      1.022 sec
+| Family Setup Time             :      0.000 sec
+| Cut Callback Time             :      0.000 sec
+| Explicit Surface Cut Time     :      0.000 sec
+| Overset Preprocessing Time    :      0.033 sec
+| Initialize Flow Time          :      0.005 sec
+|
+| Total Init Time               :      1.571 sec
++--------------------------------------------------+
++----------------------------------------+
+|          All IDWarp Options:           |
++----------------------------------------+
+{'LdefFact': 1.0,
+ 'aExp': 3.0,
+ 'alpha': 0.25,
+ 'bExp': 5.0,
+ 'bucketSize': 8,
+ 'cornerAngle': 30.0,
+ 'errTol': 1e-05,
+ 'evalMode': 'fast',
+ 'fileType': 'CGNS',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/ground.cgns',
+ 'restartFile': None,
+ 'specifiedSurfaces': None,
+ 'symmTol': 1e-06,
+ 'symmetryPlanes': [[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                    [[0.0, 0.0, 0.05], [0.0, 0.0, 1.0]]],
+ 'symmetrySurfaces': None,
+ 'useRotations': True,
+ 'zeroCornerRotations': True}
+  -> Reading CGNS File: /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/ground.cgns
+    -> Number of Zones:           2
+#------------------------------#
+ Total Volume Nodes :    178884 
+#------------------------------#
++-------------------- Symmetry Planes -------------------+
+|           Point                        Normal          |
+| (  0.000   0.000   0.000)    (  0.000   1.000   0.000) |
+| (  0.000   0.000   0.000)    (  0.000   0.000   1.000) |
+| (  0.000   0.000   0.050)    (  0.000   0.000   1.000) |
++--------------------------------------------------------+
+#--------------------------------#
+ Unique Surface Nodes :       576 
+#--------------------------------#
+ Computing Denominator Estimate...
+ Load Balancing...
+ Finished Mesh Initialization.
+
++------------------------------------------------------------------------------+
+| pyADFLOW Warning: 'zipperSurfaceFamily' option was not given. Using all wall |
+| boundary conditions for the zipper mesh.                                     |
++------------------------------------------------------------------------------+
+
++----------------------------------------------------------------------+
+|  Switching to Aero Problem: wing                                     |
++----------------------------------------------------------------------+
+-> Alpha... 0.000000 
++----------------------------------------+
+|      All Modified ADFLOW Options:      |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKSwitchTol': 10.0,
+ 'ILUFill': 4,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceRel': 1e-10,
+ 'NKADPC': True,
+ 'NKASMOverlap': 3,
+ 'NKLinearSolveTol': 0.1,
+ 'NKPCILUFill': 4,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-06,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointMaxIter': 2000,
+ 'adjointSubspaceSize': 500,
+ 'designSurfaceFamily': 'airfoil',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/ground.cgns',
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 60000,
+ 'nearWallDist': 0.01,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/evaluations',
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/restart_vol.cgns',
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'turbResScale': 10000.0,
+ 'useNKSolver': True,
+ 'useZipperMesh': False,
+ 'viscPC': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'writeTecplotSurfaceSolution': True}
+#
+# Found restart file: /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/restart_vol.cgns
+#
+#
+#                      Warning
+# 156 type mismatches occured when reading the solution of the blocks
+#
+#
+# Grid 1: Performing 60000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.2487890367092151E-01   3.9586234764589215E-08  -4.7144766876778971E-01   1.4606394365398210E-02   1.3592082785276369E+02 
+      1       1      8    *SANK   1.22E+02  1.00  0.045   3.1602562896943728E-02   1.3170125183758008E-08  -4.6399885363799021E-01   1.4607244480342219E-02   3.4514337257291636E+01 
+      1       2     30    *SANK   6.78E+02  1.00  0.044   3.9291986341662083E-03   7.7804090358323083E-09  -4.6444291144728145E-01   1.4648604317342530E-02   4.3393487566466877E+00 
+      1       3     72    *SANK   5.07E+03  1.00  0.064   4.6658791454528751E-04   1.6493570548243459E-08  -4.6781466035490604E-01   1.4732683800203376E-02   5.8530412604690929E-01 
+      1       4    132      *NK     ----    1.00  0.096   4.1991685434630188E-05   8.3082904760297795E-10  -4.6614120048276347E-01   1.4732784332986339E-02   6.1129105474636257E-02 
+      1       5    205       NK     ----    1.00  0.097   5.3082740316698862E-06   3.3687488682146744E-11  -4.6596192806523551E-01   1.4730919943189588E-02   5.9477560326546500E-03 
+      1       6    295       NK     ----    1.00  0.100   1.7478631962970641E-06   1.6687412634881488E-12  -4.6595584588425726E-01   1.4731004616910692E-02   5.9312093636582997E-04 
+      1       7    402       NK     ----    1.00  0.100   1.7517972231195120E-07   1.7247736753626443E-13  -4.6595516403267745E-01   1.4730987572837121E-02   5.9117462271555185E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.092 sec
+| Solution Time                 :     23.770 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     24.861 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.003 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.005 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 0, "cl": -0.46595516403267745, "cd": 0.014730987572837124, "cmz": -0.06959161177540804, "downforce_N_per_m": 440.42515213291676, "drag_N_per_m": 13.923866379512644, "downforce_to_drag": 31.63095221747828, "force_down_N_extruded_span": 22.02125760664584, "cpt_loss_outlet": 0.0006240696657984093, "cpt_loss_outlet_flux_c_m": 0.0030712481698214247, "outlet_ptot_Pa": 103226.86868345269, "outlet_mdot_kg_s": 16.74604762275151, "residual_initial": 2010481.965765758, "residual_start": 135.9208278527637, "residual_final": 5.9117462271555185e-05, "residual_ratio_initial": 2.940462201511883e-11, "cfd_failed": false, "feasible": true, "evaluation_wall_time_s": 24.868974837008864, "elapsed_wall_time_s": 31.56563202594407, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.049999999999999975, "maximum_height_m": 0.11001654839237948, "minimum_x_m": -0.012300000000000033, "maximum_x_m": 0.512, "maximum_section_thickness_m": 0.06001654839237951, "maximum_section_thickness_over_reference_chord": 0.12003309678475901, "minimum_surface_gap_m": 0.00531011596920667, "te_base_thickness_m": 0.001260000000000025, "minimum_te_taper_margin_m": 0.0012614625013436472, "actual_chord_m": 0.5243, "chord_incidence_deg": -4.549715832724848e-15, "box_minimum_margin_m": -3.2959746043559335e-17, "design": {"incidence": [-3.0], "shape": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/baseline/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/baseline/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/baseline/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/baseline/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/baseline/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.2474632784638963E-01   3.9392682496750061E-08  -4.6595450512891895E-01   1.4893607822642306E-02   1.3577635042535672E+02 
+      1       1      8    *SANK   1.22E+02  1.00  0.045   3.1573979766714021E-02   1.3126766902133415E-08  -4.7340007744927570E-01   1.4896392028689080E-02   3.4482410689806102E+01 
+      1       2     30    *SANK   6.78E+02  1.00  0.044   3.9239236450367100E-03   7.7433388850076367E-09  -4.7295070592240029E-01   1.4855496646798003E-02   4.3340405052451541E+00 
+      1       3     72    *SANK   5.08E+03  1.00  0.064   4.6469175621659047E-04   1.6461573256143503E-08  -4.6958928826148355E-01   1.4769686741570519E-02   5.8339213267302215E-01 
+      1       4    132      *NK     ----    1.00  0.098   4.2296790518783886E-05   7.8274425451650979E-10  -4.7126340880689893E-01   1.4769281328329265E-02   6.2713360440123919E-02 
+      1       5    205       NK     ----    1.00  0.098   5.5170613861927970E-06   3.1586577057251754E-11  -4.7143708037515258E-01   1.4770987013626193E-02   6.1556573644626876E-03 
+      1       6    294       NK     ----    1.00  0.098   1.7921014894617102E-06   2.6645379693671859E-12  -4.7144635207417418E-01   1.4770906163353104E-02   6.0494548247973061E-04 
+      1       7    399       NK     ----    1.00  0.100   1.7714599119657846E-07   2.4317636226243382E-13  -4.7144703669519483E-01   1.4770929862725417E-02   6.0499663533140818E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.027 sec
+| Solution Time                 :     18.271 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     19.298 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.018 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.019 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 1, "cl": -0.47144703669519467, "cd": 0.014770929862725417, "cmz": -0.06962358073410216, "downforce_N_per_m": 445.6161212209085, "drag_N_per_m": 13.961620203181727, "downforce_to_drag": 31.917221263428768, "force_down_N_extruded_span": 22.280806061045425, "cpt_loss_outlet": 0.0006446485567506285, "cpt_loss_outlet_flux_c_m": 0.0031725467175496456, "outlet_ptot_Pa": 103226.82978073467, "outlet_mdot_kg_s": 16.7461700089662, "residual_initial": 2010481.965765758, "residual_start": 135.77635042535672, "residual_final": 6.049966353314082e-05, "residual_ratio_initial": 3.009211948344811e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.020000000000000018, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 20.319436745950952, "elapsed_wall_time_s": 52.23921732092276, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.05000662085006821, "maximum_height_m": 0.11002316558603051, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.06001654839237948, "maximum_section_thickness_over_reference_chord": 0.12003309678475896, "minimum_surface_gap_m": 0.005310115969206701, "te_base_thickness_m": 0.0012600000000000046, "minimum_te_taper_margin_m": 0.0012614625013436412, "actual_chord_m": 0.5243, "chord_incidence_deg": -0.020000000000000333, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+-> Alpha... 0.000000 
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving ADjoint Transpose with PETSc...
+   0 KSP Residual norm 3.0719406412E+00
+  10 KSP Residual norm 3.0471254942E+00
+  20 KSP Residual norm 3.0195048544E+00
+  30 KSP Residual norm 3.0050387176E+00
+  40 KSP Residual norm 2.9034515165E+00
+  50 KSP Residual norm 2.4076809438E+00
+  60 KSP Residual norm 1.5992726905E+00
+  70 KSP Residual norm 8.9914805164E-01
+  80 KSP Residual norm 5.3081426727E-01
+  90 KSP Residual norm 3.0891867706E-01
+ 100 KSP Residual norm 2.1350288304E-01
+ 110 KSP Residual norm 1.7065275105E-01
+ 120 KSP Residual norm 1.3240594165E-01
+ 130 KSP Residual norm 8.3532668540E-02
+ 140 KSP Residual norm 4.3746343021E-02
+ 150 KSP Residual norm 2.2236295682E-02
+ 160 KSP Residual norm 1.2730331236E-02
+ 170 KSP Residual norm 7.4933332087E-03
+ 180 KSP Residual norm 4.0506559481E-03
+ 190 KSP Residual norm 2.0378500808E-03
+ 200 KSP Residual norm 9.6163442100E-04
+ 210 KSP Residual norm 4.3072537066E-04
+ 220 KSP Residual norm 1.9326162798E-04
+ 230 KSP Residual norm 8.8940127708E-05
+ 240 KSP Residual norm 4.2465247555E-05
+ 250 KSP Residual norm 2.3331096573E-05
+ 260 KSP Residual norm 1.4557134976E-05
+ 270 KSP Residual norm 9.5869638965E-06
+ 280 KSP Residual norm 6.0358549221E-06
+ 290 KSP Residual norm 3.5832589497E-06
+ 300 KSP Residual norm 2.0065858184E-06
+ 310 KSP Residual norm 1.1143092610E-06
+ 320 KSP Residual norm 5.5505959328E-07
+Solving ADjoint Transpose with PETSc time (s) =    38.33
+ Norm of error = 2.8856E-07    Iterations =  328
+ ------------------------------------------------
+ PETSc solver converged after   328 iterations.
+ ------------------------------------------------
+Solving adjoint: ptot_outlet
+-> Alpha... 0.000000 
+Solving ADjoint Transpose with PETSc...
+   0 KSP Residual norm 7.4964024318E+03
+  10 KSP Residual norm 5.4875289604E+03
+  20 KSP Residual norm 4.1064714448E+03
+  30 KSP Residual norm 1.7856527359E+03
+  40 KSP Residual norm 9.3819014852E+02
+  50 KSP Residual norm 5.0548820104E+02
+  60 KSP Residual norm 2.5726543954E+02
+  70 KSP Residual norm 1.2787416922E+02
+  80 KSP Residual norm 6.4743579005E+01
+  90 KSP Residual norm 3.8394475634E+01
+ 100 KSP Residual norm 2.4407092059E+01
+ 110 KSP Residual norm 1.6185937290E+01
+ 120 KSP Residual norm 1.0546409997E+01
+ 130 KSP Residual norm 6.9741346524E+00
+ 140 KSP Residual norm 4.6077097404E+00
+ 150 KSP Residual norm 2.7567207221E+00
+ 160 KSP Residual norm 1.7112845077E+00
+ 170 KSP Residual norm 1.1746994070E+00
+ 180 KSP Residual norm 8.8291438799E-01
+ 190 KSP Residual norm 6.6699855378E-01
+ 200 KSP Residual norm 4.5633223469E-01
+ 210 KSP Residual norm 2.6582939458E-01
+ 220 KSP Residual norm 1.3651331317E-01
+ 230 KSP Residual norm 7.2681332157E-02
+ 240 KSP Residual norm 3.7762677455E-02
+ 250 KSP Residual norm 2.1117101216E-02
+ 260 KSP Residual norm 1.1652275360E-02
+ 270 KSP Residual norm 5.6608179158E-03
+ 280 KSP Residual norm 2.8959137240E-03
+ 290 KSP Residual norm 1.5386342005E-03
+ 300 KSP Residual norm 8.4988921084E-04
+Solving ADjoint Transpose with PETSc time (s) =    33.75
+ Norm of error = 7.1480E-04    Iterations =  303
+ ------------------------------------------------
+ PETSc solver converged after   303 iterations.
+ ------------------------------------------------
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     42.812 sec
+| Total Sensitivity Time - cl_wing:      1.304 sec
+| Adjoint Solve Time - ptot_outlet:     33.868 sec
+| Total Sensitivity Time - ptot_outlet:      1.293 sec
+|
+| Complete Sensitivity Time     :     80.737 sec
++--------------------------------------------------+
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/iterates/eval_001/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/iterates/eval_001/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/iterates/eval_001/flow_000_slices.dat
+# Slices file(s) written
+#
+OPT_GRADIENT 2 failed False
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   6.2439338466000603E-02   1.9724749173014773E-08  -4.7144734979788216E-01   1.4688661532192048E-02   6.7960178354785100E+01 
+      1       1      9    *SANK   1.72E+02  1.00  0.041   1.1717427546940965E-02   5.6557513193368685E-09  -4.6757769032838098E-01   1.4687472524742212E-02   1.2818319781764513E+01 
+      1       2     33    *SANK   1.11E+03  1.00  0.046   1.2664235961610971E-03   4.3487236642794164E-09  -4.6882247851630776E-01   1.4744681570669755E-02   1.4066601415956983E+00 
+      1       3     78      *NK     ----    1.00  0.093   8.1153402228109083E-05   5.5032748357768224E-10  -4.6883060606178745E-01   1.4750585252463078E-02   1.3114092358274368E-01 
+      1       4    136       NK     ----    1.00  0.098   1.0124852704836372E-05   4.7480184854618358E-11  -4.6873661097407054E-01   1.4750790492060720E-02   1.2897917593239822E-02 
+      1       5    206       NK     ----    1.00  0.094   2.1557691330543074E-06   5.9044531543195830E-12  -4.6870102712042694E-01   1.4750929863892735E-02   1.2102664739163543E-03 
+      1       6    310       NK     ----    1.00  0.099   2.9832245039800123E-07   5.0076911032273056E-13  -4.6870261633361654E-01   1.4750976047176565E-02   1.1977494921625373E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.047 sec
+| Solution Time                 :     16.240 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     17.287 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.017 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.018 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 2, "cl": -0.46870261633361654, "cd": 0.014750976047176567, "cmz": -0.06960810968394124, "downforce_N_per_m": 443.0220695855457, "drag_N_per_m": 13.942759671252698, "downforce_to_drag": 31.774345971047065, "force_down_N_extruded_span": 22.151103479277285, "cpt_loss_outlet": 0.000642776315495463, "cpt_loss_outlet_flux_c_m": 0.0031633201996874253, "outlet_ptot_Pa": 103226.83332005434, "outlet_mdot_kg_s": 16.74610358579128, "residual_initial": 2010481.965765758, "residual_start": 67.9601783547851, "residual_final": 0.00011977494921625373, "residual_ratio_initial": 5.957524178568471e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.009999999999999787, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 18.30736713099759, "elapsed_wall_time_s": 155.66281075496227, "incidence_variable_deg": -3.0100000000000002, "minimum_clearance_m": 0.05000330996867242, "maximum_height_m": 0.11001985744694763, "minimum_x_m": -0.012300005243472495, "maximum_x_m": 0.5120000967267242, "maximum_section_thickness_m": 0.06001654839237951, "maximum_section_thickness_over_reference_chord": 0.12003309678475901, "minimum_surface_gap_m": 0.005310115969206689, "te_base_thickness_m": 0.0012600000000000096, "minimum_te_taper_margin_m": 0.0012614625013436366, "actual_chord_m": 0.5243000000000001, "chord_incidence_deg": -0.010000000000002294, "box_minimum_margin_m": -9.672672418581385e-08, "design": {"incidence": [-3.0100000000000002], "shape": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.2481260917143684E-01   3.9421485044737228E-08  -4.6870195224952699E-01   1.4914555094429655E-02   1.3584847037106798E+02 
+      1       1      8    *SANK   1.22E+02  1.00  0.045   3.1589463081081320E-02   1.3145804251528212E-08  -4.7614871727292146E-01   1.4918111466564209E-02   3.4499448157528192E+01 
+      1       2     30    *SANK   6.78E+02  1.00  0.044   3.9121896478580059E-03   7.7488722978289200E-09  -4.7570324013895315E-01   1.4876204489477660E-02   4.3211168143973664E+00 
+      1       3     72    *SANK   5.08E+03  1.00  0.064   4.6747253629576574E-04   1.6468265418443376E-08  -4.7233518786579221E-01   1.4790094469241392E-02   5.8600602339800323E-01 
+      1       4    132      *NK     ----    1.00  0.099   4.2551537218648852E-05   7.5740848627308633E-10  -4.7401045823156068E-01   1.4789194928962267E-02   6.3245346479347014E-02 
+      1       5    205       NK     ----    1.00  0.099   5.5718247924141473E-06   3.1608397224804310E-11  -4.7418133836162546E-01   1.4790984060264648E-02   6.2370659458447098E-03 
+      1       6    293       NK     ----    1.00  0.098   1.8149655875832612E-06   1.5836502879189878E-12  -4.7419095691372781E-01   1.4790922944092375E-02   6.1378441417911486E-04 
+      1       7    399       NK     ----    1.00  0.099   1.7996554986452335E-07   2.4517552257036553E-13  -4.7419161450342384E-01   1.4790941986008303E-02   6.0900532641346139E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.023 sec
+| Solution Time                 :     19.116 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     20.139 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.020 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.021 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 3, "cl": -0.4741916145034238, "cd": 0.014790941986008305, "cmz": -0.06963847780878031, "downforce_N_per_m": 448.2103216763093, "drag_N_per_m": 13.980535848122944, "downforce_to_drag": 32.059595322055344, "force_down_N_extruded_span": 22.410516083815466, "cpt_loss_outlet": 0.0006465012673937917, "cpt_loss_outlet_flux_c_m": 0.0031816770888536683, "outlet_ptot_Pa": 103226.82627833603, "outlet_mdot_kg_s": 16.7462358946202, "residual_initial": 2010481.965765758, "residual_start": 135.84847037106798, "residual_final": 6.090053264134614e-05, "residual_ratio_initial": 3.02915090402963e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.019999999999999574, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 21.161758709931746, "elapsed_wall_time_s": 176.89554540603422, "incidence_variable_deg": -3.03, "minimum_clearance_m": 0.05000993264408646, "maximum_height_m": 0.1100264728095274, "minimum_x_m": -0.012300003183225385, "maximum_x_m": 0.5120002548140787, "maximum_section_thickness_m": 0.06001654839237951, "maximum_section_thickness_over_reference_chord": 0.12003309678475901, "minimum_surface_gap_m": 0.005310115969206686, "te_base_thickness_m": 0.001260000000000008, "minimum_te_taper_margin_m": 0.0012614625013436537, "actual_chord_m": 0.5243, "chord_incidence_deg": -0.03000000000000047, "box_minimum_margin_m": -2.5481407872618433e-07, "design": {"incidence": [-3.03], "shape": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   6.3373170065138748E-02   2.1195489408357806E-08  -4.7419192325691983E-01   1.4708016214248876E-02   6.8976014519229338E+01 
+      1       1     10    *SANK   1.71E+02  1.00  0.042   1.2314613350632633E-02   6.5305167313172653E-09  -4.7016715924358515E-01   1.4703135615292469E-02   1.3468332013515287E+01 
+      1       2     35    *SANK   1.09E+03  1.00  0.041   1.3329650974177698E-03   5.4135955103892526E-09  -4.7132471383066571E-01   1.4753193859010650E-02   1.4733739288541099E+00 
+      1       3     80      *NK     ----    1.00  0.089   7.6504249304122930E-05   5.6723994922510349E-10  -4.7116793671829366E-01   1.4767296675262241E-02   1.3211664498336492E-01 
+      1       4    142       NK     ----    1.00  0.088   8.9296227680636575E-06   5.3571480057693124E-11  -4.7099911233998415E-01   1.4767494395400434E-02   1.1590142289778475E-02 
+      1       5    215       NK     ----    1.00  0.096   2.2625215694897554E-06   4.5863360010761128E-12  -4.7097554776396444E-01   1.4767649119488429E-02   1.1162268412427639E-03 
+      1       6    322       NK     ----    1.00  0.099   2.7361324135235827E-07   4.7770537625985166E-13  -4.7097435564807844E-01   1.4767606282513560E-02   1.1016618529763561E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.018 sec
+| Solution Time                 :     17.046 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     18.064 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.019 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.020 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 4, "cl": -0.47097435564807855, "cd": 0.014767606282513564, "cmz": -0.06953095512990962, "downforce_N_per_m": 445.16933870156754, "drag_N_per_m": 13.958478724272549, "downforce_to_drag": 31.892396549450464, "force_down_N_extruded_span": 22.258466935078378, "cpt_loss_outlet": 0.0006411033942061692, "cpt_loss_outlet_flux_c_m": 0.0031550994708618267, "outlet_ptot_Pa": 103226.83648257585, "outlet_mdot_kg_s": 16.746168785458, "residual_initial": 2010481.965765758, "residual_start": 68.97601451922934, "residual_final": 0.00011016618529763561, "residual_ratio_initial": 5.479590823172354e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.010049875621120677, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 19.085972403991036, "elapsed_wall_time_s": 196.21858499897644, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.05000717810423641, "maximum_height_m": 0.11002355098645936, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.060016375743452983, "maximum_section_thickness_over_reference_chord": 0.12003275148690597, "minimum_surface_gap_m": 0.00531001360683316, "te_base_thickness_m": 0.0012600004267343486, "minimum_te_taper_margin_m": 0.0012614489915640228, "actual_chord_m": 0.5242999983974862, "chord_incidence_deg": -0.019491852671905608, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [1.2559594218163127e-07, 1.12856367171197e-07, 3.857344251450381e-07, 3.0685357975730557e-07, 4.7081765204473756e-07, 3.096805635600447e-07, 5.887973772793652e-07, 3.2473216492086535e-07, 6.270577969966088e-07, 3.0577303955988304e-07, 6.485012935443465e-07, 2.998567640441104e-07, 6.475034966173004e-07, 3.013964688614972e-07, 5.953852414694251e-07, 2.8498506809166624e-07, 5.376042996996458e-07, 2.762142592931197e-07, 4.6506149862394024e-07, 2.632012500794964e-07, 4.007127943089154e-07, 2.572971918708508e-07, 3.429881937510983e-07, 2.550166520987045e-07, 2.9787191863543483e-07, 2.6091796352575505e-07, 2.7529583049685385e-07, 2.7937256836435254e-07, 2.848013267341913e-07, 3.231296069024725e-07, 3.772424755493368e-07, 4.429080165230143e-07, 6.952668426139798e-07, 7.933813847832938e-07, 1.295266934731926e-06, 1.4193230504830655e-06, -2.5374834315473135e-07, -1.229641453411915e-07, -6.714096980033087e-06, -6.719914623400985e-06]}}
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.4894216686651635E-02   8.8305371098354450E-09  -4.7097436932139725E-01   1.4767963896109923E-02   1.6209373541901950E+01 
+      1       1     12    *SANK   3.52E+02  1.00  0.046   1.2641279282400856E-03   3.1192532756612177E-09  -4.7122391299498451E-01   1.4774247622295081E-02   1.4144230646647928E+00 
+      1       2     47      *NK     ----    1.00  0.098   8.8861437390734907E-05   3.6955403795796573E-10  -4.7170694568125610E-01   1.4774901758150221E-02   1.3811789426403409E-01 
+      1       3     94       NK     ----    1.00  0.091   8.1337244010159806E-06   6.2037678391309024E-11  -4.7187636657959164E-01   1.4773548260124357E-02   1.2574032355035573E-02 
+      1       4    161       NK     ----    1.00  0.094   1.0630572370473070E-06   5.1112541918031265E-12  -4.7191649295301547E-01   1.4774162978959620E-02   1.1802257516934117E-03 
+      1       5    241       NK     ----    1.00  0.098   3.3133749923220427E-07   3.4895477312894070E-13  -4.7191879147578264E-01   1.4774233648334092E-02   1.1607102773740454E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.022 sec
+| Solution Time                 :     12.680 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     13.702 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.019 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.020 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 5, "cl": -0.4719187914757825, "cd": 0.014774233648334098, "cmz": -0.0697161017968891, "downforce_N_per_m": 446.06202822451723, "drag_N_per_m": 13.964742972047995, "downforce_to_drag": 31.942014909788213, "force_down_N_extruded_span": 22.303101411225864, "cpt_loss_outlet": 0.0006467969334851758, "cpt_loss_outlet_flux_c_m": 0.003183119705531158, "outlet_ptot_Pa": 103226.82571940335, "outlet_mdot_kg_s": 16.74617030182578, "residual_initial": 2010481.965765758, "residual_start": 16.20937354190195, "residual_final": 0.00011607102773740454, "residual_ratio_initial": 5.773293653653595e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.002, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 14.72356578905601, "elapsed_wall_time_s": 211.05831009801477, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.0500060635959, "maximum_height_m": 0.11002278018560166, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.060016719450752626, "maximum_section_thickness_over_reference_chord": 0.12003343890150525, "minimum_surface_gap_m": 0.0053100055147887164, "te_base_thickness_m": 0.0012599995732656606, "minimum_te_taper_margin_m": 0.0012614481293785431, "actual_chord_m": 0.5243000016437532, "chord_incidence_deg": -0.020508147324956386, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [-1.2559594218163127e-07, -1.12856367171197e-07, -3.857344251450381e-07, -3.0685357975730557e-07, -4.7081765204473756e-07, -3.096805635600447e-07, -5.887973772793652e-07, -3.2473216492086535e-07, -6.270577969966088e-07, -3.0577303955988304e-07, -6.485012935443465e-07, -2.998567640441104e-07, -6.475034966173004e-07, -3.013964688614972e-07, -5.953852414694251e-07, -2.8498506809166624e-07, -5.376042996996458e-07, -2.762142592931197e-07, -4.6506149862394024e-07, -2.632012500794964e-07, -4.007127943089154e-07, -2.572971918708508e-07, -3.429881937510983e-07, -2.550166520987045e-07, -2.9787191863543483e-07, -2.6091796352575505e-07, -2.7529583049685385e-07, -2.7937256836435254e-07, -2.848013267341913e-07, -3.231296069024725e-07, -3.772424755493368e-07, -4.429080165230143e-07, -6.952668426139798e-07, -7.933813847832938e-07, -1.295266934731926e-06, -1.4193230504830655e-06, 2.5374834315473135e-07, 1.229641453411915e-07, 6.714096980033087e-06, 6.719914623400985e-06]}}
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   2.9798107917590005E-02   1.7660146887419830E-08  -4.7191876413008099E-01   1.4773500853185564E-02   3.2429243217876952E+01 
+      1       1     11    *SANK   2.49E+02  1.00  0.046   3.7027493985030292E-03   6.4082897680805609E-09  -4.7143238319578307E-01   1.4764262854746349E-02   4.0949248319987674E+00 
+      1       2     46    *SANK   1.86E+03  1.00  0.032   4.1001323651274947E-04   8.3885165860955584E-09  -4.7096865557260825E-01   1.4751984895203338E-02   4.4993747807101003E-01 
+      1       3    102      *NK     ----    1.00  0.100   3.1787242460871197E-05   4.9558531297079646E-10  -4.7016778352017263E-01   1.4761494227919877E-02   4.4949976693005017E-02 
+      1       4    161       NK     ----    1.00  0.099   3.5147725482202406E-06   3.2478528724549358E-11  -4.7003201303415093E-01   1.4761058369667259E-02   4.4525704846017323E-03 
+      1       5    232       NK     ----    1.00  0.093   1.0957620489869155E-06   1.4078262009139060E-12  -4.7003178516857769E-01   1.4761028545478647E-02   4.1420652685935998E-04 
+      1       6    336       NK     ----    1.00  0.097   1.0618906602782018E-07   1.3791922568847285E-13  -4.7003170215695855E-01   1.4761032124867965E-02   4.0118938053573089E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.023 sec
+| Solution Time                 :     15.832 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     16.855 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.015 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.016 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 6, "cl": -0.47003170215695844, "cd": 0.014761032124867967, "cmz": -0.06934604379248091, "downforce_N_per_m": 444.27833385972383, "drag_N_per_m": 13.952264769358628, "downforce_to_drag": 31.842739598479312, "force_down_N_extruded_span": 22.213916692986192, "cpt_loss_outlet": 0.0006404017356507689, "cpt_loss_outlet_flux_c_m": 0.0031516450219722823, "outlet_ptot_Pa": 103226.83780900422, "outlet_mdot_kg_s": 16.746161687849714, "residual_initial": 2010481.965765758, "residual_start": 32.42924321787695, "residual_final": 4.011893805357309e-05, "residual_ratio_initial": 1.9954885811817008e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.004, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 17.873519192100503, "elapsed_wall_time_s": 229.0451988959685, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.05000829261257283, "maximum_height_m": 0.11002432178731705, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.060016030458683235, "maximum_section_thickness_over_reference_chord": 0.12003206091736647, "minimum_surface_gap_m": 0.005309808511634826, "te_base_thickness_m": 0.001260001280203037, "minimum_te_taper_margin_m": 0.0012614219708307148, "actual_chord_m": 0.5242999953161773, "chord_incidence_deg": -0.01847555800658349, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [3.7678782654489384e-07, 3.38569101513591e-07, 1.1572032754351143e-06, 9.205607392719166e-07, 1.4124529561342126e-06, 9.290416906801342e-07, 1.7663921318380956e-06, 9.74196494762596e-07, 1.8811733909898263e-06, 9.173191186796491e-07, 1.9455038806330393e-06, 8.995702921323312e-07, 1.942510489851901e-06, 9.041894065844914e-07, 1.7861557244082752e-06, 8.549552042749986e-07, 1.6128128990989374e-06, 8.286427778793591e-07, 1.3951844958718207e-06, 7.89603750238489e-07, 1.2021383829267462e-06, 7.718915756125523e-07, 1.0289645812532948e-06, 7.650499562961134e-07, 8.936157559063045e-07, 7.827538905772651e-07, 8.258874914905614e-07, 8.381177050930576e-07, 8.544039802025738e-07, 9.693888207074172e-07, 1.1317274266480103e-06, 1.3287240495690428e-06, 2.0858005278419392e-06, 2.3801441543498815e-06, 3.885800804195778e-06, 4.257969151449196e-06, -7.61245029464194e-07, -3.688924360235745e-07, -2.014229094009926e-05, -2.0159743870202955e-05]}}
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   4.4666956826666403E-02   2.6537780550880945E-08  -4.7003174317595758E-01   1.4762078580689062E-02   4.8610940403351144E+01 
+      1       1     11    *SANK   2.03E+02  1.00  0.041   7.0280384789871845E-03   9.8645868269032156E-09  -4.7075567638588722E-01   1.4774415390035576E-02   7.7166932337761027E+00 
+      1       2     39    *SANK   1.41E+03  1.00  0.048   9.0395318953289359E-04   1.1954416900095663E-08  -4.7145768508833047E-01   1.4799189127588161E-02   9.9486618079997002E-01 
+      1       3     88      *NK     ----    1.00  0.086   5.5353650942648007E-05   4.1707227083403568E-10  -4.7258235292102646E-01   1.4781071443015941E-02   8.5758774921118178E-02 
+      1       4    148       NK     ----    1.00  0.090   6.2383020119666296E-06   4.5835588967353999E-11  -4.7286159578966991E-01   1.4780724895960398E-02   7.7097124173071659E-03 
+      1       5    226       NK     ----    1.00  0.100   1.9397724033226725E-06   1.8743429080610410E-12  -4.7286151187937026E-01   1.4780804060799693E-02   7.6847593540784788E-04 
+      1       6    329       NK     ----    1.00  0.098   1.9676838020176442E-07   2.8270892069149730E-13  -4.7286276866780025E-01   1.4780852009829797E-02   7.5438046922923641E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.022 sec
+| Solution Time                 :     16.100 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     17.122 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.019 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.020 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 7, "cl": -0.47286276866780014, "cd": 0.0147808520098298, "cmz": -0.06990118407504298, "downforce_N_per_m": 446.9542842407532, "drag_N_per_m": 13.970998708851914, "downforce_to_drag": 31.991577234744607, "force_down_N_extruded_span": 22.347714212037662, "cpt_loss_outlet": 0.0006550802140846637, "cpt_loss_outlet_flux_c_m": 0.003223885208032389, "outlet_ptot_Pa": 103226.81006053572, "outlet_mdot_kg_s": 16.74617293845057, "residual_initial": 2010481.965765758, "residual_start": 48.610940403351144, "residual_final": 7.543804692292364e-05, "residual_ratio_initial": 3.752236936589013e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.006, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 18.144245185074396, "elapsed_wall_time_s": 247.30320925998967, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.05000494908756359, "maximum_height_m": 0.11002200938474399, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.060017061579633574, "maximum_section_thickness_over_reference_chord": 0.12003412315926715, "minimum_surface_gap_m": 0.005309784238116684, "te_base_thickness_m": 0.0012599987197969725, "minimum_te_taper_margin_m": 0.0012614193842726436, "actual_chord_m": 0.5243000050549785, "chord_incidence_deg": -0.02152444196510391, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [-3.7678782654489384e-07, -3.38569101513591e-07, -1.1572032754351143e-06, -9.205607392719166e-07, -1.4124529561342126e-06, -9.290416906801342e-07, -1.7663921318380956e-06, -9.74196494762596e-07, -1.8811733909898263e-06, -9.173191186796491e-07, -1.9455038806330393e-06, -8.995702921323312e-07, -1.942510489851901e-06, -9.041894065844914e-07, -1.7861557244082752e-06, -8.549552042749986e-07, -1.6128128990989374e-06, -8.286427778793591e-07, -1.3951844958718207e-06, -7.89603750238489e-07, -1.2021383829267462e-06, -7.718915756125523e-07, -1.0289645812532948e-06, -7.650499562961134e-07, -8.936157559063045e-07, -7.827538905772651e-07, -8.258874914905614e-07, -8.381177050930576e-07, -8.544039802025738e-07, -9.693888207074172e-07, -1.1317274266480103e-06, -1.3287240495690428e-06, -2.0858005278419392e-06, -2.3801441543498815e-06, -3.885800804195778e-06, -4.257969151449196e-06, 7.61245029464194e-07, 3.688924360235745e-07, 2.014229094009926e-05, 2.0159743870202955e-05]}}
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   9.6870511961904202E-02   5.7414888361009855E-08  -4.7286267980536278E-01   1.4778413446080763E-02   1.0542395072833013E+02 
+      1       1     10    *SANK   1.38E+02  1.00  0.045   2.5542504524568157E-02   2.3762434752751140E-08  -4.7135609324163336E-01   1.4765419442536442E-02   2.7929293545299956E+01 
+      1       2     30    *SANK   7.50E+02  1.00  0.046   4.0743259048848226E-03   2.0665513079396536E-08  -4.7006200595684433E-01   1.4668788446996784E-02   4.4613019930794895E+00 
+      1       3     68    *SANK   5.19E+03  1.00  0.049   2.7511481709036799E-04   3.1908832866464873E-08  -4.6902642677863038E-01   1.4716293809664160E-02   3.4733306700419569E-01 
+      1       4    148      *NK     ----    1.00  0.097   2.0893283204600489E-05   5.2407325911228018E-10  -4.6677949219192499E-01   1.4737129636798017E-02   3.5144105203434313E-02 
+      1       5    218       NK     ----    1.00  0.097   5.0917830603858659E-06   1.4022355752652691E-11  -4.6674340793178332E-01   1.4738488137570097E-02   3.4159422170220756E-03 
+      1       6    321       NK     ----    1.00  0.100   7.4500320314035329E-07   2.1287178604126071E-12  -4.6672989017872180E-01   1.4738008362699569E-02   3.4070296818498815E-04 
+      1       7    441       NK     ----    1.00  0.099   7.3884796771237267E-08   1.5145312444655974E-13  -4.6673173590055111E-01   1.4738053268122492E-02   3.3675487368958083E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.027 sec
+| Solution Time                 :     20.098 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     21.126 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.019 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.020 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 8, "cl": -0.46673173590055117, "cd": 0.014738053268122492, "cmz": -0.06869881255529194, "downforce_N_per_m": 441.15917508072647, "drag_N_per_m": 13.930544940372556, "downforce_to_drag": 31.66847937169988, "force_down_N_extruded_span": 22.057958754036324, "cpt_loss_outlet": 0.0006381319843661667, "cpt_loss_outlet_flux_c_m": 0.0031404699251038424, "outlet_ptot_Pa": 103226.84209978425, "outlet_mdot_kg_s": 16.746135866299273, "residual_initial": 2010481.965765758, "residual_start": 105.42395072833013, "residual_final": 3.367548736895808e-05, "residual_ratio_initial": 1.6749957444224906e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.013000000000000001, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 22.148013496072963, "elapsed_wall_time_s": 269.5650933650322, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.05001219339175025, "maximum_height_m": 0.11002701959031891, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.06001482209935939, "maximum_section_thickness_over_reference_chord": 0.12002964419871878, "minimum_surface_gap_m": 0.005309086791067653, "te_base_thickness_m": 0.0012600042673434175, "minimum_te_taper_margin_m": 0.0012613273859326001, "actual_chord_m": 0.524299985830642, "chord_incidence_deg": -0.014918526590614321, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [1.2559594218163128e-06, 1.1285636717119699e-06, 3.857344251450381e-06, 3.0685357975730556e-06, 4.708176520447375e-06, 3.096805635600447e-06, 5.8879737727936524e-06, 3.2473216492086533e-06, 6.270577969966087e-06, 3.0577303955988305e-06, 6.485012935443465e-06, 2.998567640441104e-06, 6.475034966173004e-06, 3.013964688614972e-06, 5.953852414694251e-06, 2.849850680916662e-06, 5.3760429969964584e-06, 2.7621425929311972e-06, 4.650614986239402e-06, 2.6320125007949637e-06, 4.007127943089154e-06, 2.572971918708508e-06, 3.4298819375109828e-06, 2.550166520987045e-06, 2.978719186354348e-06, 2.6091796352575504e-06, 2.7529583049685382e-06, 2.7937256836435254e-06, 2.848013267341913e-06, 3.2312960690247244e-06, 3.772424755493368e-06, 4.429080165230143e-06, 6.9526684261397985e-06, 7.933813847832938e-06, 1.295266934731926e-05, 1.4193230504830654e-05, -2.5374834315473133e-06, -1.2296414534119148e-06, -6.714096980033087e-05, -6.719914623400985e-05]}}
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.4870613823800147E-01   8.9151125001156735E-08  -4.6673187261885390E-01   1.4741233671709989E-02   1.6183646910192439E+02 
+      1       1     10    *SANK   1.11E+02  1.00  0.035   5.1415614458339934E-02   3.9675828523047691E-08  -4.6897676406379341E-01   1.4756788482829863E-02   5.6100817968106014E+01 
+      1       2     24    *SANK   5.02E+02  1.00  0.049   9.6761946607592294E-03   2.6548029489191382E-08  -4.7019154374415723E-01   1.4902266176276052E-02   1.0603911078956317E+01 
+      1       3     62    *SANK   3.25E+03  1.00  0.049   7.3246583400704958E-04   4.6963980740554424E-08  -4.7230717605156258E-01   1.4833616772600004E-02   8.6434675638888137E-01 
+      1       4    133      *NK     ----    1.00  0.097   5.4226141976879023E-05   1.0225486819025062E-09  -4.7596835475507615E-01   1.4802941932785627E-02   8.7979068310965872E-02 
+      1       5    202       NK     ----    1.00  0.095   9.6972941408415126E-06   3.0714329902908714E-11  -4.7614422117614613E-01   1.4803529514496152E-02   8.3625060955415768E-03 
+      1       6    301       NK     ----    1.00  0.096   2.0165115137999386E-06   3.0514657863146967E-12  -4.7616587632244450E-01   1.4804022151292590E-02   7.9975614447224926E-04 
+      1       7    408       NK     ----    1.00  0.100   1.6818278454694961E-07   4.4724044271830108E-13  -4.7616407454708465E-01   1.4803988050611040E-02   8.0104093433728220E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.024 sec
+| Solution Time                 :     19.185 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     20.209 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.016 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.017 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 9, "cl": -0.4761640745470848, "cd": 0.014803988050611042, "cmz": -0.07054869995181326, "downforce_N_per_m": 450.07470924374616, "drag_N_per_m": 13.992867109649628, "downforce_to_drag": 32.16458111957412, "force_down_N_extruded_span": 22.503735462187308, "cpt_loss_outlet": 0.000657389761040546, "cpt_loss_outlet_flux_c_m": 0.0032352558534804693, "outlet_ptot_Pa": 103226.80569452522, "outlet_mdot_kg_s": 16.746196410726878, "residual_initial": 2010481.965765758, "residual_start": 161.8364691019244, "residual_final": 8.010409343372822e-05, "residual_ratio_initial": 3.984322903549048e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.02, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 21.22810931003187, "elapsed_wall_time_s": 290.9081317819655, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.05000104830838616, "maximum_height_m": 0.11001931158174212, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.06001825915813436, "maximum_section_thickness_over_reference_chord": 0.12003651831626871, "minimum_surface_gap_m": 0.005309005909903803, "te_base_thickness_m": 0.0012599957326566056, "minimum_te_taper_margin_m": 0.0012613187640542816, "actual_chord_m": 0.5243000182933126, "chord_incidence_deg": -0.025081473094760765, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [-1.2559594218163128e-06, -1.1285636717119699e-06, -3.857344251450381e-06, -3.0685357975730556e-06, -4.708176520447375e-06, -3.096805635600447e-06, -5.8879737727936524e-06, -3.2473216492086533e-06, -6.270577969966087e-06, -3.0577303955988305e-06, -6.485012935443465e-06, -2.998567640441104e-06, -6.475034966173004e-06, -3.013964688614972e-06, -5.953852414694251e-06, -2.849850680916662e-06, -5.3760429969964584e-06, -2.7621425929311972e-06, -4.650614986239402e-06, -2.6320125007949637e-06, -4.007127943089154e-06, -2.572971918708508e-06, -3.4298819375109828e-06, -2.550166520987045e-06, -2.978719186354348e-06, -2.6091796352575504e-06, -2.7529583049685382e-06, -2.7937256836435254e-06, -2.848013267341913e-06, -3.2312960690247244e-06, -3.772424755493368e-06, -4.429080165230143e-06, -6.9526684261397985e-06, -7.933813847832938e-06, -1.295266934731926e-05, -1.4193230504830654e-05, 2.5374834315473133e-06, 1.2296414534119148e-06, 6.714096980033087e-05, 6.719914623400985e-05]}}
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/best_feasible/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   6.7388912603296089E-02   3.9899319561567860E-08  -4.7616401208068454E-01   1.4801956879010040E-02   7.3339212133845606E+01 
+      1       1     11    *SANK   1.66E+02  1.00  0.035   1.3694137193562335E-02   1.5525529707442313E-08  -4.7509182434589331E-01   1.4786907371922592E-02   1.4976584424739052E+01 
+      1       2     36    *SANK   1.03E+03  1.00  0.047   1.9469229486032398E-03   1.6076937531351717E-08  -4.7410516412547110E-01   1.4731785345797669E-02   2.1317051815099051E+00 
+      1       3     78    *SANK   7.45E+03  1.00  0.081   1.6900176620359238E-04   2.2283988704720052E-08  -4.7337033386100996E-01   1.4762998444830191E-02   2.3040372900617770E-01 
+      1       4    158      *NK     ----    1.00  0.095   1.3739418841369894E-05   3.8493377103666811E-10  -4.7195433493852434E-01   1.4773970779294460E-02   2.2408879279927661E-02 
+      1       5    227       NK     ----    1.00  0.099   3.3691261589272989E-06   1.0403829485871487E-11  -4.7192458918793495E-01   1.4774464835063363E-02   2.2253604277823603E-03 
+      1       6    328       NK     ----    1.00  0.096   4.5831314616419316E-07   1.4173435824739558E-12  -4.7191611499201164E-01   1.4774223056545587E-02   2.1365496154582812E-04 
+      1       7    451       NK     ----    1.00  0.098   4.8315882007927682E-08   9.8286499887486400E-14  -4.7191742872946524E-01   1.4774244073333326E-02   2.0929184713989891E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.017 sec
+| Solution Time                 :     20.267 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     21.283 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.015 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.016 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 10, "cl": -0.4719174287294652, "cd": 0.014774244073333324, "cmz": -0.0697160540766414, "downforce_N_per_m": 446.0607401440313, "drag_N_per_m": 13.964752825854164, "downforce_to_drag": 31.94190013289746, "force_down_N_extruded_span": 22.303037007201567, "cpt_loss_outlet": 0.0006468703305561742, "cpt_loss_outlet_flux_c_m": 0.003183480923078904, "outlet_ptot_Pa": 103226.82558065216, "outlet_mdot_kg_s": 16.746170324103247, "residual_initial": 2010481.965765758, "residual_start": 73.3392121338456, "residual_final": 2.092918471398989e-05, "residual_ratio_initial": 1.0410033549352593e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.00900349138930921, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 22.301054007024504, "elapsed_wall_time_s": 313.54957913002, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.050005952941184165, "maximum_height_m": 0.11002270416698304, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.060016754084509155, "maximum_section_thickness_over_reference_chord": 0.12003350816901831, "minimum_surface_gap_m": 0.005310009419725914, "te_base_thickness_m": 0.001259999797444961, "minimum_te_taper_margin_m": 0.0012614491247922943, "actual_chord_m": 0.5243000016493726, "chord_incidence_deg": -0.020509862897983, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [-7.845748935032019e-08, -7.707936263240817e-08, -2.9316482433757565e-07, -2.585060422229219e-07, -3.897833564428352e-07, -3.0693507609065836e-07, -4.585276550776898e-07, -3.966331411658004e-07, -5.683101671706516e-07, -3.105628280708249e-07, -6.202672611197026e-07, -4.286382422133294e-07, -8.73384922373053e-07, -3.074394129873539e-07, -5.11851944626858e-07, -5.028339272879698e-07, -7.113443117761223e-07, -4.204137929468903e-07, -6.165983998734992e-07, -4.16418496469691e-07, -5.09142463162645e-07, -4.0133287945049317e-07, -4.829748762914662e-07, -3.447870798395883e-07, -3.919418581502576e-07, -3.7886454872421627e-07, -2.8263046814315496e-07, -3.738976877647928e-07, -3.150302259614175e-07, -3.575988119199108e-07, -3.570729754609152e-07, -4.611831861049515e-07, -7.321599088569326e-07, -8.297339839722283e-07, -1.2874976943390347e-06, -1.3986157344604856e-06, 6.024018525188285e-07, 4.858911182797535e-07, 6.6302561652738474e-06, 6.661146633963643e-06]}}
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.4510241159493712E-02   8.5638823583303154E-09  -4.7191741686891420E-01   1.4774286015864058E-02   1.5791447400545005E+01 
+      1       1     12    *SANK   3.57E+02  1.00  0.049   1.2580421452756418E-03   3.0262063414964238E-09  -4.7166846872509000E-01   1.4767427591249317E-02   1.4086725134943194E+00 
+      1       2     47      *NK     ----    1.00  0.097   8.6978785047290094E-05   3.7570876638561238E-10  -4.7118473164888575E-01   1.4767069117887062E-02   1.3632277890352390E-01 
+      1       3     93       NK     ----    1.00  0.098   8.6572802862774744E-06   6.1108052293340717E-11  -4.7102110338670566E-01   1.4768317621909071E-02   1.3423305268028193E-02 
+      1       4    160       NK     ----    1.00  0.096   1.1562464072659289E-06   5.7179097459178896E-12  -4.7097800879811857E-01   1.4767660094154441E-02   1.2894086650965416E-03 
+      1       5    239       NK     ----    1.00  0.098   3.5399444530908601E-07   3.1433008286616398E-13  -4.7097620884383073E-01   1.4767601685507588E-02   1.2584469731453230E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.020 sec
+| Solution Time                 :     13.773 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     14.793 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.017 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.018 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 11, "cl": -0.4709762088438308, "cd": 0.014767601685507586, "cmz": -0.06953106045741746, "downforce_N_per_m": 445.17109035941814, "drag_N_per_m": 13.95847437913977, "downforce_to_drag": 31.89253196787062, "force_down_N_extruded_span": 22.258554517970907, "cpt_loss_outlet": 0.00064110812447893, "cpt_loss_outlet_flux_c_m": 0.0031551227590385913, "outlet_ptot_Pa": 103226.83647363365, "outlet_mdot_kg_s": 16.74616883221776, "residual_initial": 2010481.965765758, "residual_start": 15.791447400545005, "residual_final": 0.0001258446973145323, "residual_ratio_initial": 6.259429303888345e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.002, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 15.813164089107886, "elapsed_wall_time_s": 329.4764759039972, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.050007288758952224, "maximum_height_m": 0.11002362700507803, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.06001634110499371, "maximum_section_thickness_over_reference_chord": 0.12003268220998742, "minimum_surface_gap_m": 0.0053100160451789325, "te_base_thickness_m": 0.0012600002025550622, "minimum_te_taper_margin_m": 0.001261449536232007, "actual_chord_m": 0.5242999983921457, "chord_incidence_deg": -0.019490137098856195, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [7.845748935032019e-08, 7.707936263240817e-08, 2.9316482433757565e-07, 2.585060422229219e-07, 3.897833564428352e-07, 3.0693507609065836e-07, 4.585276550776898e-07, 3.966331411658004e-07, 5.683101671706516e-07, 3.105628280708249e-07, 6.202672611197026e-07, 4.286382422133294e-07, 8.73384922373053e-07, 3.074394129873539e-07, 5.11851944626858e-07, 5.028339272879698e-07, 7.113443117761223e-07, 4.204137929468903e-07, 6.165983998734992e-07, 4.16418496469691e-07, 5.09142463162645e-07, 4.0133287945049317e-07, 4.829748762914662e-07, 3.447870798395883e-07, 3.919418581502576e-07, 3.7886454872421627e-07, 2.8263046814315496e-07, 3.738976877647928e-07, 3.150302259614175e-07, 3.575988119199108e-07, 3.570729754609152e-07, 4.611831861049515e-07, 7.321599088569326e-07, 8.297339839722283e-07, 1.2874976943390347e-06, 1.3986157344604856e-06, -6.024018525188285e-07, -4.858911182797535e-07, -6.6302561652738474e-06, -6.661146633963643e-06]}}
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   2.9011533635020560E-02   1.7141533289854700E-08  -4.7097623256770504E-01   1.4767501257627089E-02   3.1573206378436069E+01 
+      1       1     11    *SANK   2.52E+02  1.00  0.048   3.6514993228113231E-03   6.2041817815758271E-09  -4.7146045622408106E-01   1.4777550118720725E-02   4.0408598761639096E+00 
+      1       2     46    *SANK   1.88E+03  1.00  0.032   4.0560961548902896E-04   8.1849154330618777E-09  -4.7193795732806099E-01   1.4791186912927096E-02   4.4460044289128159E-01 
+      1       3    103      *NK     ----    1.00  0.094   3.0306546833095360E-05   2.2153748927146120E-10  -4.7273267682206371E-01   1.4780009796412877E-02   4.1725678109451582E-02 
+      1       4    165       NK     ----    1.00  0.088   3.0864669083811045E-06   1.8086899986079141E-11  -4.7286612421978114E-01   1.4780970513835262E-02   3.6847071689809479E-03 
+      1       5    247       NK     ----    1.00  0.098   7.5327023831499629E-07   1.3535630282687115E-12  -4.7285905914568194E-01   1.4780908335038747E-02   3.6016990852556259E-04 
+      1       6    350       NK     ----    1.00  0.098   7.1805401437033874E-08   2.3854730909709058E-13  -4.7285805033512995E-01   1.4780873611344609E-02   3.5397999640508513E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.019 sec
+| Solution Time                 :     17.724 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     18.743 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.016 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.017 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 12, "cl": -0.47285805033513006, "cd": 0.01478087361134461, "cmz": -0.0699009791133327, "downforce_N_per_m": 446.9498244288562, "drag_N_per_m": 13.9710191268045, "downforce_to_drag": 31.991211261843294, "force_down_N_extruded_span": 22.34749122144281, "cpt_loss_outlet": 0.0006550988247881934, "cpt_loss_outlet_flux_c_m": 0.0032239767716766474, "outlet_ptot_Pa": 103226.8100253537, "outlet_mdot_kg_s": 16.746172801750134, "residual_initial": 2010481.965765758, "residual_start": 31.57320637843607, "residual_final": 3.539799964050851e-05, "residual_ratio_initial": 1.7606723284894538e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.004, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 19.76206971995998, "elapsed_wall_time_s": 349.3524311989313, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.05000461712341611, "maximum_height_m": 0.110021781328888, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.0600171654831308, "maximum_section_thickness_over_reference_chord": 0.1200343309662616, "minimum_surface_gap_m": 0.005309795974405236, "te_base_thickness_m": 0.0012599993923348319, "minimum_te_taper_margin_m": 0.0012614223706403547, "actual_chord_m": 0.5243000050726735, "chord_incidence_deg": -0.021529588684118178, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [-2.3537246805096055e-07, -2.312380878972245e-07, -8.794944730127269e-07, -7.755181266687657e-07, -1.1693500693285056e-06, -9.208052282719749e-07, -1.3755829652330693e-06, -1.189899423497401e-06, -1.7049305015119545e-06, -9.316884842124747e-07, -1.8608017833591077e-06, -1.2859147266399881e-06, -2.6201547671191587e-06, -9.223182389620616e-07, -1.5355558338805741e-06, -1.5085017818639093e-06, -2.134032935328367e-06, -1.261241378840671e-06, -1.8497951996204975e-06, -1.249255489409073e-06, -1.5274273894879351e-06, -1.2039986383514795e-06, -1.4489246288743982e-06, -1.0343612395187648e-06, -1.1758255744507726e-06, -1.1365936461726487e-06, -8.478914044294648e-07, -1.1216930632943782e-06, -9.450906778842524e-07, -1.0727964357597322e-06, -1.0712189263827457e-06, -1.3835495583148544e-06, -2.196479726570798e-06, -2.4892019519166847e-06, -3.862493083017104e-06, -4.195847203381456e-06, 1.8072055575564856e-06, 1.4576733548392603e-06, 1.9890768495821542e-05, 1.998343990189093e-05]}}
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   4.3545317283345743E-02   2.5694357349886093E-08  -4.7285801475538236E-01   1.4780974586979937E-02   4.7390243271359601E+01 
+      1       1     11    *SANK   2.06E+02  1.00  0.043   6.8963875062431805E-03   9.5569854803481618E-09  -4.7213724221024289E-01   1.4768389030595673E-02   7.5751864861708995E+00 
+      1       2     39    *SANK   1.43E+03  1.00  0.049   8.9312155608576780E-04   1.1690178471224545E-08  -4.7141776510773781E-01   1.4742008332365249E-02   9.8325570918566485E-01 
+      1       3     88      *NK     ----    1.00  0.088   5.5946716985159316E-05   4.2062608757367446E-10  -4.7030735737337370E-01   1.4760811795462084E-02   8.6140816750021748E-02 
+      1       4    148       NK     ----    1.00  0.098   6.7127817357082803E-06   4.6319343238821722E-11  -4.7004064327009193E-01   1.4761153216162105E-02   8.4085948352276684E-03 
+      1       5    228       NK     ----    1.00  0.099   1.8887677273906185E-06   2.5857420051175045E-12  -4.7003764409914295E-01   1.4761045067005032E-02   8.3499304942608889E-04 
+      1       6    327       NK     ----    1.00  0.098   1.9919720870752047E-07   3.7886642503524261E-13  -4.7003585489323041E-01   1.4760994087059580E-02   8.1623205093028905E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.020 sec
+| Solution Time                 :     17.126 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     18.146 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.016 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.017 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 13, "cl": -0.4700358548932303, "cd": 0.014760994087059576, "cmz": -0.06934619345019595, "downforce_N_per_m": 444.282259064648, "drag_N_per_m": 13.952228815668573, "downforce_to_drag": 31.843102986220526, "force_down_N_extruded_span": 22.2141129532324, "cpt_loss_outlet": 0.0006403781376321725, "cpt_loss_outlet_flux_c_m": 0.003151528880839074, "outlet_ptot_Pa": 103226.83785361436, "outlet_mdot_kg_s": 16.74616165129598, "residual_initial": 2010481.965765758, "residual_start": 47.3902432713596, "residual_final": 8.16232050930289e-05, "residual_ratio_initial": 4.0598824800669145e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.006000000000000001, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 19.164780158898793, "elapsed_wall_time_s": 368.63117905298714, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.050008624576720284, "maximum_height_m": 0.11002454984317304, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.06001592654537892, "maximum_section_thickness_over_reference_chord": 0.12003185309075784, "minimum_surface_gap_m": 0.005309815848521615, "te_base_thickness_m": 0.0012600006076651776, "minimum_te_taper_margin_m": 0.0012614236049605934, "actual_chord_m": 0.5242999953009928, "chord_incidence_deg": -0.018470411287379213, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [2.3537246805096055e-07, 2.312380878972245e-07, 8.794944730127269e-07, 7.755181266687657e-07, 1.1693500693285056e-06, 9.208052282719749e-07, 1.3755829652330693e-06, 1.189899423497401e-06, 1.7049305015119545e-06, 9.316884842124747e-07, 1.8608017833591077e-06, 1.2859147266399881e-06, 2.6201547671191587e-06, 9.223182389620616e-07, 1.5355558338805741e-06, 1.5085017818639093e-06, 2.134032935328367e-06, 1.261241378840671e-06, 1.8497951996204975e-06, 1.249255489409073e-06, 1.5274273894879351e-06, 1.2039986383514795e-06, 1.4489246288743982e-06, 1.0343612395187648e-06, 1.1758255744507726e-06, 1.1365936461726487e-06, 8.478914044294648e-07, 1.1216930632943782e-06, 9.450906778842524e-07, 1.0727964357597322e-06, 1.0712189263827457e-06, 1.3835495583148544e-06, 2.196479726570798e-06, 2.4892019519166847e-06, 3.862493083017104e-06, 4.195847203381456e-06, -1.8072055575564856e-06, -1.4576733548392603e-06, -1.9890768495821542e-05, -1.998343990189093e-05]}}
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   9.4263001314217360E-02   5.6004815312433583E-08  -4.7003593201243277E-01   1.4760614047556408E-02   1.0258614842117895E+02 
+      1       1     10    *SANK   1.40E+02  1.00  0.047   2.4796398001596481E-02   2.2926245526698740E-08  -4.7153601522083055E-01   1.4776177380729725E-02   2.7121149681568944E+01 
+      1       2     30    *SANK   7.62E+02  1.00  0.049   3.9558499951826975E-03   2.0044483847527786E-08  -4.7287094428971227E-01   1.4877438733052107E-02   4.3328582245453635E+00 
+      1       3     69    *SANK   5.27E+03  1.00  0.047   2.6884271955062848E-04   3.2546180042553622E-08  -4.7393046072861150E-01   1.4823910908421946E-02   3.3821891184434072E-01 
+      1       4    150      *NK     ----    1.00  0.097   2.0130133250807146E-05   4.5282171710848853E-10  -4.7609021061923762E-01   1.4805018612680666E-02   3.4140807379779363E-02 
+      1       5    222       NK     ----    1.00  0.099   4.9793187665237743E-06   1.5985350882157817E-11  -4.7613908479728823E-01   1.4803733364794678E-02   3.3844428860102891E-03 
+      1       6    323       NK     ----    1.00  0.099   7.2136102717880682E-07   2.0718158546796249E-12  -4.7615107649781474E-01   1.4804134574224576E-02   3.3417317138670279E-04 
+      1       7    441       NK     ----    1.00  0.100   7.5668859455012711E-08   1.4333750787771464E-13  -4.7614929519514604E-01   1.4804089989960863E-02   3.3328102903568923E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.025 sec
+| Solution Time                 :     21.005 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     22.030 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.030 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.031 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 14, "cl": -0.47614929519514615, "cd": 0.014804089989960863, "cmz": -0.07054809994712875, "downforce_N_per_m": 450.0607396629185, "drag_N_per_m": 13.992963463670614, "downforce_to_drag": 32.163361308803076, "force_down_N_extruded_span": 22.503036983145925, "cpt_loss_outlet": 0.00065736174270563, "cpt_loss_outlet_flux_c_m": 0.0032351179419904, "outlet_ptot_Pa": 103226.8057474916, "outlet_mdot_kg_s": 16.74619629167414, "residual_initial": 2010481.965765758, "residual_start": 102.58614842117895, "residual_final": 3.332810290356892e-05, "residual_ratio_initial": 1.6577170783461775e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.013000000000000001, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 23.06282024201937, "elapsed_wall_time_s": 391.80711063195486, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.049999941761227906, "maximum_height_m": 0.11001855139555547, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.06001860552911748, "maximum_section_thickness_over_reference_chord": 0.12003721105823496, "minimum_surface_gap_m": 0.005309045281217402, "te_base_thickness_m": 0.0012599979744494147, "minimum_te_taper_margin_m": 0.0012613287200891406, "actual_chord_m": 0.5243000183620583, "chord_incidence_deg": -0.02509862882393526, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [-7.845748935032019e-07, -7.707936263240816e-07, -2.9316482433757563e-06, -2.585060422229219e-06, -3.897833564428352e-06, -3.069350760906583e-06, -4.585276550776898e-06, -3.966331411658003e-06, -5.683101671706515e-06, -3.105628280708249e-06, -6.2026726111970256e-06, -4.286382422133294e-06, -8.733849223730529e-06, -3.074394129873539e-06, -5.11851944626858e-06, -5.028339272879698e-06, -7.113443117761223e-06, -4.204137929468903e-06, -6.165983998734992e-06, -4.16418496469691e-06, -5.0914246316264505e-06, -4.013328794504932e-06, -4.829748762914661e-06, -3.447870798395883e-06, -3.919418581502576e-06, -3.7886454872421625e-06, -2.8263046814315496e-06, -3.7389768776479277e-06, -3.1503022596141747e-06, -3.5759881191991077e-06, -3.570729754609152e-06, -4.611831861049515e-06, -7.321599088569327e-06, -8.297339839722283e-06, -1.2874976943390345e-05, -1.3986157344604856e-05, 6.024018525188285e-06, 4.858911182797535e-06, 6.630256165273847e-05, 6.661146633963642e-05]}}
+-> Alpha... 0.000000 
+#
+# Grid 1: Performing 10000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   2.01E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   1.4532160580893100E-01   8.5736525579328535E-08  -4.7614917661900580E-01   1.4804136605504526E-02   1.5815309871448289E+02 
+      1       1     10    *SANK   1.13E+02  1.00  0.037   4.9967381342370332E-02   3.8409037397040426E-08  -4.7391454774875913E-01   1.4795324346484479E-02   5.4523932464412489E+01 
+      1       2     25    *SANK   5.10E+02  1.00  0.048   9.4005041531193805E-03   2.6074558570656147E-08  -4.7257760288236506E-01   1.4625517102290431E-02   1.0289890520358522E+01 
+      1       3     65    *SANK   3.30E+03  1.00  0.044   7.1782809774539630E-04   4.7824196735763611E-08  -4.7041650917209427E-01   1.4705583562929832E-02   8.3928444093743870E-01 
+      1       4    137      *NK     ----    1.00  0.099   5.5388843681511269E-05   9.3481162136124128E-10  -4.6691150879113597E-01   1.4738065537592715E-02   8.6022708386372090E-02 
+      1       5    207       NK     ----    1.00  0.097   9.6747974403151625E-06   4.1032325871620410E-11  -4.6676726710246924E-01   1.4738485294751739E-02   8.3074010484351819E-03 
+      1       6    303       NK     ----    1.00  0.099   2.1387095966718450E-06   3.3256775700186673E-12  -4.6674475105806268E-01   1.4737921612084303E-02   8.2110658387037744E-04 
+      1       7    412       NK     ----    1.00  0.098   1.7083750306128689E-07   5.4143288648797410E-13  -4.6674653641363478E-01   1.4737954832146292E-02   8.0624031924085533E-05 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      1.031 sec
+| Solution Time                 :     17.972 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     19.003 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      1.015 sec
+| Function Evaluation Time      :      0.001 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      1.016 sec
++--------------------------------------------------+
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+OPT_EVAL {"evaluation": 15, "cl": -0.4667465364136347, "cd": 0.01473795483214629, "cmz": -0.06869941612178077, "downforce_N_per_m": 441.17316466326497, "drag_N_per_m": 13.930451897772882, "downforce_to_drag": 31.669695132703996, "force_down_N_extruded_span": 22.05865823316325, "cpt_loss_outlet": 0.000638103530524977, "cpt_loss_outlet_flux_c_m": 0.0031403298881696852, "outlet_ptot_Pa": 103226.84215357392, "outlet_mdot_kg_s": 16.746135836097167, "residual_initial": 2010481.965765758, "residual_start": 158.1530987144829, "residual_final": 8.062403192408553e-05, "residual_ratio_initial": 4.010184288988498e-11, "cfd_failed": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.02, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 20.020552514935844, "elapsed_wall_time_s": 411.94191499298904, "incidence_variable_deg": -3.02, "minimum_clearance_m": 0.0500132999389085, "maximum_height_m": 0.11002777977650556, "minimum_x_m": -0.012300006304547605, "maximum_x_m": 0.5120001816647514, "maximum_section_thickness_m": 0.060014475745868684, "maximum_section_thickness_over_reference_chord": 0.12002895149173737, "minimum_surface_gap_m": 0.0053091115020664536, "te_base_thickness_m": 0.0012600020255505945, "minimum_te_taper_margin_m": 0.0012613328345024058, "actual_chord_m": 0.5242999857897893, "chord_incidence_deg": -0.014901370859314835, "box_minimum_margin_m": -1.8166475135306115e-07, "design": {"incidence": [-3.02], "shape": [7.845748935032019e-07, 7.707936263240816e-07, 2.9316482433757563e-06, 2.585060422229219e-06, 3.897833564428352e-06, 3.069350760906583e-06, 4.585276550776898e-06, 3.966331411658003e-06, 5.683101671706515e-06, 3.105628280708249e-06, 6.2026726111970256e-06, 4.286382422133294e-06, 8.733849223730529e-06, 3.074394129873539e-06, 5.11851944626858e-06, 5.028339272879698e-06, 7.113443117761223e-06, 4.204137929468903e-06, 6.165983998734992e-06, 4.16418496469691e-06, 5.0914246316264505e-06, 4.013328794504932e-06, 4.829748762914661e-06, 3.447870798395883e-06, 3.919418581502576e-06, 3.7886454872421625e-06, 2.8263046814315496e-06, 3.7389768776479277e-06, 3.1503022596141747e-06, 3.5759881191991077e-06, 3.570729754609152e-06, 4.611831861049515e-06, 7.321599088569327e-06, 8.297339839722283e-06, 1.2874976943390345e-05, 1.3986157344604856e-05, -6.024018525188285e-06, -4.858911182797535e-06, -6.630256165273847e-05, -6.661146633963642e-05]}}
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+Traceback (most recent call last):
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+RuntimeError: Aerodynamic derivative check failed; see saved report
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+RuntimeError: Aerodynamic derivative check failed; see saved report
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+RuntimeError: Aerodynamic derivative check failed; see saved report
+RuntimeError: Aerodynamic derivative check failed; see saved report
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+AERODYNAMIC_DERIVATIVE_CHECK {'objective': {'central_difference_per_deg': 0.2744499084903623, 'adjoint_per_deg': 0.274448468745779, 'relative_error': 5.245928451027202e-06, 'scaled_gradient_norm': 0.5456126452161781, 'error_over_scaled_gradient_norm': 2.6387668906774697e-06}, 'loss': {'central_difference_per_deg': -0.011246835441813818, 'adjoint_per_deg': -0.01119910025224829, 'relative_error': 0.004244321863913563, 'scaled_gradient_norm': 0.02263555168722254, 'error_over_scaled_gradient_norm': 0.0021088591179544438}, 'primal_failed': False, 'objective_shape': {'direction': 'own adjoint gradient in the shape variables', 'adjoint_per_m': 47.1562505531231, 'base': -0.47144703669519467, 'steps_m': {'1e-05': {'central_difference_per_m': 47.221791385196326, 'relative_error': 0.0013879361657120758, 'forward_difference_per_m': 47.26810471161191, 'forward_relative_error': 0.0023663770563944883, 'backward_difference_per_m': 47.17547805878075, 'backward_relative_error': 0.0004075741560835651, 'plus': -0.47097435564807855, 'minus': -0.4719187914757825}, '3e-05': {'central_difference_per_m': 47.18444184736159, 'relative_error': 0.0005974701222425412, 'forward_difference_per_m': 47.17781794120746, 'forward_relative_error': 0.0004571510304108137, 'backward_difference_per_m': 47.19106575351572, 'backward_relative_error': 0.0007377498226987579, 'plus': -0.47003170215695844, 'minus': -0.47286276866780014}, '1e-04': {'central_difference_per_m': 47.16169323266822, 'relative_error': 0.00011540466790003138, 'forward_difference_per_m': 47.153007946434954, 'forward_relative_error': 6.876303035361378e-05, 'backward_difference_per_m': 47.17037851890149, 'backward_relative_error': 0.00029950927302235483, 'plus': -0.46673173590055117, 'minus': -0.4761640745470848}}, 'relative_error': 0.00011540466790003138, 'agreement': ['central', 'forward', 'backward']}, 'loss_shape': {'direction': 'own adjoint gradient in the shape variables', 'adjoint_per_m': 1.967100286525869, 'base': 0.038928052943878536, 'steps_m': {'1e-05': {'central_difference_per_m': 17.397965209070552, 'relative_error': 0.8869350373513617, 'forward_difference_per_m': 13.416508487595207, 'forward_relative_error': 0.8533821009881496, 'backward_difference_per_m': 21.3794219305459, 'backward_relative_error': 0.9079909506947252, 'plus': 0.03906221802875449, 'minus': 0.03871425872457308}, '3e-05': {'central_difference_per_m': 14.815506396961368, 'relative_error': 0.8672269287447834, 'forward_difference_per_m': 21.035161106209426, 'forward_relative_error': 0.9064851333158939, 'backward_difference_per_m': 8.595851687713308, 'backward_relative_error': 0.7711570234119335, 'plus': 0.03955910777706482, 'minus': 0.038670177393247136}, '1e-04': {'central_difference_per_m': 5.814677590776883, 'relative_error': 0.6617008843884927, 'forward_difference_per_m': 7.677044658817369, 'forward_relative_error': 0.7437685497548093, 'backward_difference_per_m': 3.952310522736396, 'backward_relative_error': 0.502291058556821, 'plus': 0.03969575740976027, 'minus': 0.038532821891604896}}, 'relative_error': 0.6617008843884927, 'agreement': []}, 'verdict': 'failed'}
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+RuntimeError: Aerodynamic derivative check failed; see saved report
+Traceback (most recent call last):
+Traceback (most recent call last):
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+RuntimeError: Aerodynamic derivative check failed; see saved report
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+Traceback (most recent call last):
+RuntimeError: Aerodynamic derivative check failed; see saved report
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+Traceback (most recent call last):
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+RuntimeError: Aerodynamic derivative check failed; see saved report
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+Traceback (most recent call last):
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+RuntimeError: Aerodynamic derivative check failed; see saved report
+RuntimeError: Aerodynamic derivative check failed; see saved report
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+RuntimeError: Aerodynamic derivative check failed; see saved report
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+RuntimeError: Aerodynamic derivative check failed; see saved report
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+Traceback (most recent call last):
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 641, in <module>
+    aerodynamic_derivative_check(load_design(a.check_design) if a.check_design else xinitial)
+  File "/home/lingxiao77/AER588/aero588_project/optimizations/run_012_cptLoss075/r00/source/run_slip_optimization.py", line 628, in aerodynamic_derivative_check
+    raise RuntimeError('Aerodynamic derivative check failed; see saved report')
+RuntimeError: Aerodynamic derivative check failed; see saved report
+--------------------------------------------------------------------------
+prterun detected that one or more processes exited with non-zero status,
+thus causing the job to be terminated. The first process to do so was:
+
+   Process name: [prterun-lingxiao77-Super-Server-2765678@1,3]
+   Exit code:    1
+--------------------------------------------------------------------------
