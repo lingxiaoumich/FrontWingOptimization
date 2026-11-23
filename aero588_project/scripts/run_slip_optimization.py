@@ -8,6 +8,7 @@ import argparse
 import copy
 from dataclasses import asdict, is_dataclass
 import json
+import os
 import time
 from pathlib import Path
 
@@ -36,6 +37,19 @@ p.add_argument('--fix-incidence',action='store_true',help='keep the incidence at
 p.add_argument('--drag-cap',type=float,default=.05)
 p.add_argument('--loss-cap',type=float,help='upper bound on the outlet Cpt loss (see --outlet-x); replaces the drag cap, '
                'which then must be off (>= 1)')
+p.add_argument('--cp-min',type=float,help='lower bound on the wing surface Cp (e.g. -6): ADflow cpmin, a KS '
+               'aggregate (sharpness --cp-min-rho) just below the true minimum; the lowest Cp of the field sits on the wing')
+p.add_argument('--cp-min-rho',type=float,default=100.,help='KS sharpness of --cp-min (ADflow cpMinRho)')
+p.add_argument('--max-clc',type=float,help='m; upper bound on C_L c (upward positive: -1.6 asks for a downforce C_L c of at least '
+               '1.6). The objective becomes the outlet Cpt loss (see --outlet-x) instead of C_L; drag and loss caps must be off')
+p.add_argument('--first-solve-tilt',type=float,help='deg; with no initial flow (no source/restart_vol.cgns), or when the first solve from it stalls: the first solve, '
+               'from freestream, is made at the start design with its incidence lowered by this much, then the start design '
+               'is reached from that converged flow by the stalled-solve walk (needs --split-stalled-solves). For the level '
+               'start in free air, whose symmetric zero-lift flow stalled at ~2e-9 of the initial residual when solved from '
+               'freestream (lift flipping sign at 1e-5), 2026-11-21')
+p.add_argument('--no-ground',action='store_true',help='free air: the grid (remesh_design.py --free-air) has a far field '
+               '10 chords below y = 0 instead of the slip ground; no y = 0 symmetry plane in the mesh warp, and the outlet '
+               'loss plane spans the full height, y = -5..5 m')
 p.add_argument('--outlet-x',type=float,default=7.3,help='m; plane x=const over the full domain height (outlet at 7.5 m) on '
                'which the mass-averaged Cpt loss (p0_inf - p0)/q_inf is measured')
 # Geometry constraints on the actual surface (0 turns each off)
@@ -46,11 +60,17 @@ p.add_argument('--min-local-thickness',type=float,default=0.,
 p.add_argument('--te-min-angle',type=float,default=0.,
                help='deg; trailing-edge taper of that floor over vertices 1..14 and their mirrors')
 p.add_argument('--te-min-thickness',type=float,default=0.,help='m; floor on the trailing-edge base thickness')
+p.add_argument('--near-wall-dist',type=float,default=.01,help='m; ADflow nearWallDist, the overset near-wall distance; '
+               '0.4 x the near-grid depth (0.01 with the original 25 mm)')
+p.add_argument('--min-area',type=float,default=0.,
+               help='m^2; floor on the section area (inside all 289 surface vertices). Absolute, so the runs on '
+               'later grids of a chain keep the floor of the original start')
 # Optimizer and flow solver
 p.add_argument('--xmax',type=float,default=.05,help='PSQP XMAX: maximum step in scaled variables')
 p.add_argument('--max-evaluations',type=int,default=150,help='PSQP MFV: maximum function evaluations')
 p.add_argument('--ncycles',type=int,default=4000,help='ADflow nCycles')
 p.add_argument('--first-ncycles',type=int,help='nCycles of the first solve, e.g. from freestream on a new grid')
+p.add_argument('--l2-convergence',type=float,default=1e-10,help='ADflow L2Convergence: a solve ends once its total residual is below this times the freestream residual of the grid (L2ConvergenceRel stays 1e-10); looser for free air, where solves stall between 1e-9 and 1e-6 of it')
 p.add_argument('--nk-switch-tol',type=float,help='ADflow NKSwitchTol (default 1e-8)')
 p.add_argument('--warp-err-tol',type=float,help='IDWarp errTol (default 5e-4)')
 p.add_argument('--split-stalled-solves',type=int,default=0,
@@ -68,10 +88,25 @@ if not np.isfinite(a.drag_cap) or a.drag_cap <= 0:
     p.error('--drag-cap must be finite and positive')
 if a.loss_cap is not None and not (np.isfinite(a.loss_cap) and a.loss_cap > 0 and a.drag_cap >= 1):
     p.error('--loss-cap must be finite and positive, with the drag cap off (--drag-cap 10)')
-# The bounded aerodynamic constraint: drag, or the outlet Cpt loss
-CAP = 'loss' if a.loss_cap is not None else 'drag'
+if a.max_clc is not None and not (np.isfinite(a.max_clc) and a.max_clc < 0 and a.loss_cap is None and a.drag_cap >= 1):
+    p.error('--max-clc must be a finite negative C_L c, without --loss-cap and with the drag cap off (--drag-cap 10)')
+# The objective: C_L, or with --max-clc the outlet Cpt loss over LOSS_SCALE (order 1, as C_L is)
+LOSS_OBJ = a.max_clc is not None
+LOSS_SCALE = .005
+# The bounded aerodynamic constraint: drag, the outlet Cpt loss, or C_L c when the loss is the objective
+CAP = 'lift' if LOSS_OBJ else 'loss' if a.loss_cap is not None else 'drag'
+if not (np.isfinite(a.l2_convergence) and 0<a.l2_convergence<1e-6):
+    p.error('--l2-convergence must be in (0, 1e-6)')
+if a.first_solve_tilt is not None and not (np.isfinite(a.first_solve_tilt) and a.first_solve_tilt and a.split_stalled_solves):
+    p.error('--first-solve-tilt must be a finite nonzero tilt, with --split-stalled-solves')
+if a.cp_min is not None and not (np.isfinite(a.cp_min) and a.cp_min < 0):
+    p.error('--cp-min must be a finite negative Cp')
+# Every aerodynamic constraint, each scaled so that <= 1 is feasible
+AERO = [CAP]+(['cp_min'] if a.cp_min is not None else [])
 box = dict(zip(['xmin','xmax','ymin','ymax'], a.box))
-root = a.root.resolve()
+# Absolute but not resolved: a run folder can be a link to another disk whose path has a space,
+# which the solver's file names and run_chain.py's commands must not see.
+root = Path(os.path.abspath(a.root))
 if (root/'run_complete.json').exists():
     raise RuntimeError('This run is complete. Use a fresh --root to preserve its results.')
 comm = MPI.COMM_WORLD
@@ -199,11 +234,23 @@ def te_base(pts):
     xy=pts[:,:2]
     return np.r_[surface_gap(xy,np.array([0]),xy[136:273]),surface_gap(xy,np.array([272]),xy[:137])]
 
+# Section area: the shoelace sum over the closed boundary (vertex 288 is vertex 0), positive for
+# the counterclockwise boundary; a folded one is rejected before this counts.
+def section_area(pts):
+    x,y=pts[:,0],pts[:,1]
+    return np.array([.5*(x@np.roll(y,-1)-y@np.roll(x,-1))])
+
+# As a constraint: area over the reference chord, the mean thickness in m, so that like the others
+# it is a length here and over c0 in the optimizer (area/c0^2).
+def mean_thickness(pts):
+    return section_area(pts)/c0
+
 # The active vertex constraints: name -> (function in m, lower bound in m)
 vertex_constraints={}
 if a.min_local_thickness>0:vertex_constraints['local_thickness']=(gap_thickness,a.min_local_thickness)
 if a.te_min_angle>0:vertex_constraints['te_taper']=(te_taper,0.)
 if a.te_min_thickness>0:vertex_constraints['te_base']=(te_base,a.te_min_thickness)
+if a.min_area>0:vertex_constraints['section_area']=(mean_thickness,a.min_area/c0)
 
 def geometry_values(pts):
     xy=pts[:,:2]
@@ -222,6 +269,7 @@ def metrics(pts):
             'maximum_section_thickness_over_reference_chord':float(vals['max_thickness'][0]),
             'minimum_surface_gap_m':float(gap_thickness(pts).min()),
             'te_base_thickness_m':float(te_base(pts).min()),
+            'section_area_m2':float(section_area(pts)[0]),
             **({'minimum_te_taper_margin_m':float(te_taper(pts).min())} if a.te_min_angle>0 else {}),
             'actual_chord_m':float(np.linalg.norm(chord)),
             'chord_incidence_deg':float(-np.rad2deg(np.arctan2(chord[1],chord[0]))),
@@ -298,8 +346,8 @@ options={
     'ANKSwitchTol':10.,'NKSwitchTol':1e-4,'ANKCoupledSwitchTol':1e-2,
     'ANKSecondOrdSwitchTol':1e-2,'ANKADPC':True,'NKADPC':True,'NKViscPC':True,
     'NKSubspaceSize':500,'NKPCILUFill':5,'NKLinearSolveTol':.1,'NKUseEW':False,
-    'turbResScale':10000.,'nCycles':a.ncycles,'L2Convergence':1e-10,'L2ConvergenceRel':1e-10,
-    'MGCycle':'sg','useZipperMesh':False,'nearWallDist':.01,'oversetUpdateMode':'frozen',
+    'turbResScale':10000.,'nCycles':a.ncycles,'L2Convergence':a.l2_convergence,'L2ConvergenceRel':1e-10,
+    'MGCycle':'sg','useZipperMesh':False,'nearWallDist':a.near_wall_dist,'oversetUpdateMode':'frozen',
     'designSurfaceFamily':'airfoil','meshSurfaceFamily':'airfoil',
     'monitorVariables':['resrho','resturb','cl','cd'],
     'volumeVariables':['cp','mach','blank'],'surfaceVariables':['cp','cf','yplus'],
@@ -310,22 +358,32 @@ options={
 if (root/'source/restart_vol.cgns').exists():
     options['restartFile']=str(root/'source/restart_vol.cgns')
 if a.restart_flow:
-    options['restartFile']=str(a.restart_flow.resolve())
+    options['restartFile']=os.path.abspath(a.restart_flow)
 # "ank_deep" of the solver study (study/solver-mesh-adjoint): no coupled ANK, and a later
 # hand-over to NK with a larger Krylov space and stronger ILU, which cured NK stalls.
 options.update({'ANKCoupledSwitchTol':1e-16,'NKSwitchTol':1e-8,'NKSubspaceSize':400,
                 'NKPCILUFill':4,'NKASMOverlap':3})
 if a.nk_switch_tol is not None:options['NKSwitchTol']=a.nk_switch_tol
+if a.cp_min is not None:options.update({'computeCavitation':True,'cpMinRho':a.cp_min_rho})  # turns on ADflow's cpmin
 meshoptions={'gridFile':options['gridFile'],
-    'symmetryPlanes':[[[0.,0.,0.],[0.,1.,0.]],[[0.,0.,0.],[0.,0.,1.]],
+    'symmetryPlanes':([] if a.no_ground else [[[0.,0.,0.],[0.,1.,0.]]])+[[[0.,0.,0.],[0.,0.,1.]],
                       [[0.,0.,span],[0.,0.,1.]]]}
+# --no-ground and a free-air grid go together (remesh_design.py records it in baseline.json 'mesh')
+if a.baseline and json.loads(Path(a.baseline).read_text()).get('mesh',{}).get('free_air',False)!=a.no_ground:
+    p.error('--no-ground needs a free-air grid (remesh_design.py --free-air), and a free-air grid needs --no-ground')
 if a.warp_err_tol is not None:meshoptions['errTol']=a.warp_err_tol
 optimizeroptions=({'ACC':1e-5,'MAXIT':a.maxit,'IPRINT':2,'IFILE':str(root/'SLSQP.out')}
  if a.optimizer=='SLSQP' else {'XMAX':a.xmax,'TOLX':1e-6,'TOLC':1e-6,'TOLG':1e-4,
  'MIT':a.maxit,'MFV':a.max_evaluations,'MET':1,'MEC':2,'IPRINT':2,'IFILE':str(root/'PSQP.out')})
-settings={'description':'Minimize upward-positive CL with prescribed '+('outlet Cpt loss cap' if CAP=='loss' else 'CD cap')+'; slip ground',
+settings={'description':(f'Minimize the outlet Cpt loss with C_L c <= {a.max_clc:g} m' if LOSS_OBJ else
+                'Minimize upward-positive CL with prescribed '+('outlet Cpt loss cap' if CAP=='loss' else 'CD cap'))+
+               ('; free air (no ground)' if a.no_ground else '; slip ground'),
  'aerodynamic_constraint':CAP,
- 'outlet_loss':{'plane_x_m':a.outlet_x,'height_m':[0.,5.],'definition':'(p0_inf - mass-averaged p0 on the plane)/q_inf; '
+ 'objective':f'outlet Cpt loss / {LOSS_SCALE:g}' if LOSS_OBJ else 'cl',
+ 'max_clc_m':a.max_clc,
+ 'first_solve_tilt_deg':a.first_solve_tilt,'l2_convergence':a.l2_convergence,
+ 'lift_constraint':'2 - C_L c / max_clc_m <= 1 (C_L c <= max_clc_m, both negative)' if LOSS_OBJ else None,
+ 'outlet_loss':{'plane_x_m':a.outlet_x,'height_m':[-5. if a.no_ground else 0.,5.],'definition':'(p0_inf - mass-averaged p0 on the plane)/q_inf; '
                 'flux form in drag units: that x mdot/(rho_inf V span), m','adflow_functions':['mavgptot','mdot']},
  'reference_chord_m':c0,'reference_area_m2':c0*span,'span_m':span,
  'speed_ms':V,'temperature_K':T,'pressure_Pa':P,'initial_incidence_deg':-3.,
@@ -336,6 +394,9 @@ settings={'description':'Minimize upward-positive CL with prescribed '+('outlet 
  'local_thickness_measure':'signed distance from vertex k and from 272-k to the nearest point of the other surface',
  'te_min_angle_deg':a.te_min_angle,'te_min_thickness_m':a.te_min_thickness,
  'te_base':'gap from each base corner (vertex 0, 272) to the other surface >= te_min_thickness',
+ 'min_section_area_m2':a.min_area,
+ 'section_area':'area inside the 289 surface vertices (shoelace) >= min_section_area_m2; '
+                'in the optimizer as area/c0^2 (constraint section_area)',
  'te_taper':'vertex pairs k and 272-k, k=1..14: gap to the other surface >= min(min_local_thickness, '
             'sin(te_min_angle) x distance from the vertex to its base corner, 0 or 272)',
  'nearfield_normal_nodes':81,'nearfield_march_distance_m':.025,'first_wall_spacing_m':2e-6,
@@ -346,7 +407,8 @@ settings={'description':'Minimize upward-positive CL with prescribed '+('outlet 
  'cfd_options':options,'mesh_options':meshoptions,'optimizer':'pyOptSparse '+a.optimizer,
  'optimizer_options':optimizeroptions,'derivatives':'ADflow discrete adjoints + pyGeo analytic geometry',
  'sensitivity_overset_mode':'frozen, consistent with primal USMesh warping',
- 'mesh_independent':False,'ground_boundary':'symmetry/slip at y=0; no viscous road boundary layer'}
+ 'mesh_independent':False,'ground_boundary':'none: free air, far field 10 chords below y=0 and above' if a.no_ground else
+                                 'symmetry/slip at y=0; no viscous road boundary layer'}
 dump(root/'settings.json',settings)
 if comm.rank==0:
     (root/'settings.txt').write_text('CFD AND OPTIMIZER SETTINGS\n\n'+json.dumps(settings,indent=2)+'\n')
@@ -357,6 +419,7 @@ solver=ADFLOW(options=options,comm=comm)
 outlet_plane=root/'source/outlet_plane.xyz'
 if comm.rank==0:
     yp=np.unique(np.r_[np.linspace(0,.5,401),np.linspace(.5,1.,101),np.linspace(1.,5.,161)])
+    if a.no_ground:yp=np.unique(np.r_[-yp,yp])  # the same spacing below y = 0
     with outlet_plane.open('w') as f:
         f.write(f'1\n{len(yp)} 2 1\n')
         for coord in [np.full(2*len(yp),a.outlet_x),np.tile(yp,2),np.repeat([0.,span],len(yp))]:
@@ -371,10 +434,11 @@ for f in ['cl','cd','cmz']:
     solver.addFunction(f,'airfoil_only',name=f+'_wing')
 solver.addSlices('z',[span/2],sliceType='absolute',groupName='airfoil_only')
 solver.addFunction('mavgptot','outlet_plane',name='ptot_outlet')
+if a.cp_min is not None:solver.addFunction('cpmin','airfoil_only',name='cpmin_wing')
 solver.addFunction('mdot','outlet_plane',name='mdot_outlet')
 ap=AeroProblem(name='wing',V=V,P=P,T=T,alpha=0.,areaRef=c0*span,chordRef=c0,
                xRef=pivot[0],yRef=pivot[1],zRef=span/2,
-               evalFuncs=['cl_wing','cd_wing','cmz_wing','ptot_outlet','mdot_outlet'])
+               evalFuncs=['cl_wing','cd_wing','cmz_wing','ptot_outlet','mdot_outlet']+(['cpmin_wing'] if a.cp_min is not None else []))
 # Freestream total pressure exactly as ADflow forms it (constant gamma, the AeroProblem's P and Mach)
 gamma=ap.gamma
 p0inf=P*(1+(gamma-1)/2*ap.mach**2)**(gamma/(gamma-1))
@@ -445,6 +509,25 @@ def save_state(folder, record, pts, x, surfaces=True):
         (folder/'result.json').write_text(json.dumps(record,indent=2)+'\n')
         (folder/'design.json').write_text(json.dumps(realdict(x),indent=2)+'\n')
 
+def unwarped(x):
+    """The grid's own design: incidence -3 deg and no shape move, so IDWarp leaves the grid as made."""
+    return bool(float(np.real(x['incidence'][0]))==-3. and not any(np.any(np.real(v)) for k,v in x.items() if k!='incidence'))
+
+def tilted_start(x):
+    """--first-solve-tilt: from freestream, solve x with its incidence lowered by the tilt (a lifting flow that
+    converges), and anchor the walk to x there. Each solve keeps the run's own convergence test."""
+    global anchor_state,anchor_x
+    w={k:np.real(np.asarray(v,dtype=float)).copy() for k,v in x.items()};w['incidence']=w['incidence']-a.first_solve_tilt
+    geo.setDesignVars(w)
+    if a.first_ncycles:solver.setOption('nCycles',a.first_ncycles)
+    solver(ap,writeSolution=False)
+    solver.setOption('nCycles',a.ncycles)
+    if comm.rank==0:print('FIRST_SOLVE_TILT',json.dumps({'tilt_deg':a.first_solve_tilt,'failed':bool(ap.solveFailed or ap.fatalFail)}),flush=True)
+    if ap.solveFailed or ap.fatalFail:
+        raise RuntimeError(f'the first solve, at the design tilted by {a.first_solve_tilt:g} deg, did not converge')
+    anchor_state=solver.getStates().copy();anchor_x=w
+    geo.setDesignVars(x)
+
 def objfun(x, force=False):
     global count,best,cdcap,cache,anchor_state,anchor_x,previous_failed
     if previous_failed and anchor_state is not None:
@@ -455,7 +538,7 @@ def objfun(x, force=False):
     # Do not invoke CFD for a folded/crossed section or grossly displaced mesh.
     # Invalid topology is a numerical failure, not an extra design constraint.
     xy=pts[:,:2]
-    invalid=bool(boundary_self_intersects(pts) or np.min(xy[:,1])<.015)
+    invalid=bool(boundary_self_intersects(pts) or np.min(xy[:,1])<.3*box['ymin'])  # 15 mm for the 50 mm floor
     try:
         vals=geometry_values(pts) if not invalid else None
     except ValueError:
@@ -464,48 +547,64 @@ def objfun(x, force=False):
     dump(root/'incoming_design.json',realdict(x))
     if invalid:
         vals={'surface_x':xy[:,0]/c0,'surface_y':xy[:,1]/c0,
-              'max_thickness':np.array([-1.]),'objective':10.,CAP:10.}
+              'max_thickness':np.array([-1.]),'objective':10.,**{n:10. for n in AERO}}
         for name,(fun,_) in vertex_constraints.items():vals[name]=np.full(len(fun(points)),-1.)
         if comm.rank==0:print('INVALID_GEOMETRY',realdict(x),flush=True)
         # a gradient request here must not pair the previous state's adjoint with this geometry
         cache={'record':{'cfd_failed':True}}
         return vals,True
     path={}
-    if count==0 and a.first_ncycles:solver.setOption('nCycles',a.first_ncycles)
+    tilt=count==0 and a.first_solve_tilt and anchor_state is None and 'restartFile' not in options
+    if tilt:tilted_start(x)
+    if count==0 and a.first_ncycles and not tilt:solver.setOption('nCycles',a.first_ncycles)
     if a.split_stalled_solves and anchor_state is not None:path=walk(x)
     else:solver(ap,writeSolution=False)
-    if count==0 and a.first_ncycles:solver.setOption('nCycles',a.ncycles)
+    if count==0 and a.first_ncycles and not tilt:solver.setOption('nCycles',a.ncycles)
+    if count==0 and a.first_solve_tilt and not tilt and anchor_state is None and ap.solveFailed and not ap.fatalFail:
+        # The first solve from the restart flow (a chain's new grid) stalled, as run_035 r01's did (free air, ~1.4e-9 for
+        # 50,000 cycles with the forces settled): start again from freestream through the tilted solve and the walk.
+        r0,_,r1=map(float,solver.getResNorms())  # on every rank
+        if comm.rank==0:print('FIRST_SOLVE_RETRY',json.dumps({'from':'restart flow','residual_ratio':r1/r0}),flush=True)
+        solver.resetFlow(ap)
+        tilted_start(x)
+        path=walk(x)
     f={};solver.evalFunctions(ap,f)
     cl=float(f['wing_cl_wing']);cd=float(f['wing_cd_wing']);cmz=float(f['wing_cmz_wing'])
     loss,loss_c=outlet_loss(f)
     ri,rs,rf=map(float,solver.getResNorms())
-    failed=bool(ap.solveFailed or ap.fatalFail or not np.isfinite([cl,cd,cmz,loss]).all())
+    cpmin=float(f['wing_cpmin_wing']) if a.cp_min is not None else None
+    failed=bool(ap.solveFailed or ap.fatalFail or not np.isfinite([cl,cd,cmz,loss]+([cpmin] if cpmin is not None else [])).all())
     if not failed:anchor_state,anchor_x=solver.getStates().copy(),copy.deepcopy(x)
     previous_failed=failed
     if count==0:
         if failed:raise RuntimeError('Initial CFD baseline did not converge')
         settings['drag_cap']=cdcap
         settings['loss_cap']=a.loss_cap
+        settings['cp_min']=a.cp_min
         settings['outlet_total_pressure_inf_Pa']=p0inf
         settings['flow_derived']={'density_kg_m3':float(ap.rho),'viscosity_Pa_s':float(ap.mu),
                                  'mach':float(ap.mach),'reynolds':float(ap.rho*V*c0/ap.mu)}
         dump(root/'settings.json',settings)
         if comm.rank==0:
             (root/'settings.txt').write_text('CFD AND OPTIMIZER SETTINGS\n\n'+json.dumps(settings,indent=2)+'\n')
-    vals.update({'objective':cl,CAP:loss/a.loss_cap if CAP=='loss' else cd/cdcap})
+    vals.update({'objective':loss/LOSS_SCALE if LOSS_OBJ else cl,
+                 CAP:2-cl*c0/a.max_clc if CAP=='lift' else loss/a.loss_cap if CAP=='loss' else cd/cdcap})
+    if cpmin is not None:vals['cp_min']=cpmin/a.cp_min  # both negative: <= 1 when cpmin >= the limit
     feasible=bool(not failed and np.min(vals['surface_x'])>=box['xmin']/c0-1e-6
         and np.max(vals['surface_x'])<=box['xmax']/c0+1e-6
         and np.min(vals['surface_y'])>=box['ymin']/c0-1e-6 and np.max(vals['surface_y'])<=box['ymax']/c0+1e-6
-        and vals['max_thickness'][0]>=.06-1e-6 and vals[CAP]<=1+1e-5
+        and vals['max_thickness'][0]>=.06-1e-6 and all(vals[n]<=1+1e-5 for n in AERO)
         and all(vals[name].min()>=low/c0-1e-6 for name,(_,low) in vertex_constraints.items()))
     q=.5*ap.rho*V**2
     record={'evaluation':count,'cl':cl,'cd':cd,'cmz':cmz,
             'downforce_N_per_m':float(-cl*q*c0),'drag_N_per_m':float(cd*q*c0),
             'downforce_to_drag':float(-cl/cd),'force_down_N_extruded_span':float(-cl*q*c0*span),
             'cpt_loss_outlet':loss,'cpt_loss_outlet_flux_c_m':loss_c,
+            **({'cp_min_ks':cpmin} if cpmin is not None else {}),
             'outlet_ptot_Pa':float(f['wing_ptot_outlet']),'outlet_mdot_kg_s':float(f['wing_mdot_outlet']),
             'residual_initial':ri,'residual_start':rs,'residual_final':rf,
             'residual_ratio_initial':rf/ri,'cfd_failed':failed,**path,'feasible':feasible,
+            'objective_value':float(vals['objective']),'zero_deformation':unwarped(x),
             'evaluation_wall_time_s':time.perf_counter()-tic,'elapsed_wall_time_s':time.perf_counter()-start,
             'incidence_variable_deg':float(x['incidence'][0]),**metrics(pts),'design':realdict(x)}
     if comm.rank==0:
@@ -514,13 +613,16 @@ def objfun(x, force=False):
         dump(root/'latest.json',record)
         print('OPT_EVAL',json.dumps(record),flush=True)
     if count==0:save_state('baseline',record,pts,x)
-    if feasible and (best is None or cl<best['cl']):
+    # With the loss the objective, the grid's own design (no deformation) does not count: any warp, however small,
+    # adds 1-4 % to the outlet loss (every round of runs 016-022 shows it; C_L moves as it should), so the round's
+    # start would beat every design the optimizer finds. It is the previous round's last design, counted there.
+    if feasible and not (LOSS_OBJ and unwarped(x)) and (best is None or record['objective_value']<best['objective_value']):
         best=copy.deepcopy(record)
         save_state('best_feasible',record,pts,x)
     if failed:
         # pyOptSparse SLSQP ignores fail flags. Explicitly reject failed CFD
         # with finite penalties instead of optimizing unconverged loads.
-        vals.update({'objective':1000.,CAP:1000.})
+        vals.update({'objective':1000.,**{n:1000. for n in AERO}})
     cache={'record':record,'values':vals,'points':pts.copy(),'design':copy.deepcopy(x)}
     count+=1
     return vals,failed
@@ -533,14 +635,20 @@ def sensfun(x, funcs):
     # overset grid is warped together. The adjoint matches this primal model.
     if cache.get('record',{}).get('cfd_failed',False):
         zeros={k:np.zeros((1,len(v))) for k,v in x.items()}
-        g.update({'objective':copy.deepcopy(zeros),CAP:copy.deepcopy(zeros)})
+        g.update({'objective':copy.deepcopy(zeros),**{n:copy.deepcopy(zeros) for n in AERO}})
         return g,True
-    fs={};solver.evalFunctionsSens(ap,fs,evalFuncs=['cl_wing','ptot_outlet' if CAP=='loss' else 'cd_wing'])
+    fs={};solver.evalFunctionsSens(ap,fs,evalFuncs=['cl_wing','ptot_outlet' if CAP in ('loss','lift') else 'cd_wing']
+                                   +(['cpmin_wing'] if a.cp_min is not None else []))
     failed=bool(ap.adjointFailed)
     if failed:raise RuntimeError('Adjoint failed: refusing an unconverged optimization gradient')
-    g['objective']={k:np.asarray(v) for k,v in fs['wing_cl_wing'].items()}
-    if CAP=='loss':g['loss']={k:-np.asarray(v)/qinf/a.loss_cap for k,v in fs['wing_ptot_outlet'].items()}
-    else:g['drag']={k:np.asarray(v)/cdcap for k,v in fs['wing_cd_wing'].items()}
+    if LOSS_OBJ:
+        g['objective']={k:-np.asarray(v)/qinf/LOSS_SCALE for k,v in fs['wing_ptot_outlet'].items()}
+        g['lift']={k:-np.asarray(v)*c0/a.max_clc for k,v in fs['wing_cl_wing'].items()}
+    else:
+        g['objective']={k:np.asarray(v) for k,v in fs['wing_cl_wing'].items()}
+        if CAP=='loss':g['loss']={k:-np.asarray(v)/qinf/a.loss_cap for k,v in fs['wing_ptot_outlet'].items()}
+        else:g['drag']={k:np.asarray(v)/cdcap for k,v in fs['wing_cd_wing'].items()}
+    if a.cp_min is not None:g['cp_min']={k:np.asarray(v)/a.cp_min for k,v in fs['wing_cpmin_wing'].items()}
     if a.save_iterate_flows:
         # A gradient request marks a major iterate; the solver still holds its state.
         folder=f"iterates/eval_{cache['record']['evaluation']:03d}"
@@ -551,7 +659,7 @@ def sensfun(x, funcs):
         print('OPT_GRADIENT',count,'failed',failed,flush=True)
         with (root/'gradients.jsonl').open('a') as f:
             f.write(json.dumps({'evaluation_count':count,'failed':failed,
-                'objective':realdict(g['objective']),CAP:realdict(g[CAP])})+'\n')
+                'objective':realdict(g['objective']),**{n:realdict(g[n]) for n in AERO}})+'\n')
     return g,failed
 
 # Check independent CFD derivatives before starting the optimization.
@@ -578,18 +686,19 @@ def derivative_check_passed(report,limit=.05,names=('objective',CAP)):
 # The outlet loss is report-only (user, 2026-11-15): at low-loss designs its value jumps by 1e-6..2e-5
 # between micro-steps (deterministic, likely the approximate far-field mesh warp near the outlet), so
 # finite differences there cannot test its adjoint. That adjoint passed within 1 % at run_006's best
-# design (run_006_levelNoTilt/cptloss_eval). Only C_L gates a loss-capped run.
+# design (run_006_levelNoTilt/cptloss_eval). Only C_L gates a loss-capped run, and with --max-clc
+# (the loss the objective) only the C_L limit 'lift'.
 def derivative_check_verdict(report):
-    gated=('objective',) if CAP=='loss' else ('objective',CAP)
+    gated=(('lift',) if LOSS_OBJ else ('objective',) if CAP=='loss' else ('objective',CAP))+tuple(AERO[1:])
     verdict=('passed' if derivative_check_passed(report,names=gated) else
              'passed with a warning: within 50 % but not 5 %' if derivative_check_passed(report,.5,gated) else 'failed')
-    if verdict!='failed' and CAP=='loss' and not derivative_check_passed(report,names=('loss',)):
+    if verdict!='failed' and CAP in ('loss','lift') and not derivative_check_passed(report,names=('objective' if LOSS_OBJ else 'loss',)):
         verdict+=' (C_L); the outlet loss did not agree, which is report-only'
     return verdict
 
 def aerodynamic_derivative_check(x0):
     f0,fail=objfun(x0)
-    base={n:float(f0[n]) for n in ['objective',CAP]}
+    base={n:float(f0[n]) for n in ['objective',*AERO]}
     g,adjfail=sensfun(x0,f0)
     if adjfail:raise RuntimeError('Baseline adjoint did not converge')
     h=1e-2
@@ -597,7 +706,7 @@ def aerodynamic_derivative_check(x0):
     xp['incidence']+=h;xm['incidence']-=h
     fp,pfail=objfun(xp);fm,mfail=objfun(xm)
     report={}
-    for name in ['objective',CAP]:
+    for name in ['objective',*AERO]:
         fd=float((fp[name]-fm[name])/(2*h))
         adj=float(np.asarray(g[name]['incidence']).ravel()[0])
         scaled_norm=float(np.sqrt(sum(((np.asarray(g[name][k],dtype=float).ravel()/dv_scale[k])**2).sum() for k in x0)))
@@ -608,7 +717,7 @@ def aerodynamic_derivative_check(x0):
     report['primal_failed']=pfail or mfail
     if a.check_design:
         # Separated flow is rough at 0.1 mm and solver noise shows at 0.01 mm: the best step counts.
-        for name in ['objective',CAP]:
+        for name in ['objective',*AERO]:
             u={k:np.asarray(g[name][k],dtype=float).ravel() for k in shape_groups}
             norm=np.sqrt(sum((v**2).sum() for v in u.values()));u={k:v/norm for k,v in u.items()}
             adj=float(sum(np.asarray(g[name][k],dtype=float).ravel()@u[k] for k in shape_groups))
@@ -661,7 +770,7 @@ if a.restart_design:
 optprob=Optimization('Slip-ground downforce with surface box',objfun,comm=comm)
 geo.addVariablesPyOpt(optprob)
 optprob.addObj('objective')
-optprob.addCon(CAP,upper=1.)
+for n in AERO:optprob.addCon(n,upper=1.)
 optprob.addConGroup('surface_x',len(points),lower=box['xmin']/c0,upper=box['xmax']/c0)
 optprob.addConGroup('surface_y',len(points),lower=box['ymin']/c0,upper=box['ymax']/c0)
 optprob.addCon('max_thickness',lower=.06)

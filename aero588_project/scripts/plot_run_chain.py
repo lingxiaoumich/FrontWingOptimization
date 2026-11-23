@@ -38,9 +38,9 @@ def iterates(run, H):
     text = (run/'PSQP.out').read_text().split('EXIT FROM PSQP')[0]  # the exit summary repeats the last line
     L = [(int(v), int(g)) for v, g in re.findall(r'NIT=\s*\d+\s+NFV=\s*(\d+)\s+NFG=\s*(\d+)\s+F=', text)]
     F0 = float(re.search(r'NIT=\s*\d+\s+NFV=\s*\d+\s+NFG=\s*\d+\s+F=\s*(\S+)', text).group(1))
-    # The start is the latest gradient evaluation with cl = F[0] (the derivative check also
-    # solves the start design); the printed F differs from cl where a constraint is violated.
-    starts = [k for k, e in enumerate(grads) if abs(H[e]['cl']-F0) < 1e-4][::-1]
+    # The start is the latest gradient evaluation with the objective (cl; the scaled loss with
+    # --max-clc) = F[0] (the derivative check also solves the start design).
+    starts = [k for k, e in enumerate(grads) if abs(H[e].get('objective_value', H[e]['cl'])-F0) < 1e-4][::-1]
     # Match by count: each PSQP function call is one evaluation, so an iterate is NFV-NFV0
     # evaluations after the start, and every iterate lands on a gradient evaluation.
     for k0 in starts:
@@ -71,6 +71,8 @@ for r in a.runs:
 settings = json.loads((a.runs[0]/'settings.json').read_text())
 c0, box = settings['reference_chord_m'], settings['box_m']
 tmin, te_base, te_angle = settings['min_local_thickness_m'], settings['te_min_thickness_m'], settings['te_min_angle_deg']
+amin = settings.get('min_section_area_m2') or 0.  # m^2; 0 without --min-area
+clc_max = settings.get('max_clc_m')  # with --max-clc the outlet loss is the objective and C_L c <= clc_max a limit
 
 ramp = ['#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b']
 cmap = LinearSegmentedColormap.from_list('early_to_late', ramp)
@@ -95,14 +97,17 @@ for k, e in enumerate(I): e['k'] = k
 col = lambda e: GRID_COLORS[e['grid'] % len(GRID_COLORS)]
 v = lambda key, S=E: np.array([s[key] for s in S])
 down = lambda S: -c0*v('cl', S)
+# what the run minimizes, as plotted: downforce (up is better), or the outlet loss (down is better)
+obj = (lambda S: v('cpt_loss_outlet', S)) if clc_max is not None else down
+one = lambda h: h['cpt_loss_outlet'] if clc_max is not None else -c0*h['cl']
 
 fig, axs = plt.subplots(2, 3, figsize=(16.5, 9.6)); axs = axs.ravel()
 ax = axs[0]
 for g in range(len(grids)):
     S = [e for e in I if e['grid'] == g]
-    ax.plot(v('t_min', S), down(S), c=GRID_COLORS[g], lw=1.4, marker='o', ms=3.2, mec='white', mew=.4, label=grid_name(g))
-bad = [e for e in E if e['cfd_failed']]
-ax.scatter(v('t_min', bad), down(bad), c=orange, marker='X', s=26, lw=0, zorder=4, label='evaluation whose solve failed')
+    ax.plot(v('t_min', S), obj(S), c=GRID_COLORS[g], lw=1.4, marker='o', ms=3.2, mec='white', mew=.4, label=grid_name(g))
+bad = [e for e in E if e['cfd_failed'] and np.isfinite(one(e))]
+ax.scatter(v('t_min', bad), obj(bad), c=orange, marker='X', s=26, lw=0, zorder=4, label='evaluation whose solve failed')
 for i, r in enumerate(runs[1:], 1):
     ax.axvline(r['H'][0]['t_min'], c=muted, lw=.8, ls=':')
     if NCOL == 1: ax.text(r['H'][0]['t_min'], .02, f' run {i+1}', transform=ax.get_xaxis_transform(), fontsize=7.5, color=muted)
@@ -110,11 +115,21 @@ for i, r in enumerate(runs[1:], 1):
     if r['grid'] == runs[i-1]['grid'] or NCOL > 1: continue  # a long chain has no room for these labels
     # the same design, re-solved on the fresh grid
     prev = next(h for h in runs[i-1]['H'] if h['evaluation'] == runs[i-1]['its'][-1]); new = r['H'][0]
-    ax.annotate(f"remesh: {-c0*prev['cl']:.3f} → {-c0*new['cl']:.3f}\n({new['cl']/prev['cl']-1:+.1%}), same design", (new['t_min'], -c0*new['cl']),
+    f = '.5f' if clc_max is not None else '.3f'
+    ax.annotate(f"remesh: {one(prev):{f}} → {one(new):{f}}\n({one(new)/one(prev)-1:+.1%}), same design", (new['t_min'], one(new)),
                 xytext=(8, -26) if new['t_min'] < .6*E[-1]['t_min'] else (-14, 30), ha='left' if new['t_min'] < .6*E[-1]['t_min'] else 'right',
                 textcoords='offset points', fontsize=7.5, color=ink, arrowprops=dict(arrowstyle='->', color=muted, lw=.7))
-ax.annotate(f"{down([I[-1]])[0]:.3f}", (I[-1]['t_min'], down([I[-1]])[0]), xytext=(-4, 6), textcoords='offset points', ha='right', fontsize=8.5)
-ax.set(xlabel='Wall time, cumulative (min)', ylabel='Downforce $-C_Lc$', title='(a) Progress: PSQP iterates')
+ax.annotate(f"{one(I[-1]):{'.5f' if clc_max is not None else '.3f'}}", (I[-1]['t_min'], one(I[-1])), xytext=(-4, 6), textcoords='offset points', ha='right', fontsize=8.5)
+ax.set(xlabel='Wall time, cumulative (min)', ylabel='Outlet $C_{pt}$ loss (minimized)' if clc_max is not None else 'Downforce $-C_Lc$',
+       title='(a) Progress: PSQP iterates' + (f', downforce $-C_Lc$ ≥ {-clc_max:g} required' if clc_max is not None else ''))
+if clc_max is not None:  # the limit on a second axis: downforce of the same iterates, dashed
+    tw = ax.twinx(); tw.spines['right'].set_visible(True)
+    for g in range(len(grids)):
+        S = [e for e in I if e['grid'] == g]
+        tw.plot(v('t_min', S), down(S), c=GRID_COLORS[g], lw=.9, ls=(0, (3, 2)), alpha=.7)
+    tw.axhline(-clc_max, c=ink, lw=.9, ls='-.')
+    tw.text(.99, -clc_max, f'downforce limit {-clc_max:g}', transform=tw.get_yaxis_transform(), ha='right', va='bottom', fontsize=7.5, color=ink)
+    tw.set_ylim(0, max(down(I).max(), -clc_max)*1.15); tw.set_ylabel('Downforce $-C_Lc$ (dashed)')
 ax.legend(fontsize=8, frameon=False, loc='upper left', ncol=NCOL)
 
 ax = axs[1]
@@ -142,6 +157,8 @@ limits = [(f'gap above the {tmin*1e3:g} mm floor', aqua, '-', lambda h: (h['mini
           ('top of the section to the box top', orange, (0, (4, 2)), lambda h: (box['ymax']-h['maximum_height_m'])*1e3)]
 if te_base: limits.append((f'trailing-edge base above the {te_base*1e3:g} mm floor', aqua, (0, (4, 2)), lambda h: (h['te_base_thickness_m']-te_base)*1e3))
 if te_angle: limits.append((f'trailing-edge gap above the {te_angle:g}° taper', aqua, ':', lambda h: h['minimum_te_taper_margin_m']*1e3))
+# the area margin over the chord, as a mean thickness in mm
+if amin: limits.append((f'section area above the {amin*1e4:.1f} cm² floor, ÷ chord', ink, '-.', lambda h: (h['section_area_m2']-amin)/c0*1e3))
 kk = v('k', I); margins = {}
 for lab, c, ls, f in limits:
     y = np.array([f(e) for e in I]); margins[lab] = y
@@ -167,8 +184,10 @@ for r in (10, 20, 40):
 xm = max(down(I).max(), 3.4)*1.05; ym = max(c0*v('cd', I).max(), .33)*1.08
 for r in (10, 20, 40):
     x = min(xm*.98, ym*.95*r); ax.text(x, x/r, f'$-L/D$ = {r}', fontsize=7.5, color=muted, ha='right', va='bottom')
-ax.set(xlim=(.4, xm), ylim=(0, ym), xlabel='Downforce $-C_Lc$', ylabel='$C_Dc$', title=f'(e) Drag polar (outlet $C_{{pt}}$ loss cap {settings["loss_cap"]:.4f})' if settings.get('loss_cap') else
-       f'(e) Drag polar (cap $C_Dc$ = {c0*settings["drag_cap"]:g})')
+ax.set(xlim=(.4, xm), ylim=(0, ym), xlabel='Downforce $-C_Lc$', ylabel='$C_Dc$',
+       title=f'(e) Drag polar (outlet $C_{{pt}}$ loss minimized, $C_Lc$ ≤ {clc_max:g})' if clc_max is not None else
+             f'(e) Drag polar (outlet $C_{{pt}}$ loss cap {settings["loss_cap"]:.4f})' if settings.get('loss_cap') else
+             f'(e) Drag polar (cap $C_Dc$ = {c0*settings["drag_cap"]:g})')
 ax.legend(fontsize=8, frameon=False, loc='upper left', ncol=NCOL)
 
 ax = axs[5]
@@ -225,6 +244,7 @@ summary = dict(
                start_cl_c=c0*r['H'][0]['cl'], end_cl_c=c0*min(h['cl'] for h in r['H'] if not h['cfd_failed']))
           for r in runs],
     iterates=[dict(k=e['k'], run=e['run'], evaluation=e['evaluation'], t_min=e['t_min'], cl_c=c0*e['cl'], cd_c=c0*e['cd'],
+                   cpt_loss_outlet=e['cpt_loss_outlet'],
                    gap_mm=e['minimum_surface_gap_m']*1e3, **{lab: float(margins[lab][e['k']]) for lab in margins},
                    incidence_deg=e['chord_incidence_deg'], recirculation_cm2=runs[e['run']]['area'].get(e['evaluation']))
               for e in I])

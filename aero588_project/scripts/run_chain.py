@@ -19,7 +19,8 @@ current run. The hand-over:
 
 The grid needs replacing when
   - the last --max-failures evaluations all failed, or 6 of the last 8 did,
-  - the best C_L c of the PSQP iterates improved by under --min-gain in --stall-minutes,
+  - the best C_L c of the PSQP iterates improved by under --min-gain in --stall-minutes (for a run that
+    minimizes the outlet loss under --max-clc: its merit, by under --min-loss-gain; see objective()),
   - PSQP exited by itself (a fresh grid also restarts PSQP), or
   - no evaluation finished in --hang-minutes.
 The chain ends when a run gained under --min-gain in all, or its best is not --min-gain better
@@ -47,8 +48,17 @@ S = Path(__file__).resolve().parent
 HYP = ['{"cMax":1.0,"volSmoothIter":30}', '{"cMax":1.0,"volSmoothIter":0}', '{"cMax":1.0,"volSmoothIter":30,"epsI":4.0}',
        '{"cMax":1.0,"volSmoothIter":30,"marchDist":0.03}']  # last: a deeper near grid, which removes orphan cells for some shapes
 C0 = .5  # reference chord: C_L c = C0 * cl
+LOSS_PER_CLC = .1  # merit of a run that minimizes the outlet loss under --max-clc: loss + this x its C_L c shortfall
 # numpy's BLAS would otherwise start a thread per core, on cores the solver is using
 ONE_THREAD = dict(os.environ, OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1', MKL_NUM_THREADS='1')
+
+def unresolved(p):
+    """Absolute path of p with links kept: a run folder may link to a disk whose path has a space,
+    which the commands (split on spaces, run by a shell) and the process matching must not see.
+    Relative paths go against the shell's $PWD, since os.getcwd() resolves links."""
+    pwd = os.environ.get('PWD')
+    base = pwd if pwd and os.path.isdir(pwd) and os.path.samefile(pwd, '.') else os.getcwd()
+    return Path(os.path.normpath(os.path.join(base, p)))
 
 def log(*words):
     print(time.strftime('%m-%d %H:%M:%S'), *words, flush=True)
@@ -62,14 +72,31 @@ def pids(pattern):
 def ranks(run): return pids(f'[p]ython -u {run}/source/')
 def launcher(run): return pids(f'^(mpirun|prterun) .*--root {run} ')
 
+def objective(run):
+    """(score of a result record, its name, the option of its least gain): what progress is judged on, lower
+    is better. C_L c; or, for a run that minimizes the outlet Cpt loss under --max-clc, the merit loss +
+    LOSS_PER_CLC x how far C_L c is short of (above) its limit. Near these designs a unit of C_L c costs some
+    0.01-0.05 of loss, so the merit is lowest at the constrained optimum, and an iterate still on its way to
+    the limit counts as progress."""
+    t = option((run/'command.txt').read_text().split('\n')[0].split(), '--max-clc')
+    if t is None: return (lambda r: C0*r['cl']), 'C_L c', 'min_gain'
+    t = float(t)
+    return (lambda r: r['cpt_loss_outlet']+LOSS_PER_CLC*max(0., C0*r['cl']-t)), f'the loss merit (C_L c <= {t:g})', 'min_loss_gain'
+
 def iterates(run):
-    """(elapsed s, cl) of the saved PSQP iterates. Progress is judged on these, not on strictly
+    """(elapsed s, score) of the saved PSQP iterates. Progress is judged on these, not on strictly
     feasible evaluations: an iterate can sit microns outside a limit until PSQP converges."""
-    out = []
+    score, _, least = objective(run); out = []
     for d in (run/'iterates').glob('eval_*'):
         if (d/'design.json').exists():
-            r = json.loads((d/'result.json').read_text()); out.append((r['elapsed_wall_time_s'], r['cl']))
+            r = json.loads((d/'result.json').read_text())
+            # a loss run skips the round's start on its unwarped grid: any warp adds 1-4 % to the loss
+            if least == 'min_loss_gain' and r.get('zero_deformation', unwarped(r['design'])): continue
+            out.append((r['elapsed_wall_time_s'], score(r)))
     return sorted(out)
+
+def unwarped(design):
+    return design['incidence'][0] == -3. and not any(any(v) for k, v in design.items() if k != 'incidence')
 
 def verdict(run, rows, a):
     """Why the grid needs replacing, from the evaluations so far; None while the run is healthy."""
@@ -81,16 +108,17 @@ def verdict(run, rows, a):
     its = iterates(run)
     if its:
         now = rows[-1]['elapsed_wall_time_s']
-        before = [cl for t, cl in its if t < now-60*a.stall_minutes]
+        _, name, least = objective(run); least = getattr(a, least)
+        before = [s for t, s in its if t < now-60*a.stall_minutes]
         # Judged once PSQP has stepped: the first two iterates are the derivative check and PSQP's
         # start, which a slow machine can push 15 min apart from the first step.
-        if len(its) > 2 and before and C0*(min(before)-min(cl for _, cl in its)) < a.min_gain:
-            return f'the PSQP iterates improved C_L c by under {a.min_gain:g} in {a.stall_minutes:g} min'
+        if len(its) > 2 and before and min(before)-min(s for _, s in its) < least:
+            return f'the PSQP iterates improved {name} by under {least:g} in {a.stall_minutes:g} min'
     return None
 
 def gain(run):
-    its = [cl for _, cl in iterates(run)]
-    return C0*(its[0]-min(its)) if its else 0.
+    its = [s for _, s in iterates(run)]
+    return its[0]-min(its) if its else 0.
 
 def last_iterate(run, back=0):
     """The newest saved PSQP iterate, or the one `back` before it (the optimizer writes design.json last)."""
@@ -230,29 +258,31 @@ def main():
     p.add_argument('--max-failures', type=int, default=3, help='failed evaluations in a row that mean a worn-out grid')
     p.add_argument('--stall-minutes', type=float, default=30.)
     p.add_argument('--min-gain', type=float, default=.005, help='in C_L c')
+    p.add_argument('--min-loss-gain', type=float, default=3e-5, help='in outlet Cpt loss (the merit of a run with --max-clc)')
     p.add_argument('--hang-minutes', type=float, default=60.)
     p.add_argument('--max-runs', type=int, default=12, help='runs this driver may start')
     p.add_argument('--min-free-gb', type=float, default=3., help='free disk below which no new run starts (a run writes up to 1 GB)')
     p.add_argument('--poll', type=float, default=30., help='s between looks at the run')
     p.add_argument('--dry-run', type=Path, metavar='DIR', help='only set up the next grid and run folder of the last run, under DIR')
     a = p.parse_args()
-    runs = [r.resolve() for r in a.runs]
+    runs = [unresolved(r) for r in a.runs]
     if a.dry_run:
-        print(prepare(runs[-1], a.dry_run.resolve())); return
+        print(prepare(runs[-1], unresolved(a.dry_run))); return
     log('chain driver started on', runs[-1].name, '(running)' if ranks(runs[-1]) else '(stopped)')
     for started in range(a.max_runs+1):
         run = runs[-1]
         why, go_on = watch(run, a)
-        its = [cl for _, cl in iterates(run)]
-        log(f"{run.name}: {why}. Its PSQP iterates went from C_L c {C0*its[0]:.3f} to {C0*min(its):.3f} "
+        its = [s for _, s in iterates(run)]
+        _, name, least = objective(run); n = 3 if least == 'min_gain' else 6; least = getattr(a, least)
+        log(f"{run.name}: {why}. Its PSQP iterates went from {name} {its[0]:.{n}f} to {min(its):.{n}f} "
             f"in {len(history(run))} evaluations." if its else f'{run.name}: {why}. No iterate was saved.')
         if not go_on:
             log('chain ended: the run needs a look.'); return
-        if gain(run) < a.min_gain:
-            log(f'chain ended: this run gained under {a.min_gain:g}, so another grid would not help.'); return
-        before = [cl for r in runs[:-1] for _, cl in iterates(r)]
-        if before and C0*(min(before)-min(its)) < a.min_gain:
-            log(f'chain ended: this run did not beat the best of the earlier runs by {a.min_gain:g}.'); return
+        if gain(run) < least:
+            log(f'chain ended: this run gained under {least:g}, so another grid would not help.'); return
+        before = [s for r in runs[:-1] for _, s in iterates(r)]
+        if before and min(before)-min(its) < least:
+            log(f'chain ended: this run did not beat the best of the earlier runs by {least:g}.'); return
         if started == a.max_runs:
             log(f'chain ended: --max-runs {a.max_runs} runs started.'); return
         free = shutil.disk_usage(run).free/1e9
@@ -275,7 +305,7 @@ def main():
             skip.append(hyp); name = retry_name(root.name)
         runs.append(root); log('started', root.name)
         if a.live_plots:
-            out = a.live_plots.resolve(); out.mkdir(parents=True, exist_ok=True)
+            out = unresolved(a.live_plots); out.mkdir(parents=True, exist_ok=True)
             subprocess.Popen([sys.executable, '-u', str(S/'live_plots.py'), '--out', str(out), *map(str, runs)],
                              stdout=(out/'live_plots.log').open('a'), stderr=subprocess.STDOUT, start_new_session=True)
         time.sleep(60)  # the ranks are up well before the first look

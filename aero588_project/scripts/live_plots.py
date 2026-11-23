@@ -20,6 +20,14 @@ import time
 from pathlib import Path
 
 S = Path(__file__).resolve().parent
+def unresolved(p):
+    """Absolute path of p with links kept: a run folder may link to a disk whose path has a space,
+    which the commands (split on spaces, run by a shell) and the process matching must not see.
+    Relative paths go against the shell's $PWD, since os.getcwd() resolves links."""
+    pwd = os.environ.get('PWD')
+    base = pwd if pwd and os.path.isdir(pwd) and os.path.samefile(pwd, '.') else os.getcwd()
+    return Path(os.path.normpath(os.path.join(base, p)))
+
 p = argparse.ArgumentParser()
 p.add_argument('runs', type=Path, nargs='+')
 p.add_argument('--out', type=Path, required=True, help='summary folder for the chain plots')
@@ -29,7 +37,7 @@ p.add_argument('--gif-every', type=int, default=10, help='new iterates between r
 p.add_argument('--gif-jobs', type=int, default=4, help='processes drawing the GIF frames')
 p.add_argument('--poll', type=float, default=20., help='s between looks at the run folder')
 a = p.parse_args()
-runs = [r.resolve() for r in a.runs]; run = runs[-1]
+runs = [unresolved(r) for r in a.runs]; run = runs[-1]  # running() matches the command line
 
 # numpy's BLAS would otherwise start a thread per core, on cores the solver is using
 ONE_THREAD = dict(os.environ, OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1', MKL_NUM_THREADS='1')
