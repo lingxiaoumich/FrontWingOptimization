@@ -1,0 +1,676 @@
+#
+# ADflow, multiblock structured flow solver
+#
+# This code solves the 3D RANS, laminar NS or Euler equations
+# on multiblock structured hexahedral grids.
+# This is a parallel executable running on 64 processors.
+# It has been compiled with the following options:
+# - Optimized mode.
+# - Size of standard integers: 4 bytes.
+# - Size of standard floating point types: 8 bytes.
+# - With cgns support
+# - With support for signals.
+#
++----------------------------------------+
+|          All ADFLOW Options:           |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKAMGLevels': 2,
+ 'ANKAMGNSmooth': 1,
+ 'ANKASMOverlap': 1,
+ 'ANKASMOverlapCoarse': 0,
+ 'ANKCFL0': 5.0,
+ 'ANKCFLCutback': 0.5,
+ 'ANKCFLExponent': 0.5,
+ 'ANKCFLFactor': 10.0,
+ 'ANKCFLLimit': 100000.0,
+ 'ANKCFLMin': 1.0,
+ 'ANKCFLReset': True,
+ 'ANKCharTimeStepType': 'None',
+ 'ANKConstCFLStep': 0.4,
+ 'ANKCoupledSwitchTol': 1e-16,
+ 'ANKGlobalPreconditioner': 'additive Schwarz',
+ 'ANKInnerPreconIts': 1,
+ 'ANKInnerPreconItsCoarse': 1,
+ 'ANKJacobianLag': 10,
+ 'ANKLinResMax': 0.1,
+ 'ANKLinearSolveBuffer': 0.01,
+ 'ANKLinearSolveTol': 0.05,
+ 'ANKMaxIter': 40,
+ 'ANKNSubiterTurb': 1,
+ 'ANKOuterPreconIts': 1,
+ 'ANKPCILUFill': 2,
+ 'ANKPCILUFillCoarse': 0,
+ 'ANKPCUpdateCutoff': 1e-16,
+ 'ANKPCUpdateTol': 0.5,
+ 'ANKPCUpdateTolAfterCutoff': 0.0001,
+ 'ANKPhysicalLSTol': 0.2,
+ 'ANKPhysicalLSTolTurb': 0.99,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKStepFactor': 1.0,
+ 'ANKStepMin': 0.01,
+ 'ANKSubspaceSize': -1,
+ 'ANKSwitchTol': 10.0,
+ 'ANKTurbCFLScale': 1.0,
+ 'ANKTurbKSPDebug': False,
+ 'ANKUnsteadyLSTol': 1.0,
+ 'ANKUseApproxSA': False,
+ 'ANKUseFullVisc': True,
+ 'ANKUseMatrixFree': True,
+ 'ANKUseTurbDADI': True,
+ 'ASMOverlap': 1,
+ 'ASMOverlapCoarse': 0,
+ 'CFL': 1.7,
+ 'CFLCoarse': 1.0,
+ 'CFLLimit': 1.5,
+ 'GMRESOrthogonalizationType': 'modified Gram-Schmidt',
+ 'ILUFill': 4,
+ 'ILUFillCoarse': 0,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceCoarse': 0.01,
+ 'L2ConvergenceRel': 1e-10,
+ 'MGCycle': 'sg',
+ 'MGStartLevel': -1,
+ 'NKADPC': True,
+ 'NKAMGLevels': 2,
+ 'NKAMGNSmooth': 1,
+ 'NKASMOverlap': 3,
+ 'NKASMOverlapCoarse': 0,
+ 'NKFixedStep': 0.25,
+ 'NKGlobalPreconditioner': 'additive Schwarz',
+ 'NKInnerPreconIts': 1,
+ 'NKInnerPreconItsCoarse': 1,
+ 'NKJacobianLag': 20,
+ 'NKLS': 'cubic',
+ 'NKLinearSolveTol': 0.1,
+ 'NKOuterPreconIts': 1,
+ 'NKPCILUFill': 4,
+ 'NKPCILUFillCoarse': 0,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-06,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'RKReset': False,
+ 'TSStability': False,
+ 'acousticScaleFactor': 1.0,
+ 'adjointAMGLevels': 2,
+ 'adjointAMGNSmooth': 1,
+ 'adjointDivTol': 100000.0,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointL2ConvergenceAbs': 1e-16,
+ 'adjointL2ConvergenceRel': 1e-16,
+ 'adjointMaxIter': 2000,
+ 'adjointMaxL2DeviationFactor': 1.0,
+ 'adjointMonitorStep': 10,
+ 'adjointSolver': 'GMRES',
+ 'adjointSubspaceSize': 500,
+ 'alphaFollowing': True,
+ 'alphaMode': False,
+ 'altitudeMode': False,
+ 'applyAdjointPCSubspaceSize': 20,
+ 'applyPCSubspaceSize': 10,
+ 'approxPC': True,
+ 'backgroundVolScale': 1.0,
+ 'betaMode': False,
+ 'blockSplitting': True,
+ 'cavExponent': 0,
+ 'cavSensorOffset': 0.0,
+ 'cavSensorSharpness': 10.0,
+ 'cavitationNumber': 1.4,
+ 'closedSurfaceFamilies': None,
+ 'coarseDiscretization': 'central plus scalar dissipation',
+ 'computeCavitation': False,
+ 'computeSepSensorKs': False,
+ 'coupledSolution': False,
+ 'cpMinRho': 100.0,
+ 'cutCallback': None,
+ 'debugZipper': False,
+ 'deltaT': 0.01,
+ 'designSurfaceFamily': 'airfoil',
+ 'discretization': 'central plus scalar dissipation',
+ 'dissContMagnitude': 1.0,
+ 'dissContMidpoint': 3.0,
+ 'dissContSharpness': 3.0,
+ 'dissipationLumpingParameter': 6.0,
+ 'dissipationScalingExponent': 0.67,
+ 'eddyVisInfRatio': 0.009,
+ 'equationMode': 'steady',
+ 'equationType': 'RANS',
+ 'eulerWallTreatment': 'linear pressure extrapolation',
+ 'explicitSurfaceCallback': None,
+ 'firstRun': True,
+ 'flowType': 'external',
+ 'forcesAsTractions': True,
+ 'frozenTurbulence': False,
+ 'globalPreconditioner': 'additive Schwarz',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/source/ground.cgns',
+ 'gridPrecision': 'double',
+ 'gridPrecisionSurface': 'single',
+ 'infChangeCorrection': True,
+ 'infChangeCorrectionTol': 1e-12,
+ 'infChangeCorrectionType': 'offset',
+ 'innerPreconIts': 1,
+ 'innerPreconItsCoarse': 1,
+ 'isoVariables': [],
+ 'isosurface': {},
+ 'liftIndex': 2,
+ 'limiter': 'van Albada',
+ 'loadBalanceIter': 10,
+ 'loadImbalance': 0.1,
+ 'localPreconditioner': 'ILU',
+ 'lowSpeedPreconditioner': False,
+ 'machMode': False,
+ 'matrixOrdering': 'RCM',
+ 'maxL2DeviationFactor': 1.0,
+ 'meshMaxSkewness': 1.0,
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 10000,
+ 'nCyclesCoarse': 500,
+ 'nFloodIter': -1,
+ 'nRKReset': 5,
+ 'nRefine': 10,
+ 'nSaveSurface': 1,
+ 'nSaveVolume': 1,
+ 'nSubiter': 1,
+ 'nSubiterTurb': 3,
+ 'nTimeStepsCoarse': 48,
+ 'nTimeStepsFine': 400,
+ 'nearWallDist': 0.01,
+ 'numberSolutions': True,
+ 'outerPreconIts': 3,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/evaluations',
+ 'outputSurfaceFamily': 'allSurfaces',
+ 'overlapFactor': 0.9,
+ 'oversetDebugPrint': False,
+ 'oversetLoadBalance': True,
+ 'oversetPriority': {},
+ 'oversetProjTol': 1e-12,
+ 'oversetUpdateMode': 'frozen',
+ 'pMode': False,
+ 'partitionLikeNProc': -1,
+ 'partitionOnly': False,
+ 'preconditionerSide': 'right',
+ 'printAllOptions': True,
+ 'printBadlySkewedCells': False,
+ 'printIntro': True,
+ 'printIterations': True,
+ 'printNegativeVolumes': False,
+ 'printTiming': True,
+ 'printWarnings': True,
+ 'qMode': False,
+ 'rMode': False,
+ 'recomputeOverlapMatrix': True,
+ 'resAveraging': 'alternate',
+ 'restartAdjoint': True,
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/source/restart_vol.cgns',
+ 'restrictionRelaxation': 0.8,
+ 'selfZipCutoff': 120.0,
+ 'sepSensorKsOffset': 0.0,
+ 'sepSensorKsPhi': 90.0,
+ 'sepSensorKsRho': 1000.0,
+ 'sepSensorKsSharpness': 25.0,
+ 'sepSensorOffset': 0.0,
+ 'sepSensorSharpness': 10.0,
+ 'setMonitor': True,
+ 'skipAfterFailedAdjoint': True,
+ 'smoothParameter': 1.5,
+ 'smoother': 'DADI',
+ 'solutionPrecision': 'single',
+ 'solutionPrecisionSurface': 'single',
+ 'storeConvHist': True,
+ 'storeRindLayer': True,
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'timeAccuracy': 2,
+ 'timeIntegrationScheme': 'BDF',
+ 'timeIntervals': 1,
+ 'timeLimit': -1.0,
+ 'turbResScale': 10000.0,
+ 'turbulenceModel': 'SA',
+ 'turbulenceOrder': 'first order',
+ 'turbulenceProduction': 'strain',
+ 'updateWallAssociations': False,
+ 'useALE': True,
+ 'useANKSolver': True,
+ 'useApproxWallDistance': True,
+ 'useBlockettes': True,
+ 'useDiagTSPC': True,
+ 'useDissContinuation': False,
+ 'useExternalDynamicMesh': False,
+ 'useGridMotion': False,
+ 'useLinResMonitor': False,
+ 'useMatrixFreedrdw': True,
+ 'useNKSolver': True,
+ 'useOversetWallScaling': False,
+ 'useQCR': False,
+ 'useRotationSA': False,
+ 'useSkewnessCheck': False,
+ 'useTSInterpolatedGridVelocity': False,
+ 'useWallFunctions': False,
+ 'useZipperMesh': False,
+ 'useft2SA': True,
+ 'verifyExtra': True,
+ 'verifySpatial': True,
+ 'verifyState': True,
+ 'vis2': 0.25,
+ 'vis2Coarse': 0.5,
+ 'vis4': 0.0156,
+ 'viscPC': True,
+ 'viscWallTreatment': 'constant pressure extrapolation',
+ 'viscousSurfaceVelocities': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'wallDistCutoff': 1e+20,
+ 'windAxis': False,
+ 'writeSolutionDigits': 3,
+ 'writeSolutionEachIter': False,
+ 'writeSurfaceSolution': True,
+ 'writeTecplotSurfaceSolution': True,
+ 'writeVolumeSolution': True,
+ 'zipperSurfaceFamily': None}
+-> Alpha... 0.000000 
+#
+#                      Warning
+# It is assumed that the grid is given in meters.
+#
+#
+# Specified load imbalance tolerance 0.100 achieved.
+# Continuing with 0.069 load imbalance for the cells and 0.068 for the faces
+#
+#
+#                      Warning
+# 3 bad quality volumes found.
+# Computation will continue, but be aware of this.
+#
+#
+# Grid level: 1, Total number of cells: 88548
+#
++--------------------------------------------------+
+  CGNS Surface Families by Boundary Condition Type
++--------------------------------------------------+
+| Wall Types           : airfoil 
+| Inflow Types         : 
+| Outflow Types        : 
+| Symmetry Types       : ground sym symmetry 
+| Farfield Types       : farfield 
+| Overset Types        : overset 
++--------------------------------------------------+
+ Flood Iteration:           1 Blanked         1421 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       84716
+ | Fringe Cells            :        2292
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1297
+ | FloodSeed Cells         :         243
+ +--------------------------------+
+ Total number of orphans:           0
+ Flood Iteration:           1 Blanked         1540 Interior Cells.
+ Flood Iteration:           2 Blanked            0 Interior Cells.
+ +--------------------------------+
+ | Compute Cells           :       84716
+ | Fringe Cells            :        2292
+ | Blanked Cells           :           0
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1297
+ | FloodSeed Cells         :         243
+ +--------------------------------+
+ Total number of orphans:           0
+ +--------------------------------+
+ | Compute Cells           :       84716
+ | Fringe Cells            :        1202
+ | Blanked Cells           :        1090
+ | Explicitly Blanked Cells:           0
+ | Flooded   Cells         :        1297
+ | FloodSeed Cells         :         243
+ +--------------------------------+
+ Total number of orphans:           0
++--------------------------------------------------+
+|
+| Initialization Times:
+|
+| Library Load Time             :      0.031 sec
+| Set Defaults Time             :      0.001 sec
+| Base Class Init Time          :      0.001 sec
+| Introductory Time             :      0.379 sec
+| Partitioning Time             :      0.054 sec
+| Preprocessing Time            :      0.734 sec
+| Family Setup Time             :      0.000 sec
+| Cut Callback Time             :      0.000 sec
+| Explicit Surface Cut Time     :      0.000 sec
+| Overset Preprocessing Time    :      0.026 sec
+| Initialize Flow Time          :      0.002 sec
+|
+| Total Init Time               :      1.229 sec
++--------------------------------------------------+
++----------------------------------------+
+|          All IDWarp Options:           |
++----------------------------------------+
+{'LdefFact': 1.0,
+ 'aExp': 3.0,
+ 'alpha': 0.25,
+ 'bExp': 5.0,
+ 'bucketSize': 8,
+ 'cornerAngle': 30.0,
+ 'errTol': 1e-05,
+ 'evalMode': 'fast',
+ 'fileType': 'CGNS',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/source/ground.cgns',
+ 'restartFile': None,
+ 'specifiedSurfaces': None,
+ 'symmTol': 1e-06,
+ 'symmetryPlanes': [[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                    [[0.0, 0.0, 0.05], [0.0, 0.0, 1.0]]],
+ 'symmetrySurfaces': None,
+ 'useRotations': True,
+ 'zeroCornerRotations': True}
+  -> Reading CGNS File: /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/source/ground.cgns
+    -> Number of Zones:           2
+#------------------------------#
+ Total Volume Nodes :    178884 
+#------------------------------#
++-------------------- Symmetry Planes -------------------+
+|           Point                        Normal          |
+| (  0.000   0.000   0.000)    (  0.000   1.000   0.000) |
+| (  0.000   0.000   0.000)    (  0.000   0.000   1.000) |
+| (  0.000   0.000   0.050)    (  0.000   0.000   1.000) |
++--------------------------------------------------------+
+#--------------------------------#
+ Unique Surface Nodes :       576 
+#--------------------------------#
+ Computing Denominator Estimate...
+ Load Balancing...
+ Finished Mesh Initialization.
+
++------------------------------------------------------------------------------+
+| pyADFLOW Warning: 'zipperSurfaceFamily' option was not given. Using all wall |
+| boundary conditions for the zipper mesh.                                     |
++------------------------------------------------------------------------------+
+
++----------------------------------------------------------------------+
+|  Switching to Aero Problem: wing                                     |
++----------------------------------------------------------------------+
+-> Alpha... 0.000000 
++----------------------------------------+
+|      All Modified ADFLOW Options:      |
++----------------------------------------+
+{'ADPC': True,
+ 'ANKADPC': True,
+ 'ANKSecondOrdSwitchTol': 0.01,
+ 'ANKSwitchTol': 10.0,
+ 'ILUFill': 4,
+ 'L2Convergence': 1e-10,
+ 'L2ConvergenceRel': 1e-10,
+ 'NKADPC': True,
+ 'NKASMOverlap': 3,
+ 'NKLinearSolveTol': 0.1,
+ 'NKPCILUFill': 4,
+ 'NKSubspaceSize': 400,
+ 'NKSwitchTol': 1e-06,
+ 'NKUseEW': False,
+ 'NKViscPC': True,
+ 'adjointL2Convergence': 1e-07,
+ 'adjointMaxIter': 2000,
+ 'adjointSubspaceSize': 500,
+ 'designSurfaceFamily': 'airfoil',
+ 'gridFile': '/home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/source/ground.cgns',
+ 'meshSurfaceFamily': 'airfoil',
+ 'monitorVariables': ['resrho', 'resturb', 'cl', 'cd'],
+ 'nCycles': 60000,
+ 'nearWallDist': 0.01,
+ 'outputDirectory': '/home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/evaluations',
+ 'restartFile': '/home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/source/restart_vol.cgns',
+ 'surfaceVariables': ['cp', 'cf', 'yplus'],
+ 'turbResScale': 10000.0,
+ 'useNKSolver': True,
+ 'useZipperMesh': False,
+ 'viscPC': True,
+ 'volumeVariables': ['cp', 'mach', 'blank'],
+ 'writeTecplotSurfaceSolution': True}
+#
+#                      Warning
+# 3 bad quality volumes found.
+# Computation will continue, but be aware of this.
+#
+#
+# Found restart file: /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/source/restart_vol.cgns
+#
+#
+#                      Warning
+# 384 type mismatches occured when reading the solution of the blocks
+#
+#
+# Grid 1: Performing 60000 iterations, unless converged earlier. Minimum required iteration before NK switch:      5. Switch to NK at totalR of:   3.35E+00
+#
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  Grid  | Iter | Iter |  Iter  |   CFL   | Step | Lin  |        Res rho         |       Res nuturb       |         C_lift         |        C_drag          |        totalRes        |
+#  level |      | Tot  |  Type  |         |      | Res  |                        |                        |                        |                        |                        |
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      1       0      0     None     ----    ----   ----   2.8142214369882126E-04   8.2404459695006609E-09  -4.8605890532505640E+00   4.1008244086222256E-01   4.3785698798940575E-01 
+      1       1      4      *NK     ----    1.00  0.060   6.3045799249322518E-05   5.4407524691190046E-10  -4.8605889637912032E+00   4.1008243689230861E-01   2.6185797316344971E-02 
+      1       2     11       NK     ----    1.00  0.098   5.2335597312817095E-06   1.2491129420276269E-10  -4.8605890759798687E+00   4.1008241895258657E-01   2.5738313611518731E-03 
+      1       3     50       NK     ----    1.00  0.099   2.1882518619909109E-07   5.8473633206149167E-11  -4.8605880842595912E+00   4.1008237381912771E-01   2.5472671149366773E-04 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.606 sec
+| Solution Time                 :      2.337 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :      2.943 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.003 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.004 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 0, "cl": -4.860588084259592, "cd": 0.4100823738191277, "cmz": -0.1912917629496502, "downforce_N_per_m": 4594.273036783737, "drag_N_per_m": 387.6136714811701, "downforce_to_drag": 11.852711539373352, "force_down_N_extruded_span": 229.71365183918684, "residual_initial": 3354673.0814269935, "residual_start": 0.43785698798940575, "residual_final": 0.00025472671149366773, "residual_ratio_initial": 7.593190314250038e-11, "cfd_failed": false, "nk_fallback": false, "feasible": true, "evaluation_wall_time_s": 2.949452238972299, "elapsed_wall_time_s": 9.240468799020164, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.05253405679950227, "maximum_height_m": 0.2224926556213176, "minimum_x_m": -0.05162885375235234, "maximum_x_m": 0.5183282392324805, "maximum_section_thickness_m": 0.04300301812022224, "maximum_section_thickness_over_reference_chord": 0.08600603624044448, "minimum_local_thickness_m": 0.003338558753185597, "minimum_surface_gap_m": 0.003338558753185597, "minimum_te_taper_margin_m": 4.174492615053216e-05, "actual_chord_m": 0.5891792765227968, "chord_incidence_deg": -14.85851844248007, "box_minimum_margin_m": 0.0025340567995022698, "design": {"incidence": [-3.0], "shape_x": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "shape_y": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/baseline/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/baseline/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/baseline/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/baseline/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/baseline/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+#
+# Writing grid file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/best_feasible/flow_000_vol.cgns
+# Grid file(s) written
+#
+#
+# Writing volume solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/best_feasible/flow_000_vol.cgns
+# Volume solution file(s) written
+#
+#
+# Writing surface solution file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/best_feasible/flow_000_surf.cgns
+# Surface solution file(s) written
+#
+#
+# Writing slices file(s): 
+#    /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/best_feasible/flow_000_slices.dat
+# Slices file(s) written
+#
+#
+# Writing tecplot surface file(s):
+#    /home/lingxiao77/AER588/aero588_project/optimizations/ffd10_te8_xmax1.0_gap2mm_20261112/best_feasible/flow_000_surf.plt
+# Tecplot surface file(s) written
+#
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.485 sec
+| Solution Time                 :      1.575 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :      2.060 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.423 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.423 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 1, "cl": -4.860586376039299, "cd": 0.4100823888144719, "cmz": -0.19129182144877632, "downforce_N_per_m": 4594.271422158038, "drag_N_per_m": 387.6136856549088, "downforce_to_drag": 11.852706940405357, "force_down_N_extruded_span": 229.7135711079019, "residual_initial": 3354673.0814269935, "residual_start": 0.00025472671678966927, "residual_final": 2.513988899362869e-05, "residual_ratio_initial": 7.493990735733574e-12, "cfd_failed": false, "nk_fallback": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.0, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 2.4863083219970576, "elapsed_wall_time_s": 12.308837141026743, "incidence_variable_deg": -3.0, "minimum_clearance_m": 0.05253405679950227, "maximum_height_m": 0.2224926556213176, "minimum_x_m": -0.05162885375235234, "maximum_x_m": 0.5183282392324805, "maximum_section_thickness_m": 0.04300301812022224, "maximum_section_thickness_over_reference_chord": 0.08600603624044448, "minimum_local_thickness_m": 0.003338558753185597, "minimum_surface_gap_m": 0.003338558753185597, "minimum_te_taper_margin_m": 4.174492615053216e-05, "actual_chord_m": 0.5891792765227968, "chord_incidence_deg": -14.85851844248007, "box_minimum_margin_m": 0.0025340567995022698, "design": {"incidence": [-3.0], "shape_x": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "shape_y": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}}
+-> Alpha... 0.000000 
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     16.962 sec
+| Total Sensitivity Time - cl_wing:      0.533 sec
+| Adjoint Solve Time - cd_wing  :     14.559 sec
+| Total Sensitivity Time - cd_wing:      0.553 sec
+|
+| Complete Sensitivity Time     :     33.437 sec
++--------------------------------------------------+
+OPT_GRADIENT 2 failed False
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.426 sec
+| Solution Time                 :     18.915 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     19.341 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.417 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.418 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 2, "cl": -4.8707005370127465, "cd": 0.4133877448322016, "cmz": -0.18504415962564627, "downforce_N_per_m": 4603.831421122048, "drag_N_per_m": 390.7379388864063, "downforce_to_drag": 11.782401868226197, "force_down_N_extruded_span": 230.1915710561024, "residual_initial": 3354673.0814269935, "residual_start": 615.161811970526, "residual_final": 3.818628624146161e-05, "residual_ratio_initial": 1.1383012685462072e-11, "cfd_failed": false, "nk_fallback": false, "solves": 1, "stalled_solves": 0, "reached_fraction": 1.0, "distance": 0.09689280950598479, "reach_after": null, "feasible": true, "evaluation_wall_time_s": 19.764635548985098, "elapsed_wall_time_s": 69.87506959802704, "incidence_variable_deg": -3.042495258256767, "minimum_clearance_m": 0.05226616442759512, "maximum_height_m": 0.22303768125723106, "minimum_x_m": -0.0518978959645774, "maximum_x_m": 0.5183941722831025, "maximum_section_thickness_m": 0.04298012527030391, "maximum_section_thickness_over_reference_chord": 0.08596025054060782, "minimum_local_thickness_m": 0.003336227616085391, "minimum_surface_gap_m": 0.003336227616085391, "minimum_te_taper_margin_m": 3.673535982145863e-05, "actual_chord_m": 0.5897094383690551, "chord_incidence_deg": -14.925941995972414, "box_minimum_margin_m": 0.00226616442759512, "design": {"incidence": [-3.042495258256767], "shape_x": [-0.00032260110312080134, -0.0002928342123890164, -0.00013115315823845143, -0.0001074369721274764, -8.041240386263329e-06, 5.793445705567611e-06, -5.663781646330164e-06, 4.554044806927924e-06, -1.1051401310962706e-06, 1.0878062024860028e-06, -1.0242112832712028e-05, -7.441626858962619e-06, -1.0045689807674483e-05, 2.0346014162662754e-06, 7.318054853940281e-05, 5.988553783708039e-05, 0.00023201875754190964, 0.0001909673793683874, 0.0001472682574871504, 0.00017977465863263528], "shape_y": [-0.0002503933336125221, 2.2734410991987672e-05, -0.00025100637949426887, -0.0001854357318318816, -2.0448857767228656e-05, -8.603209851915081e-05, 1.6801675182386702e-05, -6.486802645284862e-05, -1.742155175414921e-05, -0.00010166212167546768, 2.5355298558518935e-05, -9.614320001130932e-05, 2.32212394220764e-05, -0.00010627753947235805, 3.7259514065585297e-05, -1.2290681243601734e-05, 5.682839483910173e-05, 5.024297411480845e-05, 0.00028796886837338865, 0.0003008464696780584]}}
+-> Alpha... 0.000000 
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     11.884 sec
+| Total Sensitivity Time - cl_wing:      0.536 sec
+| Adjoint Solve Time - cd_wing  :      9.351 sec
+| Total Sensitivity Time - cd_wing:      0.529 sec
+|
+| Complete Sensitivity Time     :     23.077 sec
++--------------------------------------------------+
+OPT_GRADIENT 3 failed False
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.424 sec
+| Solution Time                 :     69.907 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     70.331 sec
++--------------------------------------------------+
+STALLED_STEP {"from": 0.0, "to": 1.0, "distance": 0.9999999999999999}
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.419 sec
+| Solution Time                 :     56.265 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     56.684 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++-------------------------------------------------+
+|
+| Solution Timings:
+|
+| Set AeroProblem Time          :      0.454 sec
+| Solution Time                 :     55.459 sec
+| Write Solution Time           :      0.000 sec
+| Stability Parameter Time      :      0.000 sec
+|
+| Total Call Time               :     55.914 sec
++--------------------------------------------------+
+-> Alpha... 0.000000 
++---------------------------------------------------+
+|
+| Function Timings:
+|
+| Function AeroProblem Time     :      0.417 sec
+| Function Evaluation Time      :      0.000 sec
+| User Function Evaluation Time :      0.000 sec
+|
+| Total Function Evaluation Time:      0.418 sec
++--------------------------------------------------+
+OPT_EVAL {"evaluation": 3, "cl": -4.948756384024767, "cd": 0.4355489569652067, "cmz": -0.16028813937913072, "downforce_N_per_m": 4677.610533252935, "drag_N_per_m": 411.68492258470076, "downforce_to_drag": 11.362112811626117, "force_down_N_extruded_span": 233.88052666264676, "residual_initial": 3354673.0814269935, "residual_start": 2911.400960765652, "residual_final": 3.6039448788710674e-05, "residual_ratio_initial": 1.0743058388682214e-11, "cfd_failed": false, "nk_fallback": false, "solves": 3, "stalled_solves": 1, "reached_fraction": 1.0, "distance": 0.9999999999999999, "reach_after": 0.49999999999999994, "feasible": true, "evaluation_wall_time_s": 183.35590180498548, "elapsed_wall_time_s": 280.84537225897657, "incidence_variable_deg": -3.3082526139321997, "minimum_clearance_m": 0.051564784084518235, "maximum_height_m": 0.22760952693881314, "minimum_x_m": -0.05517050915118367, "maximum_x_m": 0.5197618525740473, "maximum_section_thickness_m": 0.04251255165803626, "maximum_section_thickness_over_reference_chord": 0.08502510331607252, "minimum_local_thickness_m": 0.003378379005840414, "minimum_surface_gap_m": 0.003378379005840414, "minimum_te_taper_margin_m": 2.5636836714850505e-05, "actual_chord_m": 0.5955746432249563, "chord_incidence_deg": -15.313685489747012, "box_minimum_margin_m": 0.0015647840845182323, "design": {"incidence": [-3.3082526139321997], "shape_x": [-0.003503503289859565, -0.004404973095506911, -0.0018224519650233157, -0.001773274701895987, -0.0001944173782144884, 3.697900939573413e-05, -0.00011578297550749382, 4.4360306157541554e-05, -2.428060749475964e-05, 1.2556072999643216e-05, -0.00014109741330033143, -0.0001004838485968595, -0.00010158181458689997, 4.746257039536745e-05, 0.0010806357474284023, 0.0008304051616370046, 0.0037248090192430823, 0.002345061008433509, 0.0031306169425650405, 0.0009289612517498934], "shape_y": [-0.0014941900412860762, 0.0013410920282207579, -0.00012421646882873743, -0.0008367346127834605, 0.0007585787500908296, -0.0007511311924879378, 0.0005151016128594996, -0.0007297359835277252, -0.00013589562494993468, -0.001312656386196784, 0.00038664970476977035, -0.0012273401462405303, 6.4067092776029796e-06, -0.0015990629208534337, -0.0002837501742430263, -0.000677402456941983, 0.0005740217287958625, 0.0007203289978027381, 0.0033392017810744486, 0.0036357172373792036]}}
+-> Alpha... 0.000000 
+Solving adjoint: cl_wing
+-> Alpha... 0.000000 
+Solving adjoint: cd_wing
+-> Alpha... 0.000000 
++--------------------------------------------------+
+|
+| Adjoint Times:
+|
+| Adjoint Solve Time - cl_wing  :     12.391 sec
+| Total Sensitivity Time - cl_wing:      0.529 sec
+| Adjoint Solve Time - cd_wing  :      9.435 sec
+| Total Sensitivity Time - cd_wing:      0.528 sec
+|
+| Complete Sensitivity Time     :     23.504 sec
++--------------------------------------------------+
+OPT_GRADIENT 4 failed False
+-> Alpha... 0.000000 
