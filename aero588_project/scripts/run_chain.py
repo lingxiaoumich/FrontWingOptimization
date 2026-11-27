@@ -20,7 +20,9 @@ current run. The hand-over:
 The grid needs replacing when
   - the last --max-failures evaluations all failed, or 6 of the last 8 did,
   - the best C_L c of the PSQP iterates improved by under --min-gain in --stall-minutes (for a run that
-    minimizes the outlet loss under --max-clc: its merit, by under --min-loss-gain; see objective()),
+    minimizes the outlet loss under --max-clc: its merit, by under --min-loss-gain; for one that minimizes the
+    suction peak, --max-clc --min-suction: its merit, by under --min-cp-gain; see objective()), counting only
+    iterates within 1 % of every drag, loss or Cp cap (a run restoring feasibility is not stalled; see iterates()),
   - PSQP exited by itself (a fresh grid also restarts PSQP), or
   - no evaluation finished in --hang-minutes.
 The chain ends when a run gained under --min-gain in all, or its best is not --min-gain better
@@ -49,6 +51,7 @@ HYP = ['{"cMax":1.0,"volSmoothIter":30}', '{"cMax":1.0,"volSmoothIter":0}', '{"c
        '{"cMax":1.0,"volSmoothIter":30,"marchDist":0.03}']  # last: a deeper near grid, which removes orphan cells for some shapes
 C0 = .5  # reference chord: C_L c = C0 * cl
 LOSS_PER_CLC = .1  # merit of a run that minimizes the outlet loss under --max-clc: loss + this x its C_L c shortfall
+CP_PER_CLC = 10.   # merit of a run that minimizes the suction peak (--min-suction): -Cp_min + this x its C_L c shortfall
 # numpy's BLAS would otherwise start a thread per core, on cores the solver is using
 ONE_THREAD = dict(os.environ, OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1', MKL_NUM_THREADS='1')
 
@@ -78,20 +81,41 @@ def objective(run):
     LOSS_PER_CLC x how far C_L c is short of (above) its limit. Near these designs a unit of C_L c costs some
     0.01-0.05 of loss, so the merit is lowest at the constrained optimum, and an iterate still on its way to
     the limit counts as progress."""
-    t = option((run/'command.txt').read_text().split('\n')[0].split(), '--max-clc')
+    cmd = (run/'command.txt').read_text().split('\n')[0].split()
+    t = option(cmd, '--max-clc')
     if t is None: return (lambda r: C0*r['cl']), 'C_L c', 'min_gain'
     t = float(t)
+    if '--min-suction' in cmd:  # -Cp_min scales with the loading (some 2-4 per unit of C_L c), so 10 x the shortfall dominates
+        return (lambda r: -r['cp_min_ks']+CP_PER_CLC*max(0., C0*r['cl']-t)), f'the suction merit (C_L c <= {t:g})', 'min_cp_gain'
     return (lambda r: r['cpt_loss_outlet']+LOSS_PER_CLC*max(0., C0*r['cl']-t)), f'the loss merit (C_L c <= {t:g})', 'min_loss_gain'
 
-def iterates(run):
+NEAR_CAP = 1.01  # an iterate counts for progress only within 1 % of every cap the run imposes
+
+def caps(run):
+    """The caps the run imposes, each as a function of a result record scaled as run_slip_optimization.py
+    scales it (<= 1 within it): drag (--drag-cap caps cd; 1 or more is off), --loss-cap, --cp-min."""
+    cmd = (run/'command.txt').read_text().split('\n')[0].split()
+    out = []
+    d = float(option(cmd, '--drag-cap') or .05)
+    if d < 1 and option(cmd, '--loss-cap') is None and option(cmd, '--max-clc') is None: out.append(lambda r: r['cd']/d)
+    if option(cmd, '--loss-cap') is not None: out.append(lambda r, c=float(option(cmd, '--loss-cap')): r['cpt_loss_outlet']/c)
+    if option(cmd, '--cp-min') is not None: out.append(lambda r, c=float(option(cmd, '--cp-min')): r['cp_min_ks']/c)
+    return out
+
+def iterates(run, near=True):
     """(elapsed s, score) of the saved PSQP iterates. Progress is judged on these, not on strictly
-    feasible evaluations: an iterate can sit microns outside a limit until PSQP converges."""
+    feasible evaluations: an iterate can sit microns outside a limit until PSQP converges. With `near`, only
+    those within NEAR_CAP of every cap: from a start well past a cap (run_041's rotated start had 76 % too much
+    drag) PSQP first trades the objective for feasibility, which is no stall (the lift limit of a --max-clc run
+    is in its merit instead)."""
     score, _, least = objective(run); out = []
+    within = caps(run) if near else []
     for d in (run/'iterates').glob('eval_*'):
         if (d/'design.json').exists():
             r = json.loads((d/'result.json').read_text())
             # a loss run skips the round's start on its unwarped grid: any warp adds 1-4 % to the loss
             if least == 'min_loss_gain' and r.get('zero_deformation', unwarped(r['design'])): continue
+            if any(f(r) > NEAR_CAP for f in within): continue
             out.append((r['elapsed_wall_time_s'], score(r)))
     return sorted(out)
 
@@ -106,6 +130,9 @@ def verdict(run, rows, a):
     if len(rows) >= 8 and sum(failed[-8:]) >= 6:
         return '6 or more of the last 8 evaluations failed'
     its = iterates(run)
+    every = iterates(run, near=False)
+    if not its and every and every[-1][0]-every[0][0] > 4*60*a.stall_minutes:
+        its = every  # still not near the caps after four stall windows: judge on every iterate, as before
     if its:
         now = rows[-1]['elapsed_wall_time_s']
         _, name, least = objective(run); least = getattr(a, least)
@@ -259,6 +286,7 @@ def main():
     p.add_argument('--stall-minutes', type=float, default=30.)
     p.add_argument('--min-gain', type=float, default=.005, help='in C_L c')
     p.add_argument('--min-loss-gain', type=float, default=3e-5, help='in outlet Cpt loss (the merit of a run with --max-clc)')
+    p.add_argument('--min-cp-gain', type=float, default=.01, help='in -Cp_min (the merit of a run with --max-clc --min-suction)')
     p.add_argument('--hang-minutes', type=float, default=60.)
     p.add_argument('--max-runs', type=int, default=12, help='runs this driver may start')
     p.add_argument('--min-free-gb', type=float, default=3., help='free disk below which no new run starts (a run writes up to 1 GB)')
@@ -273,7 +301,7 @@ def main():
         run = runs[-1]
         why, go_on = watch(run, a)
         its = [s for _, s in iterates(run)]
-        _, name, least = objective(run); n = 3 if least == 'min_gain' else 6; least = getattr(a, least)
+        _, name, least = objective(run); n = 6 if least == 'min_loss_gain' else 3; least = getattr(a, least)
         log(f"{run.name}: {why}. Its PSQP iterates went from {name} {its[0]:.{n}f} to {min(its):.{n}f} "
             f"in {len(history(run))} evaluations." if its else f'{run.name}: {why}. No iterate was saved.')
         if not go_on:

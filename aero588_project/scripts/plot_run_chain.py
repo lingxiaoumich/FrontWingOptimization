@@ -73,6 +73,7 @@ c0, box = settings['reference_chord_m'], settings['box_m']
 tmin, te_base, te_angle = settings['min_local_thickness_m'], settings['te_min_thickness_m'], settings['te_min_angle_deg']
 amin = settings.get('min_section_area_m2') or 0.  # m^2; 0 without --min-area
 clc_max = settings.get('max_clc_m')  # with --max-clc the outlet loss is the objective and C_L c <= clc_max a limit
+suction = bool(settings.get('min_suction'))  # with --min-suction too, the suction peak -Cp_min is the objective instead
 
 ramp = ['#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b']
 cmap = LinearSegmentedColormap.from_list('early_to_late', ramp)
@@ -98,8 +99,11 @@ col = lambda e: GRID_COLORS[e['grid'] % len(GRID_COLORS)]
 v = lambda key, S=E: np.array([s[key] for s in S])
 down = lambda S: -c0*v('cl', S)
 # what the run minimizes, as plotted: downforce (up is better), or the outlet loss (down is better)
-obj = (lambda S: v('cpt_loss_outlet', S)) if clc_max is not None else down
-one = lambda h: h['cpt_loss_outlet'] if clc_max is not None else -c0*h['cl']
+obj = ((lambda S: np.array([-s.get('cp_min_ks', np.nan) for s in S])) if suction else
+       (lambda S: v('cpt_loss_outlet', S)) if clc_max is not None else down)
+one = lambda h: -h.get('cp_min_ks', np.nan) if suction else h['cpt_loss_outlet'] if clc_max is not None else -c0*h['cl']
+fmt = '.3f' if suction or clc_max is None else '.5f'
+obj_label = 'Suction peak $-C_{p,min}$ (minimized)' if suction else 'Outlet $C_{pt}$ loss (minimized)' if clc_max is not None else 'Downforce $-C_Lc$'
 
 fig, axs = plt.subplots(2, 3, figsize=(16.5, 9.6)); axs = axs.ravel()
 ax = axs[0]
@@ -115,12 +119,12 @@ for i, r in enumerate(runs[1:], 1):
     if r['grid'] == runs[i-1]['grid'] or NCOL > 1: continue  # a long chain has no room for these labels
     # the same design, re-solved on the fresh grid
     prev = next(h for h in runs[i-1]['H'] if h['evaluation'] == runs[i-1]['its'][-1]); new = r['H'][0]
-    f = '.5f' if clc_max is not None else '.3f'
+    f = fmt
     ax.annotate(f"remesh: {one(prev):{f}} → {one(new):{f}}\n({one(new)/one(prev)-1:+.1%}), same design", (new['t_min'], one(new)),
                 xytext=(8, -26) if new['t_min'] < .6*E[-1]['t_min'] else (-14, 30), ha='left' if new['t_min'] < .6*E[-1]['t_min'] else 'right',
                 textcoords='offset points', fontsize=7.5, color=ink, arrowprops=dict(arrowstyle='->', color=muted, lw=.7))
-ax.annotate(f"{one(I[-1]):{'.5f' if clc_max is not None else '.3f'}}", (I[-1]['t_min'], one(I[-1])), xytext=(-4, 6), textcoords='offset points', ha='right', fontsize=8.5)
-ax.set(xlabel='Wall time, cumulative (min)', ylabel='Outlet $C_{pt}$ loss (minimized)' if clc_max is not None else 'Downforce $-C_Lc$',
+ax.annotate(f"{one(I[-1]):{fmt}}", (I[-1]['t_min'], one(I[-1])), xytext=(-4, 6), textcoords='offset points', ha='right', fontsize=8.5)
+ax.set(xlabel='Wall time, cumulative (min)', ylabel=obj_label,
        title='(a) Progress: PSQP iterates' + (f', downforce $-C_Lc$ ≥ {-clc_max:g} required' if clc_max is not None else ''))
 if clc_max is not None:  # the limit on a second axis: downforce of the same iterates, dashed
     tw = ax.twinx(); tw.spines['right'].set_visible(True)
@@ -185,7 +189,8 @@ xm = max(down(I).max(), 3.4)*1.05; ym = max(c0*v('cd', I).max(), .33)*1.08
 for r in (10, 20, 40):
     x = min(xm*.98, ym*.95*r); ax.text(x, x/r, f'$-L/D$ = {r}', fontsize=7.5, color=muted, ha='right', va='bottom')
 ax.set(xlim=(.4, xm), ylim=(0, ym), xlabel='Downforce $-C_Lc$', ylabel='$C_Dc$',
-       title=f'(e) Drag polar (outlet $C_{{pt}}$ loss minimized, $C_Lc$ ≤ {clc_max:g})' if clc_max is not None else
+       title=f'(e) Drag polar (suction peak minimized, $C_Lc$ ≤ {clc_max:g})' if suction else
+             f'(e) Drag polar (outlet $C_{{pt}}$ loss minimized, $C_Lc$ ≤ {clc_max:g})' if clc_max is not None else
              f'(e) Drag polar (outlet $C_{{pt}}$ loss cap {settings["loss_cap"]:.4f})' if settings.get('loss_cap') else
              f'(e) Drag polar (cap $C_Dc$ = {c0*settings["drag_cap"]:g})')
 ax.legend(fontsize=8, frameon=False, loc='upper left', ncol=NCOL)

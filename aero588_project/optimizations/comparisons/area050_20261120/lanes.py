@@ -8,8 +8,9 @@ The loss caps are fractions of run_016's best design's outlet Cpt loss (as runs 
 run_006's), so those runs wait for run_016's chain to end; lane A writes base_best.json then.
 Every run starts from run_006's start (level NACA 0012 stretched to the box, run_006 r00's flow).
 
-The run folders live on the 4T HD (BIG, below; the root disk is nearly full) and are linked from
-optimizations/. That path has a space, so everything here and in the chain uses the linked paths.
+Runs 016-039 were made on the 4T HD and linked from optimizations/. Since 2026-11-23 the whole repo is on the 4T HD
+(/home/lingxiao77/AER588 links to it), so BIG = O and new runs are plain folders. The real path has a space, so
+everything here and in the chain uses the /home/lingxiao77 paths.
 Run with the MACH-Aero env, detached, helpers on cores 12-63:
   setsid nohup taskset -c 12-63 python -u lanes.py A > lane_A.log 2>&1 &
 """
@@ -23,7 +24,7 @@ from pathlib import Path
 
 P = Path('/home/lingxiao77/AER588/aero588_project')
 O, S, HERE = P/'optimizations', P/'scripts', P/'optimizations/comparisons/area050_20261120'
-BIG = Path('/media/lingxiao77/4T HD/WORK/PHD/AER588/optimizations')
+BIG = O   # was '/media/lingxiao77/4T HD/WORK/PHD/AER588/optimizations' (linked runs) before the repo moved there
 START = O/'run_012_cptLoss075'   # run_006's start: the same grid, coordinates and initial flow (checked)
 A0 = 0.021549464275835817        # m^2, area of that start section
 AMIN = 0.5*A0
@@ -74,7 +75,8 @@ def best_feasible(run):
 def make(name, lane, cap, note):
     link, real = O/name, BIG/name
     if link.exists(): raise RuntimeError(f'{link} exists already')
-    real.mkdir(parents=True); link.symlink_to(real)
+    real.mkdir(parents=True)
+    if real != link: link.symlink_to(real)
     shutil.copytree(START/'grids/r00_level_start', link/'grids/r00_level_start')
     src = link/'r00/source'; src.mkdir(parents=True); (link/'summary').mkdir()
     for f in INPUTS: shutil.copy(START/'r00/source'/f, src/f)
@@ -87,7 +89,7 @@ def make(name, lane, cap, note):
     cores = '12-35' if lane == 'A' else '36-59'
     (root/'command.txt').write_text(cmd + f"\n# {name}: {note}. Initial flow source/restart_vol.cgns = run_006 r00's (converged on this "
                                     f"grid). 24 ranks on cores {cores}, lane {lane} of comparisons/area050_20261120/lanes.py, "
-                                    f"{time.strftime('%c')}. Folder on the 4T HD ({real}), linked from optimizations/\n")
+                                    f"{time.strftime('%c')}. Folder {real}\n")
     return root, cmd
 
 def run(name):

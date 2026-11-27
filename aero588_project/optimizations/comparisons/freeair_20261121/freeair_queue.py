@@ -36,7 +36,8 @@ NAME = 'run_035_area050FreeAir'
 def build(name, lane):
     link, real = L.O/name, L.BIG/name
     if link.exists(): raise RuntimeError(f'{link} exists already')
-    real.mkdir(parents=True); link.symlink_to(real)
+    real.mkdir(parents=True)
+    if real != link: link.symlink_to(real)
     grid = link/'grids/r00_level_freeair'; grid.mkdir(parents=True); (link/'summary').mkdir()
     shutil.copy(L.START/'grids/r00_level_start/source_design.json', grid/'source_design.json')
     (grid/'source.txt').write_text('run_006 level start (grids/r00_level_start/source_design.json), on a free-air grid\n')
@@ -61,7 +62,7 @@ def build(name, lane):
         f"mesh warp, outlet loss plane over y = -5..5 m). The box is unchanged. First solve from freestream (no initial flow fits "
         f"this grid) at the start tilted 1 deg (--first-solve-tilt 1), then walked to the level start: in the 4-rank test the "
         f"level start's symmetric zero-lift flow, solved directly from freestream, stalled near 2e-9 of its initial residual. 24 ranks on cores {cores}, lane {lane} of comparisons/freeair_20261121/freeair_queue.py, {time.strftime('%c')}. "
-        f"Folder on the 4T HD ({real}), linked from optimizations/\n")
+        f"Folder {real}\n")
     return link, root
 
 if __name__ == '__main__':

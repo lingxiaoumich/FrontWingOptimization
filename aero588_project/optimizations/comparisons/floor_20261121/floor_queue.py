@@ -96,7 +96,8 @@ def retry(name, lane):
 def floor(name, h, lane):
     link, real = O/name, BIG/name
     if link.exists(): raise RuntimeError(f'{link} exists already')
-    real.mkdir(parents=True); link.symlink_to(real)
+    real.mkdir(parents=True)
+    if real != link: link.symlink_to(real)
     grid = link/f'grids/r00_level_floor{h*1e4:.0f}'; grid.mkdir(parents=True); (link/'summary').mkdir()
     design = json.loads((START/'grids/r00_level_start/source_design.json').read_text())
     design['shape_y'] = [v-(.05-h) for v in design['shape_y']]  # every control point down: a rigid shift
@@ -128,7 +129,7 @@ def floor(name, h, lane):
         f"instead of 50 mm ({1-h/.05:.0%} less clearance) and the start on that floor. Grid family for the floor: the 25 mm near grid "
         f"with its lines shortened to stay {gap*1e3:g} mm above the ground, background cells {.05*h*1e3:g} mm high up to {h*1e3:g} mm, "
         f"growing 10 % a cell to 2.5 mm. First solve from freestream (no initial flow fits this grid). 24 ranks on cores {cores}, "
-        f"lane {lane} of comparisons/floor_20261121/floor_queue.py, {time.strftime('%c')}. Folder on the 4T HD ({real}), linked from optimizations/\n")
+        f"lane {lane} of comparisons/floor_20261121/floor_queue.py, {time.strftime('%c')}. Folder {real}\n")
     log(f'{name}: started r00 (floor {h*1e3:g} mm, near grid kept {gap*1e3:g} mm above the ground)')
     log(f'{name}: {chain(link, [root], lane)}')
     finish(link, [root], name)

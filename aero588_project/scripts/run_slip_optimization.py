@@ -42,6 +42,8 @@ p.add_argument('--cp-min',type=float,help='lower bound on the wing surface Cp (e
 p.add_argument('--cp-min-rho',type=float,default=100.,help='KS sharpness of --cp-min (ADflow cpMinRho)')
 p.add_argument('--max-clc',type=float,help='m; upper bound on C_L c (upward positive: -1.6 asks for a downforce C_L c of at least '
                '1.6). The objective becomes the outlet Cpt loss (see --outlet-x) instead of C_L; drag and loss caps must be off')
+p.add_argument('--min-suction',action='store_true',help='with --max-clc: minimize the suction peak instead of the outlet loss, '
+               'the objective -Cp_min/CP_SCALE with Cp_min ADflow\'s cpmin (the KS aggregate of --cp-min, sharpness --cp-min-rho)')
 p.add_argument('--first-solve-tilt',type=float,help='deg; with no initial flow (no source/restart_vol.cgns), or when the first solve from it stalls: the first solve, '
                'from freestream, is made at the start design with its incidence lowered by this much, then the start design '
                'is reached from that converged flow by the stalled-solve walk (needs --split-stalled-solves). For the level '
@@ -52,6 +54,18 @@ p.add_argument('--no-ground',action='store_true',help='free air: the grid (remes
                'loss plane spans the full height, y = -5..5 m')
 p.add_argument('--outlet-x',type=float,default=7.3,help='m; plane x=const over the full domain height (outlet at 7.5 m) on '
                'which the mass-averaged Cpt loss (p0_inf - p0)/q_inf is measured')
+p.add_argument('--loss-reference',choices=['freestream','inlet'],default='freestream',
+               help='the total pressure the outlet loss is measured against: p0_inf (freestream), or the mass-averaged p0 of the '
+               'same solution on an upstream plane x = --inlet-x (inlet). The second cancels the solution\'s global pressure '
+               'level, which the low-Mach solve leaves unconverged by some 1e-6 p: up to 3e-5 of Cpt loss (3 %%), a jump '
+               'between nearly equal designs that stops PSQP\'s line search (run_036 r02, 2026-11-25)')
+p.add_argument('--inlet-x',type=float,default=-4.,help='m; the upstream plane of --loss-reference inlet (the inflow face is at -5 m)')
+p.add_argument('--plane-points',choices=['offset','legacy'],default='offset',
+               help='the y points of the loss planes. legacy: every other point lies on a row of background cell centres '
+               '(1.25 mm points, 2.5 mm cells), where ADflow\'s donor search is ambiguous; points there are lost depending on '
+               'the rank count and on round-off in the warped grid: run_039 r06 eval 38 read 0.00420 on 12 ranks and 0.00435 '
+               'on 4, outlet mass flow 16.706 and 16.745 kg/s, against 0.004764 and 16.969 kg/s with offset points on both '
+               '(2026-11-26). offset: the midpoints of the legacy points, plus the two ends')
 # Geometry constraints on the actual surface (0 turns each off)
 p.add_argument('--box',type=float,nargs=4,default=[-.125,.625,.05,.35],metavar=('XMIN','XMAX','YMIN','YMAX'),
                help='m; regulation box that holds every surface vertex')
@@ -73,6 +87,18 @@ p.add_argument('--first-ncycles',type=int,help='nCycles of the first solve, e.g.
 p.add_argument('--l2-convergence',type=float,default=1e-10,help='ADflow L2Convergence: a solve ends once its total residual is below this times the freestream residual of the grid (L2ConvergenceRel stays 1e-10); looser for free air, where solves stall between 1e-9 and 1e-6 of it')
 p.add_argument('--nk-switch-tol',type=float,help='ADflow NKSwitchTol (default 1e-8)')
 p.add_argument('--warp-err-tol',type=float,help='IDWarp errTol (default 5e-4)')
+p.add_argument('--fixed-farfield',action='store_true',
+               help='hold the far-field boundary (family farfield: inlet, outlet, top) in place in the warp: it is a warp '
+               'surface of fixed position next to the airfoil. Without it the far field moves with the wing (only the airfoil '
+               'drives IDWarp), and the warped top boundary picks up local slopes of up to ~7e-3 with many sign changes; the '
+               'far-field BC switches each face between inflow and outflow treatment by the sign of its normal velocity '
+               '(U times that slope there), so the converged flow jumps wherever a face changes over: run_037 r07 eval 172, a '
+               'step of 1e-5 m along PSQP\'s direction raised the loss by 5.1e-7 (2e-4 of it) at once, which trapped PSQP '
+               '(2026-11-26)')
+p.add_argument('--top-tilt',type=float,default=0.,metavar='S',
+               help='with --fixed-farfield: lower the far-field nodes by S (x - x_inlet) (y/y_top)^2 (the top descends at slope S, '
+               'the ground stays), so the top boundary has outflow U S on every face and no face can change over; '
+               'S must exceed the flow\'s own |v|/U and sound-speed term there (~1e-4); 2e-3 drops the top by 25 mm at the outlet')
 p.add_argument('--split-stalled-solves',type=int,default=0,
                help='reach a design whose solve stalls in steps from the last converged one, halving down to 2^-N')
 # Start and output
@@ -90,11 +116,17 @@ if a.loss_cap is not None and not (np.isfinite(a.loss_cap) and a.loss_cap > 0 an
     p.error('--loss-cap must be finite and positive, with the drag cap off (--drag-cap 10)')
 if a.max_clc is not None and not (np.isfinite(a.max_clc) and a.max_clc < 0 and a.loss_cap is None and a.drag_cap >= 1):
     p.error('--max-clc must be a finite negative C_L c, without --loss-cap and with the drag cap off (--drag-cap 10)')
-# The objective: C_L, or with --max-clc the outlet Cpt loss over LOSS_SCALE (order 1, as C_L is)
-LOSS_OBJ = a.max_clc is not None
+if a.min_suction and a.max_clc is None:
+    p.error('--min-suction needs --max-clc (the C_L c limit it is minimized under)')
+# The objective: C_L, or with --max-clc the outlet Cpt loss over LOSS_SCALE, or with --max-clc --min-suction
+# the suction peak -Cp_min over CP_SCALE (each order 1, as C_L is)
+LOSS_OBJ = a.max_clc is not None and not a.min_suction
+CP_OBJ = a.min_suction
 LOSS_SCALE = .005
-# The bounded aerodynamic constraint: drag, the outlet Cpt loss, or C_L c when the loss is the objective
-CAP = 'lift' if LOSS_OBJ else 'loss' if a.loss_cap is not None else 'drag'
+CP_SCALE = 4.
+CPMIN = a.cp_min is not None or CP_OBJ  # ADflow's cpmin is computed
+# The bounded aerodynamic constraint: drag, the outlet Cpt loss, or C_L c when the loss or the suction peak is the objective
+CAP = 'lift' if a.max_clc is not None else 'loss' if a.loss_cap is not None else 'drag'
 if not (np.isfinite(a.l2_convergence) and 0<a.l2_convergence<1e-6):
     p.error('--l2-convergence must be in (0, 1e-6)')
 if a.first_solve_tilt is not None and not (np.isfinite(a.first_solve_tilt) and a.first_solve_tilt and a.split_stalled_solves):
@@ -364,7 +396,7 @@ if a.restart_flow:
 options.update({'ANKCoupledSwitchTol':1e-16,'NKSwitchTol':1e-8,'NKSubspaceSize':400,
                 'NKPCILUFill':4,'NKASMOverlap':3})
 if a.nk_switch_tol is not None:options['NKSwitchTol']=a.nk_switch_tol
-if a.cp_min is not None:options.update({'computeCavitation':True,'cpMinRho':a.cp_min_rho})  # turns on ADflow's cpmin
+if CPMIN:options.update({'computeCavitation':True,'cpMinRho':a.cp_min_rho})  # turns on ADflow's cpmin
 meshoptions={'gridFile':options['gridFile'],
     'symmetryPlanes':([] if a.no_ground else [[[0.,0.,0.],[0.,1.,0.]]])+[[[0.,0.,0.],[0.,0.,1.]],
                       [[0.,0.,span],[0.,0.,1.]]]}
@@ -376,15 +408,23 @@ optimizeroptions=({'ACC':1e-5,'MAXIT':a.maxit,'IPRINT':2,'IFILE':str(root/'SLSQP
  if a.optimizer=='SLSQP' else {'XMAX':a.xmax,'TOLX':1e-6,'TOLC':1e-6,'TOLG':1e-4,
  'MIT':a.maxit,'MFV':a.max_evaluations,'MET':1,'MEC':2,'IPRINT':2,'IFILE':str(root/'PSQP.out')})
 settings={'description':(f'Minimize the outlet Cpt loss with C_L c <= {a.max_clc:g} m' if LOSS_OBJ else
+                f'Minimize the suction peak -Cp_min with C_L c <= {a.max_clc:g} m' if CP_OBJ else
                 'Minimize upward-positive CL with prescribed '+('outlet Cpt loss cap' if CAP=='loss' else 'CD cap'))+
                ('; free air (no ground)' if a.no_ground else '; slip ground'),
  'aerodynamic_constraint':CAP,
- 'objective':f'outlet Cpt loss / {LOSS_SCALE:g}' if LOSS_OBJ else 'cl',
+ 'objective':f'outlet Cpt loss / {LOSS_SCALE:g}' if LOSS_OBJ else f'-cpmin / {CP_SCALE:g}' if CP_OBJ else 'cl',
+ 'min_suction':CP_OBJ,
+ 'cp_min_rho':a.cp_min_rho if CPMIN else None,
  'max_clc_m':a.max_clc,
  'first_solve_tilt_deg':a.first_solve_tilt,'l2_convergence':a.l2_convergence,
- 'lift_constraint':'2 - C_L c / max_clc_m <= 1 (C_L c <= max_clc_m, both negative)' if LOSS_OBJ else None,
- 'outlet_loss':{'plane_x_m':a.outlet_x,'height_m':[-5. if a.no_ground else 0.,5.],'definition':'(p0_inf - mass-averaged p0 on the plane)/q_inf; '
-                'flux form in drag units: that x mdot/(rho_inf V span), m','adflow_functions':['mavgptot','mdot']},
+ 'lift_constraint':'2 - C_L c / max_clc_m <= 1 (C_L c <= max_clc_m, both negative)' if CAP=='lift' else None,
+ 'outlet_loss':{'plane_x_m':a.outlet_x,'height_m':[-5. if a.no_ground else 0.,5.],
+                'definition':('(mass-averaged p0 on the plane x = %g m - mass-averaged p0 on the plane)/q_inf' % a.inlet_x
+                              if a.loss_reference=='inlet' else '(p0_inf - mass-averaged p0 on the plane)/q_inf')+
+                '; flux form in drag units: that x mdot/(rho_inf V span), m','adflow_functions':['mavgptot','mdot'],
+                'reference':a.loss_reference,'inlet_plane_x_m':a.inlet_x if a.loss_reference=='inlet' else None,
+                'plane_points':a.plane_points},
+ 'far_field':{'fixed_in_warp':a.fixed_farfield,'top_tilt':a.top_tilt},
  'reference_chord_m':c0,'reference_area_m2':c0*span,'span_m':span,
  'speed_ms':V,'temperature_K':T,'pressure_Pa':P,'initial_incidence_deg':-3.,
  'incidence_explicit_bounds':None,'shape_explicit_bounds':None,'incidence_fixed':a.fix_incidence,
@@ -420,33 +460,73 @@ outlet_plane=root/'source/outlet_plane.xyz'
 if comm.rank==0:
     yp=np.unique(np.r_[np.linspace(0,.5,401),np.linspace(.5,1.,101),np.linspace(1.,5.,161)])
     if a.no_ground:yp=np.unique(np.r_[-yp,yp])  # the same spacing below y = 0
+    # offset (--plane-points): no point on a row of background cell centres, which are the faces of ADflow's donor
+    # cells (the dual grid); the plane keeps its ends, y = 0 (or -5) and 5
+    if a.plane_points=='offset':yp=np.r_[yp[0],.5*(yp[1:]+yp[:-1]),yp[-1]]
     with outlet_plane.open('w') as f:
         f.write(f'1\n{len(yp)} 2 1\n')
         for coord in [np.full(2*len(yp),a.outlet_x),np.tile(yp,2),np.repeat([0.,span],len(yp))]:
             np.savetxt(f,coord,fmt='%.16e')
+INLET = a.loss_reference=='inlet'
+inlet_plane=root/'source/inlet_plane.xyz'
+if INLET and comm.rank==0:  # the same plane upstream, where no loss has occurred: only the solution's pressure level differs from p0_inf
+    with inlet_plane.open('w') as f:
+        f.write(f'1\n{len(yp)} 2 1\n')
+        for coord in [np.full(2*len(yp),a.inlet_x),np.tile(yp,2),np.repeat([0.,span],len(yp))]:
+            np.savetxt(f,coord,fmt='%.16e')
 comm.Barrier()
 solver.addIntegrationSurface(str(outlet_plane),'outlet_plane',isInflow=False)
+if INLET:solver.addIntegrationSurface(str(inlet_plane),'inlet_plane',isInflow=True)
 solver.finalizeUserIntegrationSurfaces()
+if a.fixed_farfield:
+    # the far field as a warp surface whose nodes ADflow always hands IDWarp at their fixed positions (see --fixed-farfield)
+    solver.addFamilyGroup('warp_surfaces',['airfoil','farfield'])
+    solver.meshFamilyGroup='warp_surfaces'
+    meshoptions['specifiedSurfaces']=['airfoil','farfield']
+elif a.top_tilt:p.error('--top-tilt needs --fixed-farfield')
 solver.setMesh(USMesh(options=meshoptions,comm=comm))
+if a.fixed_farfield:
+    farfield_xyz=np.array(solver.getSurfaceCoordinates('farfield',includeZipper=False),dtype=float)
+    if a.top_tilt:
+        lo=comm.allreduce(farfield_xyz[:,0].min() if len(farfield_xyz) else np.inf,op=MPI.MIN)
+        top=comm.allreduce(farfield_xyz[:,1].max() if len(farfield_xyz) else -np.inf,op=MPI.MAX)
+        farfield_xyz[:,1]-=a.top_tilt*(farfield_xyz[:,0]-lo)*(farfield_xyz[:,1]/top)**2
+    def set_surface_with_farfield(coordinates,groupName=None,_s=solver):
+        # ADflow's setSurfaceCoordinates (it fills the rest of the mesh surface from the current grid), plus the far field
+        # put back at its fixed (tilted) place, so the far field never takes up a design move
+        if _s.mesh is None:return
+        if groupName is None:groupName=_s.allWallsGroup
+        _s._updateGeomInfo=True
+        m=_s.getSurfaceCoordinates(_s.meshFamilyGroup,includeZipper=False)
+        m=_s.mapVector(coordinates,groupName,_s.meshFamilyGroup,m,includeZipper=False)
+        m=_s.mapVector(farfield_xyz,'farfield',_s.meshFamilyGroup,m,includeZipper=False)
+        _s.mesh.setSurfaceCoordinates(m)
+    solver.setSurfaceCoordinates=set_surface_with_farfield
+    set_surface_with_farfield(np.array(solver.getSurfaceCoordinates('airfoil',includeZipper=False)),'airfoil')
 solver.setDVGeo(geo)
 solver.addFamilyGroup('airfoil_only',['airfoil'])
 for f in ['cl','cd','cmz']:
     solver.addFunction(f,'airfoil_only',name=f+'_wing')
 solver.addSlices('z',[span/2],sliceType='absolute',groupName='airfoil_only')
 solver.addFunction('mavgptot','outlet_plane',name='ptot_outlet')
-if a.cp_min is not None:solver.addFunction('cpmin','airfoil_only',name='cpmin_wing')
+if CPMIN:solver.addFunction('cpmin','airfoil_only',name='cpmin_wing')
 solver.addFunction('mdot','outlet_plane',name='mdot_outlet')
+if INLET:solver.addFunction('mavgptot','inlet_plane',name='ptot_inlet')
 ap=AeroProblem(name='wing',V=V,P=P,T=T,alpha=0.,areaRef=c0*span,chordRef=c0,
                xRef=pivot[0],yRef=pivot[1],zRef=span/2,
-               evalFuncs=['cl_wing','cd_wing','cmz_wing','ptot_outlet','mdot_outlet']+(['cpmin_wing'] if a.cp_min is not None else []))
+               evalFuncs=['cl_wing','cd_wing','cmz_wing','ptot_outlet','mdot_outlet']+(['cpmin_wing'] if CPMIN else [])
+               +(['ptot_inlet'] if INLET else []))
 # Freestream total pressure exactly as ADflow forms it (constant gamma, the AeroProblem's P and Mach)
 gamma=ap.gamma
 p0inf=P*(1+(gamma-1)/2*ap.mach**2)**(gamma/(gamma-1))
 qinf=.5*ap.rho*V**2
 def outlet_loss(f):
     """(mass-averaged Cpt loss on the outlet plane, the same loss as a flux in drag units C_D c, m)"""
-    loss=(p0inf-float(f['wing_ptot_outlet']))/qinf
+    loss=((float(f['wing_ptot_inlet']) if INLET else p0inf)-float(f['wing_ptot_outlet']))/qinf
     return loss, loss*float(f['wing_mdot_outlet'])/(ap.rho*V*span)
+def loss_sens(fs, scale):
+    """d(loss)/dx over `scale`, from the adjoints of the plane functions"""
+    return {k:(-np.asarray(v)+(np.asarray(fs['wing_ptot_inlet'][k]) if INLET else 0.))/qinf/scale for k,v in fs['wing_ptot_outlet'].items()}
 # Baseline data only uses the wing force families. The slip wall carries no
 # viscous drag, but pressure forces on the infinite ground are not wing forces.
 count=0
@@ -572,7 +652,7 @@ def objfun(x, force=False):
     cl=float(f['wing_cl_wing']);cd=float(f['wing_cd_wing']);cmz=float(f['wing_cmz_wing'])
     loss,loss_c=outlet_loss(f)
     ri,rs,rf=map(float,solver.getResNorms())
-    cpmin=float(f['wing_cpmin_wing']) if a.cp_min is not None else None
+    cpmin=float(f['wing_cpmin_wing']) if CPMIN else None
     failed=bool(ap.solveFailed or ap.fatalFail or not np.isfinite([cl,cd,cmz,loss]+([cpmin] if cpmin is not None else [])).all())
     if not failed:anchor_state,anchor_x=solver.getStates().copy(),copy.deepcopy(x)
     previous_failed=failed
@@ -587,9 +667,9 @@ def objfun(x, force=False):
         dump(root/'settings.json',settings)
         if comm.rank==0:
             (root/'settings.txt').write_text('CFD AND OPTIMIZER SETTINGS\n\n'+json.dumps(settings,indent=2)+'\n')
-    vals.update({'objective':loss/LOSS_SCALE if LOSS_OBJ else cl,
+    vals.update({'objective':loss/LOSS_SCALE if LOSS_OBJ else -cpmin/CP_SCALE if CP_OBJ else cl,
                  CAP:2-cl*c0/a.max_clc if CAP=='lift' else loss/a.loss_cap if CAP=='loss' else cd/cdcap})
-    if cpmin is not None:vals['cp_min']=cpmin/a.cp_min  # both negative: <= 1 when cpmin >= the limit
+    if a.cp_min is not None:vals['cp_min']=cpmin/a.cp_min  # both negative: <= 1 when cpmin >= the limit
     feasible=bool(not failed and np.min(vals['surface_x'])>=box['xmin']/c0-1e-6
         and np.max(vals['surface_x'])<=box['xmax']/c0+1e-6
         and np.min(vals['surface_y'])>=box['ymin']/c0-1e-6 and np.max(vals['surface_y'])<=box['ymax']/c0+1e-6
@@ -602,6 +682,7 @@ def objfun(x, force=False):
             'cpt_loss_outlet':loss,'cpt_loss_outlet_flux_c_m':loss_c,
             **({'cp_min_ks':cpmin} if cpmin is not None else {}),
             'outlet_ptot_Pa':float(f['wing_ptot_outlet']),'outlet_mdot_kg_s':float(f['wing_mdot_outlet']),
+            **({'inlet_ptot_Pa':float(f['wing_ptot_inlet'])} if INLET else {}),
             'residual_initial':ri,'residual_start':rs,'residual_final':rf,
             'residual_ratio_initial':rf/ri,'cfd_failed':failed,**path,'feasible':feasible,
             'objective_value':float(vals['objective']),'zero_deformation':unwarped(x),
@@ -637,16 +718,20 @@ def sensfun(x, funcs):
         zeros={k:np.zeros((1,len(v))) for k,v in x.items()}
         g.update({'objective':copy.deepcopy(zeros),**{n:copy.deepcopy(zeros) for n in AERO}})
         return g,True
-    fs={};solver.evalFunctionsSens(ap,fs,evalFuncs=['cl_wing','ptot_outlet' if CAP in ('loss','lift') else 'cd_wing']
-                                   +(['cpmin_wing'] if a.cp_min is not None else []))
+    # one adjoint per function: a suction-peak run needs no outlet-loss adjoint
+    fs={};solver.evalFunctionsSens(ap,fs,evalFuncs=['cl_wing']+([] if CP_OBJ else ['ptot_outlet' if CAP in ('loss','lift') else 'cd_wing'])
+                                   +(['ptot_inlet'] if INLET and (LOSS_OBJ or CAP=='loss') else [])+(['cpmin_wing'] if CPMIN else []))
     failed=bool(ap.adjointFailed)
     if failed:raise RuntimeError('Adjoint failed: refusing an unconverged optimization gradient')
     if LOSS_OBJ:
-        g['objective']={k:-np.asarray(v)/qinf/LOSS_SCALE for k,v in fs['wing_ptot_outlet'].items()}
+        g['objective']=loss_sens(fs,LOSS_SCALE)
+        g['lift']={k:-np.asarray(v)*c0/a.max_clc for k,v in fs['wing_cl_wing'].items()}
+    elif CP_OBJ:
+        g['objective']={k:-np.asarray(v)/CP_SCALE for k,v in fs['wing_cpmin_wing'].items()}
         g['lift']={k:-np.asarray(v)*c0/a.max_clc for k,v in fs['wing_cl_wing'].items()}
     else:
         g['objective']={k:np.asarray(v) for k,v in fs['wing_cl_wing'].items()}
-        if CAP=='loss':g['loss']={k:-np.asarray(v)/qinf/a.loss_cap for k,v in fs['wing_ptot_outlet'].items()}
+        if CAP=='loss':g['loss']=loss_sens(fs,a.loss_cap)
         else:g['drag']={k:np.asarray(v)/cdcap for k,v in fs['wing_cd_wing'].items()}
     if a.cp_min is not None:g['cp_min']={k:np.asarray(v)/a.cp_min for k,v in fs['wing_cpmin_wing'].items()}
     if a.save_iterate_flows:
@@ -692,7 +777,7 @@ def derivative_check_verdict(report):
     gated=(('lift',) if LOSS_OBJ else ('objective',) if CAP=='loss' else ('objective',CAP))+tuple(AERO[1:])
     verdict=('passed' if derivative_check_passed(report,names=gated) else
              'passed with a warning: within 50 % but not 5 %' if derivative_check_passed(report,.5,gated) else 'failed')
-    if verdict!='failed' and CAP in ('loss','lift') and not derivative_check_passed(report,names=('objective' if LOSS_OBJ else 'loss',)):
+    if verdict!='failed' and (CAP=='loss' or LOSS_OBJ) and not derivative_check_passed(report,names=('objective' if LOSS_OBJ else 'loss',)):
         verdict+=' (C_L); the outlet loss did not agree, which is report-only'
     return verdict
 

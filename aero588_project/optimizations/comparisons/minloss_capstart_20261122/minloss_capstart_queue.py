@@ -61,7 +61,8 @@ def build(name, t, cp, lane, test=None, rnd='r00', l2=None):
     else:
         link, real = L.O/name, L.BIG/name
         if link.exists(): raise RuntimeError(f'{link} exists already')
-        real.mkdir(parents=True); link.symlink_to(real)
+        real.mkdir(parents=True)
+        if real != link: link.symlink_to(real)
     (link/'summary').mkdir(exist_ok=rnd != 'r00')
     new = RC.prepare(run, link, rnd, [], back)
     if new is None: raise RuntimeError(f'the remesh of {what} failed')
@@ -83,7 +84,7 @@ def build(name, t, cp, lane, test=None, rnd='r00', l2=None):
         + (f', Cp >= {CP}' if cp else '') + f"), but started from the loss-cap design {what} instead of the level start: "
         f"this grid is its remesh (pyHyp {hyp}), source/restart_vol.cgns its flow. 24 ranks on cores {cores}, lane {lane} of "
         f"comparisons/priority_20261121/priority_queue.py via comparisons/minloss_capstart_20261122/minloss_capstart_queue.py, "
-        f"{time.strftime('%c')}." + ('' if test else f' Folder on the 4T HD ({L.BIG/name}), linked from optimizations/') + '\n')
+        f"{time.strftime('%c')}." + ('' if test else f' Folder {L.BIG/name}') + '\n')
     return link, root, what
 
 def run(name, t, cp, lane):

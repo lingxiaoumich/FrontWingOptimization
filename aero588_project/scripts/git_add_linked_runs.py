@@ -1,4 +1,6 @@
 """Stage the small files of run folders that are symlinks (runs on the 4T HD, linked into optimizations/).
+Not needed since 2026-11-23: the whole repo moved to the 4T HD and runs 016-039 are plain folders again,
+so `git add` works on them and this script finds no linked runs.
 
 git does not look past a symlink, so `git add` cannot see these runs. This writes each kept file as a blob
 (git hash-object -w) and adds it to the index at its repository path, marked skip-worktree so the local
