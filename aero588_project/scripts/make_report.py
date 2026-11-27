@@ -1,9 +1,13 @@
-"""Build reports/report_20261122.html: one self-contained page (figures and GIFs embedded as base64), sections behind
-buttons. Numbers come from runs.json (report_gather.py); figures from plot_report.py and plot_chain_gif.py.
-The two photos (comparisons/report_20261122/photo_*.jpg, supplied, third-party) go only into the local copy:
-  python scripts/report_gather.py runs.json
-  python scripts/make_report.py runs.json --no-photos                                  # reports/report_20261122.html (in git)
-  python scripts/make_report.py runs.json --out reports/report_20261122_photos.html    # local, with the photos
+"""Build reports/report_20261127.html: one self-contained page (figures and GIFs embedded as base64), sections behind
+buttons. Numbers come from runs.json (report_gather.py). Figures: plot_report.py for sections 1-7 (unchanged since
+report_20261122, in comparisons/report_20261122/), plot_report_20261127.py for sections 8-9 (comparisons/report_20261127/),
+and the runs' chain GIFs (plot_run_chain.py). From the project folder, in the MACH-Aero env:
+  python scripts/report_gather.py optimizations/comparisons/report_20261127/runs.json
+  python scripts/plot_report_20261127.py optimizations/comparisons/report_20261127/runs.json
+  python scripts/make_report.py optimizations/comparisons/report_20261127/runs.json --no-photos   # reports/report_20261127.html (in git)
+  python scripts/make_report.py optimizations/comparisons/report_20261127/runs.json --out reports/report_20261127_photos.html
+The last copy is local only: the two photos (comparisons/report_20261122/photo_*.jpg) are supplied, third-party.
+The previous version, reports/report_20261122.html, was built by this script as of commit a9171d15.
 """
 import argparse
 import base64
@@ -13,7 +17,8 @@ from pathlib import Path
 
 P = Path(__file__).resolve().parents[1]
 O, CMP = P/'optimizations', P/'optimizations/comparisons/report_20261122'
-ap = argparse.ArgumentParser(); ap.add_argument('runs', type=Path); ap.add_argument('--out', type=Path, default=P/'reports/report_20261122.html')
+CMP2 = P/'optimizations/comparisons/report_20261127'
+ap = argparse.ArgumentParser(); ap.add_argument('runs', type=Path); ap.add_argument('--out', type=Path, default=P/'reports/report_20261127.html')
 ap.add_argument('--no-photos', action='store_true'); A = ap.parse_args()
 OUT = A.out.resolve()
 R = json.loads(A.runs.read_text())
@@ -50,12 +55,49 @@ def hours(run): return f"{R[run]['wall_h']:.1f}"
 
 R16 = 'run_016_area050'
 s16 = R[R16]['start']
-gifs = {k: O/k/'summary/plots/chain_iterates.gif' for k in
+# sections 3-7 keep the GIFs of report_20261122 (four panels, as their captions say), copied out of git (commit a9171d15)
+# into comparisons/report_20261127/gifs/; the chain GIFs were redrawn on 11-25 with a constraint column, twice the size
+gifs = {k: CMP2/'gifs'/f'{k}.gif' for k in
         ['run_016_area050', 'run_029_area050DragCap002', 'run_021_area050CptLoss025', 'run_024_area050Floor12p5mm',
          'run_035_area050FreeAir', 'run_027_area050CpMin4']}
+gifs['run_038_area050MinLossClc14CpMin4CapStart'] = O/'run_038_area050MinLossClc14CpMin4CapStart/summary/plots/chain_iterates.gif'
 
-# ------------------------------------------------------------------ 1 background
+KKTR = [('run_037_area050MinLossClc08CpMin4CapStart', '0.8'), ('run_036_area050MinLossClc10CpMin4CapStart', '1.0'),
+        ('run_039_area050MinLossClc12CpMin4', '1.2'), ('run_038_area050MinLossClc14CpMin4CapStart', '1.4')]
+R38, R39 = KKTR[3][0], KKTR[2][0]
+R40, R41, R42, R27 = 'run_040_area050RotStart', 'run_041_area050DragCap002RotStart', 'run_042_area050MinSuctionClc12CapStart', 'run_027_area050CpMin4'
+R29 = 'run_029_area050DragCap002'
+PUSH = dict(evals=sum(R[r]['kkt_evals'] for r, _ in KKTR), h=sum(R[r]['kkt_wall_h'] for r, _ in KKTR), core_h=sum(R[r]['kkt_core_h'] for r, _ in KKTR))
+ALL = dict(evals=sum(d.get('evals', 0) for d in R.values()), h=sum(d.get('wall_h', 0) for d in R.values()),
+           core_h=sum(d.get('core_h', d.get('wall_h', 0)*(d.get('ranks') or 24)) for d in R.values()))
+NEW = dict(evals=sum(R[r]['evals'] for r in (R40, R41, R42)), h=sum(R[r]['wall_h'] for r in (R40, R41, R42)))
+LABEL = {'lift': 'downforce', 'section_area': 'area', 'cp_min': 'C<sub>p</sub>', 'local_thickness': 'local thickness', 'te_base': 'TE base',
+         'surface_y': 'box top', 'surface_x': 'box ends', 'te_taper': 'TE taper', 'max_thickness': 'max thickness'}
+def active(b):
+    n = {}
+    for name, lam in b['multipliers']:
+        if lam > 1e-3: g = name.split('[')[0]; n[g] = n.get(g, 0)+1
+    return ', '.join(LABEL.get(g, g)+('' if k == 1 else f' &times;{k}') for g, k in n.items())
+def e(v):  # 1.2e-04 -> 1.2&times;10<sup>&minus;4</sup>
+    m, x = f'{v:.1e}'.split('e'); return f'{m}&times;10<sup>&minus;{int(x[1:])}</sup>' if x.startswith('-') else f'{m}e{x}'
+
 S = {}
+S['update'] = ('What is new', f'''
+<p>This version (27 November 2026) adds to the report of 22 November:</p>
+<ul>
+<li><b>Runs 036&ndash;039 converged</b> (section 8). They minimize the wake loss with a downforce limit and
+C<sub>p</sub> &ge; &minus;4. On 22 November run_038 had no feasible design and run_039 had stopped just short of its
+downforce limit. All four were run on until the optimizer&rsquo;s own first-order optimality (KKT) test was met.</li>
+<li><b>The loss measurement was corrected</b> (section 8). Getting there meant fixing how the loss is measured and how
+the far-field boundary moves with the mesh. Loss values up to run_035 (sections 3&ndash;7) use the old measurement,
+which reads 9&ndash;12 % low; values marked &ldquo;corrected&rdquo; use the new one. The two should not be compared.</li>
+<li><b>Runs 040&ndash;042</b> (section 9): a start section already tilted toward the top corner of the box (040, 041),
+and a run that minimizes the suction peak (042).</li>
+<li>Methods, the C<sub>p</sub>-limit section and the conclusion are updated to match. Sections 3&ndash;6 are unchanged
+apart from a note on the loss values.</li>
+</ul>
+''')
+
 S['background'] = ('1 Background', f'''
 <p>A race car front wing works close to the ground. Its main job is downforce: it pushes the front tyres into the road
 for grip. It also sets up the flow for everything behind it (wheels, floor, radiators, rear wing), so a good front wing
@@ -88,7 +130,8 @@ any tilt comes from these moves. A surface point moves with a blend of the contr
 <p>ADflow [8], steady RANS with the Spalart&ndash;Allmaras turbulence model [15] (first-order turbulence advection),
 central differencing with scalar dissipation. Each solve starts with the approximate Newton&ndash;Krylov (ANK) solver
 [9] and finishes with Newton&ndash;Krylov, to a residual 10<sup>&minus;10</sup> times that of free stream (3&times;10<sup>&minus;9</sup>
-in the free-air run, where solves stall near 10<sup>&minus;9</sup>). Flow: 55.6 m/s (200 km/h), sea-level air
+in the free-air run, where solves stall near 10<sup>&minus;9</sup>; 10<sup>&minus;12</sup> in runs 036&ndash;039 from 25
+November, and 10<sup>&minus;13</sup> for the last steps of run_038, section 8). Flow: 55.6 m/s (200 km/h), sea-level air
 (288.15 K, 101,325 Pa), Mach 0.163, Reynolds number 1.9 million on 0.5 m. The 2-D section is a one-cell-thick slice
 (0.05 m) with symmetry planes on both sides.</p>
 <h3>Mesh</h3>
@@ -98,18 +141,24 @@ in the free-air run, where solves stall near 10<sup>&minus;9</sup>). Flow: 55.6 
 the ground ({cells['run_022_area050Floor37p5mm']:,} to {cells['run_024_area050Floor12p5mm']:,} cells); the free-air
 run carries the domain down to y = &minus;5 m (128,616 cells). IDWarp [11] moves the mesh with the design. When the
 mesh wears out (bad cells near the trailing edge), a new O-grid is grown around the latest design and the optimizer
-restarts from it: mesh 0, 1, 2 and so on. A new mesh moves C<sub>L</sub>c by about 2 %, so smaller differences
-between runs are noise.</p>
+restarts from it: mesh 0, 1, 2 and so on. In the runs up to 035 a new mesh moves C<sub>L</sub>c by about 2 %, so
+smaller differences between those runs are noise. Much of that shift probably came from the far-field boundary moving
+with the mesh, which the last meshes of runs 036&ndash;039 no longer do (section 8); there a new mesh at the same design
+moves C<sub>L</sub>c by 0.04&ndash;0.6 %.</p>
 {fig(O/R16/'summary/plots/mesh.png', 'Mesh of the start section (run_016, mesh 0).')}
 <h3>Boundary conditions</h3>
 {table(['boundary', 'condition'], [['wing', 'no-slip wall'], ['ground (y = 0)', 'slip wall (symmetry); stands in for a moving ground, no road boundary layer'],
-      ['outer edges', 'far field at free-stream conditions: 10 chords ahead and above, 14 chords behind (x = 7.5 m)'],
+      ['outer edges', 'far field at free-stream conditions: 10 chords ahead and above, 14 chords behind (x = 7.5 m). In the last meshes of 036&ndash;039 the boundary is held in place when the mesh deforms, and its top is tilted down 0.2 % toward the outlet (section 8)'],
       ['span', 'symmetry planes'], ['free-air run (035)', 'ground replaced by far field 10 chords below']])}
 <h3>Optimizer</h3>
 <p>PSQP, a sequential quadratic programming method with quasi-Newton updates, through pyOptSparse [14]. Gradients:
 ADflow&rsquo;s discrete adjoint for the flow functions [10], pyGeo&rsquo;s analytic derivatives for the geometric ones.
 A derivative check at the start of every mesh compares the adjoint against finite differences. The diagram follows
 the XDSM convention [7] as used in Martins &amp; Ning [6].</p>
+<p>A chain driver ends a mesh when PSQP exits or when the design stops improving for 15 minutes (the stall rule), then
+remeshes, and ends the run when a new mesh no longer helps. So the best designs of runs up to 035 and of 040&ndash;042
+are close to an optimum, not proven optimal. Runs 036&ndash;039 were run without the stall rule until PSQP&rsquo;s
+optimality test was met (section 8).</p>
 {xdsm}
 <h3>Constraints</h3>
 {table(['constraint', 'value', 'runs'], [
@@ -123,7 +172,7 @@ the XDSM convention [7] as used in Martins &amp; Ning [6].</p>
     ['drag C<sub>D</sub>c', '&le; limit', '017, 018, 028, 029'],
     ['outlet C<sub>pt</sub> loss', '&le; limit', '019&ndash;021, 030'],
     ['lowest C<sub>p</sub> on the wing (KS aggregate)', '&ge; limit', '025&ndash;027, 036&ndash;039'],
-    ['downforce &minus;C<sub>L</sub>c (when loss is the objective)', '&ge; limit', '031&ndash;039']])}
+    ['downforce &minus;C<sub>L</sub>c (when loss or suction is the objective)', '&ge; limit', '031&ndash;039, 042']])}
 <p>About 830 constraints in total (289 box points in each of x and y, 220 local thickness, 28 taper, and the rest).
 A design is feasible when it meets all of them to 10<sup>&minus;6</sup>; &ldquo;best feasible&rdquo; below means the best
 such design of a run.</p>
@@ -135,8 +184,10 @@ such design of a run.</p>
     ['PSQP&rsquo;s own work per iteration', '&asymp; 0.05 s (same-size test problem)'],
     ['one optimizer iteration', '&asymp; 75 s, plus line-search solves (1.9 flow solves per gradient)'],
     ['one run (2&ndash;6 meshes)', '1&ndash;7 h'],
-    ['runs 016&ndash;039', '3,068 flow evaluations, 1,653 gradients, 78.5 h, &asymp; 1,900 core-hours'],
-    ['all runs 001&ndash;039', '5,743 flow evaluations, 132 h, &asymp; 4,000 core-hours']])}
+    ['runs 016&ndash;039, up to 22 November', '3,068 flow evaluations, 1,653 gradients, 78.5 h, &asymp; 1,900 core-hours'],
+    ['KKT push of 036&ndash;039, 25&ndash;27 November', f"{PUSH['evals']:,} flow evaluations, {PUSH['h']:.0f} h of run time (four runs at once, 12&ndash;24 cores each), &asymp; {round(PUSH['core_h'], -2):,.0f} core-hours"],
+    ['runs 040&ndash;042', f"{NEW['evals']} flow evaluations, {NEW['h']:.0f} h"],
+    ['all runs 001&ndash;042', f"{ALL['evals']:,} flow evaluations, {ALL['h']:.0f} h, &asymp; {round(ALL['core_h'], -2):,.0f} core-hours"]])}
 <p>Flow solves take two thirds of the time, adjoints most of the rest; the optimizer itself is negligible. Cores: AMD
 EPYC 7601, two runs at once.</p>
 <h3>Metrics</h3>
@@ -145,7 +196,7 @@ EPYC 7601, two runs at once.</p>
     ['drag C<sub>D</sub>c', 'D&prime;/q<sub>&infin;</sub> per unit span (m)'],
     ['pressure coefficient C<sub>p</sub>', '(p &minus; p<sub>&infin;</sub>)/q<sub>&infin;</sub>'],
     ['total-pressure coefficient C<sub>pt</sub>', '(p<sub>0</sub> &minus; p<sub>&infin;</sub>)/q<sub>&infin;</sub>: 1 in clean free stream, lower in wakes'],
-    ['outlet C<sub>pt</sub> loss', 'mass-averaged (p<sub>0&infin;</sub> &minus; p<sub>0</sub>)/q<sub>&infin;</sub> on a vertical plane at x = 7.3 m (14 chords behind), full domain height; shown in % of q<sub>&infin;</sub>'],
+    ['outlet C<sub>pt</sub> loss', 'mass-averaged (p<sub>0&infin;</sub> &minus; p<sub>0</sub>)/q<sub>&infin;</sub> on a vertical plane at x = 7.3 m (14 chords behind), full domain height; shown in % of q<sub>&infin;</sub>. <b>Corrected</b> (runs 036&ndash;039 from 26 November): measured against the mass-averaged p<sub>0</sub> on a plane at x = &minus;4 m of the same solution, with the plane points at cell midpoints. The old values read 9&ndash;12 % low (section 8)'],
     ['section area', '% of the start section (215.5 cm&sup2;)'],
     ['q<sub>&infin;</sub>', f'&frac12;&rho;V&sup2; = {Q:,.0f} Pa']])}
 ''')
@@ -214,9 +265,12 @@ def mlrow(r, t):
 S['loss'] = ('5 Loss limit', f'''
 <p>run_016 with a limit on the outlet C<sub>pt</sub> loss, set as a fraction of run_016&rsquo;s best loss
 ({100*B(R16)['loss']:.2f} %).</p>
+<p><i>Loss values in this section use the old measurement, which reads 9&ndash;12 % low and jumps between nearby
+designs (section 8). Comparisons within the section hold roughly; the values should not be compared with the corrected
+ones of section 8.</i></p>
 {table(['run', 'loss limit', '&minus;C<sub>L</sub>c', 'vs 016', 'C<sub>D</sub>c', 'outlet loss (%)', 'lowest point (mm)', 'area (%)', 'meshes'],
        [[r[4:7], lim if r == R16 else f"{lim} ({100*R[r]['loss_cap']:.2f} %)", dn(r), '&ndash;' if r == R16 else pct(-B(r)['clc'], base), dr(r), ls(r), low(r), area(r), meshes(r)] for r, lim in LOSS])}
-{fig(CMP/'loss_sweep.png', '(a) Downforce against drag; grey: the drag sweep. (b) Downforce against outlet loss; squares: runs that minimize loss with a downforce limit.')}
+{fig(CMP/'loss_sweep.png', '(a) Downforce against drag; grey: the drag sweep. (b) Downforce against outlet loss; squares: runs that minimize loss with a downforce limit (036 and 037 as of 22 November, old measurement; see section 8).')}
 <ul>
 <li>The loss limit is active in every run. Cutting the loss by a quarter costs 5 % of the downforce; by 85 %,
 41 %.</li>
@@ -273,18 +327,132 @@ the whole field sits on the wing, so a limit on the wing covers the field.</p>
 <li>Downforce drops fast: &minus;5 % at &minus;8, &minus;18 % at &minus;6, &minus;37 % at &minus;4. Drag drops with it.</li>
 <li>The area limit stops being active (63&ndash;83 % of the start): without a strong suction peak, a thin section no
 longer helps.</li>
-<li>With C<sub>p</sub> &ge; &minus;4 the downforce stays near 1.4 at most, so a downforce limit of 1.4 with the same
-C<sub>p</sub> limit (run_038) found no feasible design.</li>
+<li>With C<sub>p</sub> &ge; &minus;4, run_027 reaches only {dn(R27)}. Run_038 (least loss with downforce &ge; 1.4 and
+the same C<sub>p</sub> limit) reaches 1.40, the same within the mesh noise, with its lowest point
+{B(R38)['clearance_mm']:.0f} mm above the ground instead of {B(R27)['clearance_mm']:.0f} mm.</li>
 </ul>
-<p>Loss minimized with C<sub>p</sub> &ge; &minus;4 and a downforce limit:</p>
-{table(['run', 'downforce limit', '&minus;C<sub>L</sub>c', 'outlet loss (%)', 'C<sub>D</sub>c', 'feasible design'],
-       [[r[4:7], t] + ([dn(r), ls(r), dr(r), 'yes'+(' (still running)' if R[r].get('running') else '')] if R[r].get('best') else
-         ['&ndash;', '&ndash;', '&ndash;', 'no (stopped 0.1 % short of the downforce limit)' if r.startswith('run_039') else 'no']) for r, t in CPML])}
+<p>Loss minimized with C<sub>p</sub> &ge; &minus;4 and a downforce limit (runs 036&ndash;039, at their KKT points,
+section 8). On 22 November run_038 had no feasible design and run_039 had stopped 0.1 % short of its downforce limit.</p>
+{table(['run', 'downforce limit', '&minus;C<sub>L</sub>c', 'outlet loss (%, corrected)', 'C<sub>D</sub>c', 'lowest C<sub>p</sub> (KS)'],
+       [[r[4:7], t, f"{-B(r)['clc']:.2f}", f"{100*B(r)['loss']:.3f}", f"{B(r)['cdc']:.4f}", f"{B(r)['cp_min_ks']:.2f}"] for r, t in sorted(CPML, key=lambda q: q[1])])}
 {fig(CMP/'contact_cpmin.png', 'Best feasible sections, on the same grid in every panel.')}
 {fig(gifs['run_027_area050CpMin4'], 'run_027 (C<sub>p</sub> &ge; &minus;4).')}
 ''')
 
-# ------------------------------------------------------------------ 8 misc
+# ------------------------------------------------------------------ 8 KKT
+def krow(lab, lim, b, meshes_evals):
+    return [lab, lim, f"{-b['clc']:.3f}", f"{b['cdc']:.4f}", f"{100*b['loss']:.3f}", f"{b['cp_min_ks']:.2f}", f"{b['clearance_mm']:.0f}",
+            active(b), e(b['psqp_g']), e(b['kkt_residual']), meshes_evals]
+KROWS = [krow(r[4:7], t, B(r), f"{R[r]['kkt_rounds']} / {R[r]['kkt_evals']}") for r, t in KKTR]
+alt38 = R[R38]['kkt_alternatives'][0]
+KROWS.append(krow('038, second point', '1.4', alt38, '(5 mm branch)'))
+loss_lo, loss_hi = 100*B(KKTR[0][0])['loss'], 100*B(R38)['loss']
+clr = sorted(B(r)['clearance_mm'] for r, _ in KKTR)
+S['kkt'] = ('8 Converging to KKT (036&ndash;039)', f'''
+<p>Runs 036&ndash;039 minimize the outlet loss with a downforce limit (0.8, 1.0, 1.2, 1.4) and C<sub>p</sub> &ge; &minus;4.
+By 22 November none had ended on its own: the stall rule ended every mesh, and run_038 had no feasible design. From 25
+to 27 November they were run on, without the stall rule, until PSQP&rsquo;s own optimality test was met: the largest
+component of the gradient of the Lagrangian (in the scaled design variables) at most 10<sup>&minus;4</sup>, with every
+constraint met to 10<sup>&minus;6</sup>. These are the first-order (KKT) conditions: no small change of the shape that
+keeps the active limits can lower the loss.</p>
+<h3>Results</h3>
+{table(['run', 'downforce limit', '&minus;C<sub>L</sub>c', 'C<sub>D</sub>c', 'loss (%, corrected)', 'lowest C<sub>p</sub> (KS)',
+        'lowest point (mm)', 'at a limit (multiplier &gt; 0.001)', 'PSQP G', 'independent check', 'meshes / evaluations in the push'], KROWS)}
+<p>&ldquo;Independent check&rdquo;: the KKT residual recomputed from the stored gradients, with sign-constrained
+multipliers fitted by least squares (scripts/kkt_residual.py). It agrees with PSQP within the tolerance; for run_038 it
+gives {e(B(R38)['kkt_residual'])}, at the tolerance rather than inside it.</p>
+{fig(CMP2/'kkt_sections.png', 'The KKT designs.')}
+{fig(CMP2/'kkt_results.png', '(a) Loss at the KKT point, corrected measurement. (b) The KKT designs against the drag sweep of section 4 and run_027. (c) Suction-side C<sub>p</sub>.')}
+<ul>
+<li>All four meet the downforce limit exactly, sit on the 50 % area limit, and put the trailing edge in the top corner
+of the box. The lowest point is {clr[0]:.0f}&ndash;{clr[-1]:.0f} mm above the ground, far from the 50 mm floor: with
+downforce limited rather than maximized, the least-loss wing stays away from the ground.</li>
+<li>The loss rises with the downforce limit, from {loss_lo:.2f} % at 0.8 to {loss_hi:.2f} % at 1.4.</li>
+<li>The C<sub>p</sub> limit is active only at 1.2 and 1.4 (039, 038), where the suction side shows the plateau at
+&minus;4 seen in section 7. At 0.8 and 1.0 the peak stays at {B(KKTR[0][0])['cp_min_ks']:.1f} and {B(KKTR[1][0])['cp_min_ks']:.1f}.</li>
+<li>In the downforce&ndash;drag plane the KKT designs lie on or just below the drag sweep: run_038 makes 1.40 at
+C<sub>D</sub>c {B(R38)['cdc']:.4f}, against {dn(R29)} at {B(R29)['cdc']:.4f} for run_029 (drag limit 0.02). Least
+loss and least drag give nearly the same design here, as the loss and drag limits did in section 5.</li>
+<li>Run_038 has two KKT points, {100*B(R38)['loss']:.3f} % and {100*alt38['loss']:.3f} %, with different thickness
+stations at their limits; the lower is reported. With about 830 constraints and up to 75 near a bound, more than one
+local optimum is to be expected.</li>
+</ul>
+<h3>What stopped them, and the fixes</h3>
+<p>Near an optimum the loss differs between the trial points of a line search by as little as 10<sup>&minus;7</sup> of
+its value. Any error in the loss that jumps by that much between nearby designs stops the optimizer: PSQP rejects the step,
+shortens it, and finally gives up (exit &minus;6). Four such errors were found and removed, in this order.</p>
+{table(['problem', 'what it did', 'fix'], [
+ ['pressure level', 'the loss jumped by up to 3 % between designs 10<sup>&minus;8</sup> m apart. Part of it was the overall pressure level of the field, which the low-Mach solve leaves slightly unconverged and which moves with the design; most of it turned out to be the loss planes (next row)',
+  'loss measured against the mass-averaged total pressure on an upstream plane (x = &minus;4 m) of the same solution; solves to 10<sup>&minus;12</sup> instead of 10<sup>&minus;10</sup>. At the KKT designs that plane is within 0.4 Pa of the free-stream value, so the reference itself changes the loss by under 0.0002'],
+ ['loss-plane points', 'every other point of the outlet and inlet planes (1.25 mm apart, over 2.5 mm cells) sat exactly on a row of background cell centres. Whether ADflow found those points depended on round-off and on the number of MPI ranks. The loss read 9&ndash;12 % low, by an amount that changed with tiny design changes',
+  'points moved to the cell midpoints. The same saved flow then reads the same on 4 and 12 ranks (0.004764) and matches an independent integration of the field (0.00477)'],
+ ['far field moving with the wing', 'the mesh deformation (IDWarp) moves every node of the background grid, so the domain boundary moved with the wing, by up to 56 mm within a mesh. The far-field condition treats each boundary face as inflow or outflow by the sign of the local normal velocity, so faces on the top boundary switched as the design changed, and the converged flow jumped (figure below, a). PSQP sat in a &ldquo;pocket&rdquo;: every trial point read worse than the current design',
+  'the far-field boundary is held in place in the deformation, and its top is tilted down by 0.2 % toward the outlet so every top face is an outflow. The replay is then smooth (a). Holding it changes the result little near a mesh&rsquo;s start and more further on: 1.3 % less loss and 0.25 % more downforce for run_037 at 30 mm from its mesh&rsquo;s start'],
+ ['solver tolerance (038)', 'with solves to 10<sup>&minus;12</sup> the loss still scattered by 3&times;10<sup>&minus;7</sup> of its value when nearby designs were solved in sequence (b): as large as the gain left near the optimum. Both 038 branches ended their line searches there',
+  'solves to 10<sup>&minus;13</sup> (scatter 1&ndash;3&times;10<sup>&minus;8</sup>, solves 10&ndash;25 % longer), continued on the same mesh. Both branches then met the test within 2 iterations']])}
+{fig(CMP2/'replays.png', 'Replays. (a) The failed line search of run_037 mesh 7, evaluation 172, solved again with the old far field (orange) and with the far field held (blue). (b) Near 038&rsquo;s KKT point, a 0.36 mm segment solved point after point, each solve starting from the previous one, to 10<sup>&minus;12</sup> (orange) and 10<sup>&minus;13</sup> (blue).')}
+<p><b>Step length (038).</b> At downforce 1.4 the C<sub>p</sub> limit is strongly curved: the slope of the KS aggregate
+changes by 20 % over 0.2 mm. With steps of up to 10 mm (PSQP&rsquo;s XMAX 1.0 in the scaled variables, used by all four
+runs) each step&rsquo;s linear prediction put C<sub>p</sub> on its limit while the solved C<sub>p</sub> missed by
+0.06&ndash;0.16, and the next step spent itself undoing the miss: 038 cycled, never feasible, for 40 iterations over two
+meshes. Steps of at most 0.5 mm cured it (misses below 10<sup>&minus;3</sup>) at the cost of slow travel. Once the path
+was straight, branches with 2 mm and 5 mm steps covered the rest faster; both 038 KKT points come from them.</p>
+{fig(CMP2/'kkt_history.png', 'The push, 25&ndash;27 November: (a) loss and (b) PSQP&rsquo;s G of every iterate; one line per mesh. Circled numbers: the changes, in order (listed under the plot). The loss definition changes at 1 and 3, so the levels on either side are not comparable.')}
+<p>Cost: {PUSH['evals']:,} flow evaluations and {PUSH['h']:.0f} h of run time over the four runs (run at the same time on
+12&ndash;24 cores each), about {round(PUSH['core_h'], -2):,.0f} core-hours; run_038 alone {R[R38]['kkt_evals']:,} evaluations.</p>
+<h3>What this means for the other results</h3>
+<ul>
+<li><b>Loss values</b> up to run_035 (sections 3&ndash;7) use the old plane points and read 9&ndash;12 % low, by an
+amount that varies with the design. Comparisons within those sections hold roughly. Re-evaluating the saved best designs
+with the corrected planes would put them on the same footing as this section.</li>
+<li><b>Runs that optimized the loss</b> (019&ndash;021 and 030 with a loss limit, 031&ndash;034 minimizing it)
+optimized the flawed measurement, and their line searches stopped on its jumps.</li>
+<li><b>Downforce, drag and C<sub>p</sub></b> do not depend on the loss planes. The far-field drift affects them a
+little: it grows within a mesh and resets at each new one, which probably explains much of the ~2 % shift of
+C<sub>L</sub>c at a new mesh (section 2). With the far field held, three remeshes of run_038 at fixed designs moved
+C<sub>L</sub>c by 0.04&ndash;0.6 % and the loss by 0.1&ndash;0.6 %.</li>
+</ul>
+{fig(gifs[R38], 'run_038, every optimizer iteration from its first mesh to the KKT point (its main chain, then the 2 mm branch), in the newer layout: (a) C<sub>pt</sub>, (b) C<sub>p</sub> with the surface C<sub>p</sub> inset, (c) section with its FFD control points and the surface sensitivity of the loss (maize teeth: the way a surface move lowers it), (d) downforce against drag, (e) every constraint as the share of its limit used (blue: on the limit, maize: past it).')}
+''')
+
+# ------------------------------------------------------------------ 9 rotated start, least suction
+b42 = B(R42); s42 = json.loads((O/R42/'r00/baseline/result.json').read_text()); l41 = R[R41]['last']
+S['rotsuction'] = ('9 Rotated start, least suction (040&ndash;042)', f'''
+<h3>Rotated start (040, 041)</h3>
+<p>Most remeshes in runs 016&ndash;029 come from the trailing edge turning up into the top corner of the box: the mesh
+deformation folds cells as the tail rotates. Runs 040 and 041 start instead from the level NACA 0012 rotated 8.3&deg;
+nose down (and scaled by 1.01) so that it still spans the box, its nose touches the floor and its trailing edge sits at
+2/3 of the box height. Run_040 has run_016&rsquo;s limits, run_041 run_029&rsquo;s (C<sub>D</sub>c &le; 0.02).</p>
+{table(['run', 'start', 'limits', '&minus;C<sub>L</sub>c', 'C<sub>D</sub>c', 'meshes', 'hours'], [
+    ['016', 'level', 'no drag limit', dn(R16), dr(R16), meshes(R16), hours(R16)],
+    ['040', 'rotated', 'as 016', dn(R40), dr(R40), meshes(R40), hours(R40)],
+    ['029', 'level', 'C<sub>D</sub>c &le; 0.02', dn(R29), dr(R29), meshes(R29), hours(R29)],
+    ['041', 'rotated', 'as 029', f"{-l41['clc']:.2f} (last iterate, outside the drag limit)", f"{l41['cdc']:.4f}", meshes(R41), hours(R41)]])}
+{fig(CMP2/'rotsuction.png', '(a) Level and rotated start. (b) Best designs of 016 and 040, same limits. (c, d) Run_042: start and least-suction design, sections and surface C<sub>p</sub>; dotted in (d): 039, the least-loss design at the same downforce with C<sub>p</sub> &ge; &minus;4.')}
+<ul>
+<li>Run_040 ends at the same design as run_016 ({-B(R40)['clc']:.3f} against {-B(R16)['clc']:.3f}), with one remesh fewer, and neither of its
+remeshes came from a failed mesh. The optimum curls the tail up about 72&deg;, far beyond the start&rsquo;s 8&deg;, so
+a rotated start delays mesh failure but does not remove remeshing.</li>
+<li>Run_041 was ended by the stall rule after 6 optimizer iterations, still outside its drag limit, at
+&minus;C<sub>L</sub>c {-l41['clc']:.2f} against {dn(R29)} for run_029. It is inconclusive and was not continued.</li>
+</ul>
+<h3>Least suction peak (042)</h3>
+<p>Run_042 minimizes the suction peak (raises the lowest C<sub>p</sub>, KS aggregate) with downforce &ge; 1.2, starting
+from run_027&rsquo;s best design on a new mesh.</p>
+{table(['', '&minus;C<sub>L</sub>c', 'C<sub>D</sub>c', 'lowest C<sub>p</sub> (KS)', 'area (%)', 'lowest point (mm)'], [
+    ['start (027 best, new mesh)', f"{-0.5*s42['cl']:.2f}", f"{0.5*s42['cd']:.3f}", f"{s42['cp_min_ks']:.2f}", f"{100*s42['section_area_m2']/A0:.0f}", f"{1e3*s42['minimum_clearance_m']:.0f}"],
+    ['042 best', dn(R42), dr(R42), f"{b42['cp_min_ks']:.2f}", area(R42), low(R42)],
+    ['039 KKT (least loss, C<sub>p</sub> &ge; &minus;4)', dn(R39), f"{B(R39)['cdc']:.3f}", f"{B(R39)['cp_min_ks']:.2f}", area(R39), low(R39)]])}
+<ul>
+<li>The peak rises from {s42['cp_min_ks']:.2f} to {b42['cp_min_ks']:.2f} at the downforce limit: the suction side
+becomes a flat plateau near &minus;2.2 over most of the chord, ending in a steep pressure rise near the trailing edge.</li>
+<li>It costs drag: C<sub>D</sub>c {b42['cdc']:.3f} against {0.5*s42['cd']:.3f} at the start and {B(R39)['cdc']:.3f}
+for run_039, which reaches the same downforce with C<sub>p</sub> &ge; &minus;4 at about a seventh of the drag. A mild
+peak alone is a poor goal; a C<sub>p</sub> limit with a loss or drag objective does better.</li>
+</ul>
+''')
+
+# ------------------------------------------------------------------ 10 misc
 MISC = [('run_001_baseline', 'large box (x &minus;125&hellip;625, y 50&hellip;350 mm), 10 pairs, x + y moves, tilt free, NACA 0012 at 3&deg;'),
         ('run_002_reducedBox', 'as 001 in the final box'),
         ('run_003_ffd20Pairs', 'as 002 with 20 pairs'),
@@ -296,7 +464,7 @@ def mrow(r, desc):
     b_ = B(r); ar = '&ndash;' if b_['area_pct'] is None else f"{b_['area_pct']:.0f}"
     return [r[4:7], desc, dn(r), dr(r), ar, meshes(r), hours(r)]
 a006 = 'about 14'
-S['misc'] = ('8 Other runs', f'''
+S['misc'] = ('10 Other runs', f'''
 <p>Runs from before run_016 that changed the setup, and what they showed.</p>
 {table(['run', 'setup', '&minus;C<sub>L</sub>c', 'C<sub>D</sub>c', 'area (%)', 'meshes', 'hours'], [mrow(r, d) for r, d in MISC])}
 <ul>
@@ -314,8 +482,8 @@ the mesh twice as fast.</li>
 {fig(CMP/'contact_misc.png', 'Best feasible sections. The x + y runs (003, 011, 007) end with a thin section and a near-vertical flap at the trailing edge.')}
 ''')
 
-# ------------------------------------------------------------------ 9 conclusion
-S['conclusion'] = ('9 Conclusion', f'''
+# ------------------------------------------------------------------ 11 conclusion
+S['conclusion'] = ('11 Conclusion', f'''
 <ul>
 <li>From a level NACA 0012, the optimizer finds a thin section with its nose on the box floor and a steep,
 Gurney-like turn at the trailing edge: downforce {-s16['clc']:.2f} &rarr; {dn(R16)}.</li>
@@ -324,9 +492,18 @@ the same trade. Under a drag limit the wing rises off the floor.</li>
 <li>Lowering the floor helps down to about 25 mm, then hurts, as Zerihan and Zhang found [3]. In free air the same setup
 makes {100*B(FR)['clc']/B(R16)['clc']:.0f} % of the downforce.</li>
 <li>A C<sub>p</sub> limit flattens the suction peak and costs downforce fast (&minus;37 % at &minus;4).</li>
+<li>With the loss as the objective, a downforce limit and C<sub>p</sub> &ge; &minus;4, all four runs (036&ndash;039) now
+end at verified first-order optima: the loss rises from {loss_lo:.2f} % at downforce 0.8 to {loss_hi:.2f} % at 1.4
+(corrected measurement), the C<sub>p</sub> limit binds from 1.2 up, and the designs lie on or near the drag front.</li>
+<li>Getting there took fixing the measurement, not the optimizer: loss-plane points on cell-centre rows (9&ndash;12 % low),
+a far-field boundary that moved with the mesh, and the solver tolerance. Loss values up to run_035 should be
+re-evaluated before they are compared with the corrected ones.</li>
+<li>A start tilted toward the top corner reaches the same optimum as the level start with one remesh fewer; it does not
+remove remeshing. Minimizing the suction peak alone flattens it to &minus;2.2 at about seven times the drag of the
+least-loss design.</li>
 <li>The suction side and the trailing edge set the downforce; the top surface matters little and varies between runs.</li>
 <li>Some surfaces come out wavy. A curvature limit would be the next step toward designs that can be built.</li>
-<li>A new mesh moves the results by about 2 %; smaller differences are noise.</li>
+<li>A new mesh moved the results of runs up to 035 by about 2 %; with the far field held it moves them by under 1 %.</li>
 <li>One optimizer iteration takes about 75 s on 24 cores, two thirds in flow solves; the optimizer&rsquo;s own work is
 negligible.</li>
 </ul>
@@ -383,7 +560,8 @@ svg.xdsm {{ width:100%; max-width:900px; height:auto; display:block; margin:10px
 </style></head>
 <body>
 <header><h1>Front wing in ground effect: shape optimization</h1>
-<p>2-D section in a regulation box, RANS CFD with adjoint gradients (MACH-Aero). Runs 001&ndash;039, November 2026.</p></header>
+<p>2-D section in a regulation box, RANS CFD with adjoint gradients (MACH-Aero). Runs 001&ndash;042, November 2026;
+updated 27 November.</p></header>
 <nav><div>{nav}</div></nav>
 <main>{secs}<div class="pager"><button id="prev">&larr; previous</button><button id="next">next &rarr;</button></div></main>
 <script>
